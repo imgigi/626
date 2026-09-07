@@ -1,0 +1,372 @@
+---
+title: "Hands-on Exercise 3: Spatio-Temporal Point Patterns Analysis"
+author: "Ji Guofang"
+date: "last-modified"
+date-modified: "last-modified"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-expand: true
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: auto
+editor: visual
+---
+
+## Overview
+
+A spatio-temporal point process — also called a space-time or spatial-temporal point process — is a random collection of points where each point represents the **time and location** of an event. Examples include the incidence of disease, sightings or births of a species, and the occurrence of fires, earthquakes, lightning strikes, tsunamis or volcanic eruptions.
+
+The analysis of spatio-temporal point patterns is becoming increasingly necessary given the rapid emergence of geographically and temporally indexed data. This exercise combines several R packages to run a set of spatio-temporal point pattern analyses, using real-world forest fire events in Kepulauan Bangka Belitung, Indonesia from 1 January 2023 to 31 December 2023.
+
+## Learning Outcome
+
+### The research questions
+
+The specific questions to be answered are:
+
+- Are the locations of forest fire in Kepulauan Bangka Belitung spatially and spatio-temporally independent?
+- If the answer is NO, where and when do the observed forest fire locations tend to cluster?
+
+## The Data
+
+Two data sets are used:
+
+| Dataset | Description | Source |
+|----|----|----|
+| `forestfires.csv` | Locations of forest fires detected by the Moderate Resolution Imaging Spectroradiometer (MODIS) sensor. Only fires within Kepulauan Bangka Belitung are used. | [FIRMS](https://firms.modaps.eosdis.nasa.gov/) |
+| `Kepulauan_Bangka_Belitung` | ESRI shapefile of the sub-district (kelurahan) boundaries of Kepulauan Bangka Belitung | Indonesia Geospatial portal |
+
+## Installing and Loading the R Packages
+
+Six packages are used:
+
+| Package | Role |
+|----|----|
+| **sf** | Importing, processing and wrangling geospatial data |
+| **raster** | Handling raster data in R |
+| **spatstat** | Spatial point patterns analysis |
+| **sparr** | Fixed and adaptive kernel-smoothed spatial relative risk surfaces, and fixed-bandwidth spatio-temporal density estimation |
+| **tmap** | Cartographic quality thematic maps |
+| **tidyverse** | Data import, transformation, wrangling and visualisation |
+
+**stpp** is added to the list for the space-time K-function in the final section.
+
+```{r}
+pacman::p_load(sf, raster, spatstat, sparr, stpp, tmap, tidyverse)
+```
+
+::: callout-note
+**raster** appears in the textbook's package list but no raster object is created anywhere in this chapter — the density surfaces stay as `sparr` objects and are drawn with base `plot()`. It is loaded here for consistency with the textbook, not because it is needed.
+:::
+
+## Importing and Preparing Study Area
+
+### Importing study area
+
+The shapefile is imported, dissolved into a single outline with `st_union()`, stripped of its Z dimension, and reprojected to **WGS 84 / UTM zone 48S** (EPSG: 32748), the projected system appropriate for this part of Indonesia:
+
+```{r}
+kbb_sf <- st_read(dsn = "data/rawdata",
+                  layer = "Kepulauan_Bangka_Belitung") %>%
+  st_union() %>%
+  st_zm(drop = TRUE, what = "ZM") %>%
+  st_transform(crs = 32748)
+```
+
+`st_union()` matters here. The observation window for a point pattern must be a single region, not a collection of several hundred sub-district polygons, so the boundaries are dissolved before conversion.
+
+### Converting to owin
+
+`as.owin()` converts `kbb_sf` into an `owin` object:
+
+```{r}
+kbb_owin <- as.owin(kbb_sf)
+kbb_owin
+```
+
+`class()` confirms the output is indeed an `owin` object:
+
+```{r}
+class(kbb_owin)
+```
+
+## Importing and Preparing Forest Fire Data
+
+The CSV carries longitude and latitude as ordinary columns, so `st_as_sf()` is used to build the geometry, declaring the coordinates as wgs84 before reprojecting to match the study area:
+
+```{r}
+fire_sf <- read_csv("data/rawdata/forestfires.csv") %>%
+  st_as_sf(coords = c("longitude", "latitude"),
+           crs = 4326) %>%
+  st_transform(crs = 32748)
+```
+
+A `ppp` object accepts only numeric or character values as marks, so the acquisition date is converted into three separate numeric and factor fields:
+
+```{r}
+fire_sf <- fire_sf %>%
+  mutate(DayofYear = yday(acq_date)) %>%
+  mutate(Month_num = month(acq_date)) %>%
+  mutate(Month_fac = month(acq_date,
+                           label = TRUE,
+                           abbr = FALSE))
+```
+
+## Visualising the Fire Points
+
+### Overall plot
+
+```{r}
+#| fig-width: 9
+
+tm_shape(kbb_sf) +
+  tm_polygons(fill = "grey95", col = "grey60", lwd = 0.5) +
+  tm_shape(fire_sf) +
+  tm_dots(size = 0.15, fill = "firebrick", fill_alpha = 0.6) +
+  tm_title("Forest fire detections, Kepulauan Bangka Belitung, 2023")
+```
+
+### Visualising geographic distribution of forest fires by month
+
+`tm_facets()` splits the same map by the month factor, so the seasonal movement of the fires becomes visible:
+
+```{r}
+#| fig-width: 11
+#| fig-height: 9
+
+tm_shape(kbb_sf) +
+  tm_polygons(fill = "grey95", col = "grey70", lwd = 0.4) +
+  tm_shape(fire_sf) +
+  tm_dots(size = 0.1, fill = "firebrick", fill_alpha = 0.6) +
+  tm_facets_wrap(by = "Month_fac",
+                 ncol = 4,
+                 free.coords = FALSE,
+                 drop.units = TRUE)
+```
+
+## Computing STKDE by Month
+
+This section computes the spatio-temporal KDE using `spattemp.density()` of the **sparr** package.
+
+### Extracting forest fires by month
+
+`as.ppp()` needs only the mark field and the geometry field, so the unwanted columns are dropped first:
+
+```{r}
+fire_month <- fire_sf %>%
+  select(Month_num)
+```
+
+### Creating ppp
+
+```{r}
+fire_month_ppp <- as.ppp(fire_month)
+fire_month_ppp
+```
+
+```{r}
+summary(fire_month_ppp)
+```
+
+Checking for duplicated point events:
+
+```{r}
+any(duplicated(fire_month_ppp))
+```
+
+### Including owin object
+
+Combining the point events with the study area window:
+
+```{r}
+fire_month_owin <- fire_month_ppp[kbb_owin]
+summary(fire_month_owin)
+```
+
+Plotting the result to confirm it is correct:
+
+```{r}
+#| fig-width: 8
+plot(fire_month_owin)
+```
+
+### Computing spatio-temporal KDE
+
+`spattemp.density()` estimates the density over space and time jointly. With no bandwidths supplied it selects both automatically — an isotropic spatial bandwidth `h` and a temporal bandwidth `lambda`:
+
+```{r}
+st_kde <- spattemp.density(fire_month_owin)
+summary(st_kde)
+```
+
+### Plotting the spatio-temporal KDE object
+
+The estimate is a stack of surfaces, one per time slice. Plotting July to December shows the second half of the year, when the fires concentrate:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 8
+
+tims <- c(7, 8, 9, 10, 11, 12)
+par(mfcol = c(2, 3))
+for (i in tims) {
+  plot(st_kde, i,
+       override.par = FALSE,
+       fix.range = TRUE,
+       main = paste("KDE at month", i))
+}
+```
+
+`fix.range = TRUE` holds the colour scale constant across the six panels, so a given colour means the same density in every month. Without it each panel is scaled to its own range and the months cannot be compared.
+
+## Computing STKDE by Day of Year
+
+The same estimation is repeated at daily resolution.
+
+### Creating ppp object
+
+```{r}
+fire_yday_ppp <- fire_sf %>%
+  select(DayofYear) %>%
+  as.ppp()
+```
+
+### Including owin object
+
+```{r}
+fire_yday_owin <- fire_yday_ppp[kbb_owin]
+summary(fire_yday_owin)
+```
+
+### Computing the STKDE
+
+```{r}
+kde_yday <- spattemp.density(fire_yday_owin)
+summary(kde_yday)
+```
+
+::: callout-warning
+## Plotting every day is not useful
+
+`plot(kde_yday)` draws **one panel per time slice**, and the daily lattice has over three hundred of them. The result is an unreadable wall of tiny plots that takes a long time to render.
+
+A selection of days is plotted instead, chosen to span the fire season identified in the monthly analysis:
+:::
+
+```{r}
+#| fig-width: 12
+#| fig-height: 8
+
+days <- c(200, 230, 260, 280, 300, 330)
+par(mfcol = c(2, 3))
+for (i in days) {
+  plot(kde_yday, i,
+       override.par = FALSE,
+       fix.range = TRUE,
+       main = paste("KDE at day", i))
+}
+```
+
+## Computing STKDE by Day of Year: Improved Method
+
+`BOOT.spattemp()` of **sparr** selects the bandwidths by bootstrap estimation of the mean integrated squared error, returning an isotropic scalar spatial bandwidth and a scalar temporal bandwidth. This is a better-founded choice than the defaults used above:
+
+```{r}
+set.seed(1234)
+BOOT.spattemp(fire_yday_owin)
+```
+
+### Computing spatio-temporal KDE
+
+The STKDE is now derived using the `h` and `lambda` values from the previous step, rounded:
+
+```{r}
+kde_yday <- spattemp.density(fire_yday_owin,
+                             h = 9000,
+                             lambda = 19)
+summary(kde_yday)
+```
+
+### Plotting the output spatio-temporal KDE
+
+```{r}
+#| fig-width: 12
+#| fig-height: 8
+
+par(mfcol = c(2, 3))
+for (i in days) {
+  plot(kde_yday, i,
+       override.par = FALSE,
+       fix.range = TRUE,
+       main = paste("KDE at day", i))
+}
+```
+
+## Spatio-temporal Point Patterns Analysis: stpp Methods
+
+This section uses functions of the **stpp** package to perform spatio-temporal point patterns analysis.
+
+### Preparing spatio-temporal point process object of stpp
+
+**Step 1**: Extracting the forest fire coordinates from the fire point events.
+
+```{r}
+coords <- st_coordinates(fire_sf)
+```
+
+**Step 2**: Creating a data frame by combining the x- and y-coordinates with the temporal event. The temporal event must be an integer.
+
+```{r}
+fire_df <- data.frame(
+  x = coords[, 1],
+  y = coords[, 2],
+  t = fire_sf$`DayofYear`)
+```
+
+**Step 3**: Creating the `stpp` spatio-temporal object with `as.3dpoints()`.
+
+```{r}
+fire_stpp <- as.3dpoints(fire_df)
+class(fire_stpp)
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 5
+plot(fire_stpp)
+```
+
+### Computing spatio-temporal K-function
+
+`STIKhat()` computes the space-time inhomogeneous K-function:
+
+```{r}
+kbb_stik <- STIKhat(fire_stpp)
+```
+
+`plotK()` visualises the output:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 5
+plotK(kbb_stik)
+```
+
+### Guide to interpret the plot
+
+- If the contours show high values for small values of *u* and *v*, it suggests clustering at short spatial and temporal distances, meaning events occur close to each other in both space and time.
+- If the contours are flat or show low values, it indicates a more random distribution or a lack of significant clustering at those distances.
+
+The spatial and temporal extent of clustering can be understood by observing how rapidly the contours increase or decrease along the axes — the spacing and values of the contour lines show at which distances clustering occurs.
+
+## Reference
+
+- Kam, T. S. *R for Geospatial Data Science and Analytics*, [Chapter 6: Spatio-Temporal Point Patterns Analysis](https://r4gdsa.netlify.app/chap06).
+- Peter Hall (1990) "Using the Bootstrap to Estimate Mean Squared Error and Select Smoothing Parameter in Nonparametric Problems", *Journal of Multivariate Analysis*, Vol. 32, pp. 177-203.
+- González, J. A. et al. (2016) ["Spatio-temporal point process statistics: A review"](https://www.sciencedirect.com/science/article/abs/pii/S2211675316301130), *Spatial Statistics*, Vol. 18, Part B, pp. 505-544.
+- [sparr: Spatial and Spatiotemporal Relative Risk](https://tilmandavies.github.io/sparr/index.html)
+- [stpp: An R Package for Plotting, Simulating and Analyzing Spatio-Temporal Point Patterns](https://www.jstatsoft.org/article/view/v053i02), *Journal of Statistical Software*, Vol. 53, Issue 2.

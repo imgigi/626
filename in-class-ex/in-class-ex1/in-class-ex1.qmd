@@ -1,5 +1,5 @@
 ---
-title: "In-class Exercise 1: Geospatial Data Science with R"
+title: "In-class Exercise 1: Analytical Maps and the Raster Data Model"
 author: "Ji Guofang"
 date: "August 29, 2026"
 date-modified: "last-modified"

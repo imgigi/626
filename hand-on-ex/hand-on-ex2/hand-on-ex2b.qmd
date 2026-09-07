@@ -18,7 +18,7 @@ editor: visual
 
 ## Overview
 
-[Hands-on Exercise 2](hand-on-ex2.qmd) used first-order methods, which describe how the *intensity* of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers "how many events per unit area, here?"
+[Hands-on Exercise 2a](hand-on-ex2a.qmd) used first-order methods, which describe how the *intensity* of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers "how many events per unit area, here?"
 
 Second-order methods ask a different question: given the intensity, do events attract or repel one another, and **at what distance**? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise — **G**, **F**, **K**, and **L** — are functions of distance, so they can.
 
@@ -53,7 +53,7 @@ childcare_sf <- st_read("data/geospatial/ChildCareServices.geojson") %>%
   st_transform(crs = 3414)
 ```
 
-Converting to a `ppp` and jittering the duplicates, exactly as in Hands-on Exercise 2. `st_geometry()` is used so the pattern is unmarked; passing the whole `sf` object would turn the sixteen attribute columns into marks and stop `duplicated()` from seeing coincident locations. The summary functions below assume a simple point pattern, so removing the 187 duplicates is a precondition rather than a nicety:
+Converting to a `ppp` and jittering the duplicates, exactly as in Hands-on Exercise 2a. `st_geometry()` is used so the pattern is unmarked; passing the whole `sf` object would turn the sixteen attribute columns into marks and stop `duplicated()` from seeing coincident locations. The summary functions below assume a simple point pattern, so removing the 187 duplicates is a precondition rather than a nicety:
 
 ```{r}
 childcare_ppp <- as.ppp(st_geometry(childcare_sf))

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-05">
+<meta name="dcterms.date" content="2026-09-07">
 
 <title>Hands-on Exercise 2b: 2nd Order Spatial Point Patterns Analysis – ISSS626-GAA</title>
 <style>
@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-e31584831b205ffbb2d98406f31c2a5b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-b63d4034c3481c87820d918ed17e6fb1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -167,20 +167,20 @@ window.Quarto = {
     <ul class="dropdown-menu" aria-labelledby="nav-menu-hands-on-exercise">    
         <li>
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1.html">
- <span class="dropdown-text">Ex 1a: Geospatial Data Science with R</span></a>
+ <span class="dropdown-text">Exercise 1a · Geospatial Data Science with R</span></a>
   </li>  
         <li>
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1b.html">
- <span class="dropdown-text">Ex 1b: Thematic Mapping and GeoVisualisation</span></a>
+ <span class="dropdown-text">Exercise 1b · Thematic Mapping and GeoVisualisation</span></a>
   </li>  
         <li><hr class="dropdown-divider"></li>
         <li>
-    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2.html">
- <span class="dropdown-text">Ex 2: 1st Order Spatial Point Patterns Analysis</span></a>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">
+ <span class="dropdown-text">Exercise 2a · 1st Order Spatial Point Patterns Analysis</span></a>
   </li>  
         <li>
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2b.html">
- <span class="dropdown-text">Ex 2b: 2nd Order Spatial Point Patterns Analysis</span></a>
+ <span class="dropdown-text">Exercise 2b · 2nd Order Spatial Point Patterns Analysis</span></a>
   </li>  
     </ul>
   </li>
@@ -191,11 +191,7 @@ window.Quarto = {
     <ul class="dropdown-menu" aria-labelledby="nav-menu-in-class-exercise">    
         <li>
     <a class="dropdown-item" href="../../in-class-ex/in-class-ex1/in-class-ex1.html">
- <span class="dropdown-text">Ex 1: Geospatial Data Science with R</span></a>
-  </li>  
-        <li>
-    <a class="dropdown-item" href="../../in-class-ex/in-class-ex2/in-class-ex2.html">
- <span class="dropdown-text">Ex 2: Quadrat Analysis and Monte Carlo Resolution</span></a>
+ <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
   </li>  
     </ul>
   </li>
@@ -211,7 +207,7 @@ window.Quarto = {
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -256,7 +252,7 @@ window.Quarto = {
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content column-page-left" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -265,7 +261,7 @@ window.Quarto = {
 
 
 
-<div class="quarto-title-meta">
+<div class="quarto-title-meta column-page-left">
 
     <div>
     <div class="quarto-title-meta-heading">Author</div>
@@ -277,14 +273,14 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 5, 2026</p>
+      <p class="date">September 7, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 5, 2026</p>
+      <p class="date-modified">September 7, 2026</p>
     </div>
   </div>
     
@@ -297,7 +293,7 @@ window.Quarto = {
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2.html">Hands-on Exercise 2</a> used first-order methods, which describe how the <em>intensity</em> of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers “how many events per unit area, here?”</p>
+<p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">Hands-on Exercise 2a</a> used first-order methods, which describe how the <em>intensity</em> of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers “how many events per unit area, here?”</p>
 <p>Second-order methods ask a different question: given the intensity, do events attract or repel one another, and <strong>at what distance</strong>? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise — <strong>G</strong>, <strong>F</strong>, <strong>K</strong>, and <strong>L</strong> — are functions of distance, so they can.</p>
 <p>The null hypothesis tested throughout is <strong>complete spatial randomness (CSR)</strong>: the childcare centres are randomly distributed over the study area, following a homogeneous Poisson process. The significance level is 0.001.</p>
 </section>
@@ -353,7 +349,7 @@ Bounding box:  xmin: 103.6878 ymin: 1.247759 xmax: 103.9897 ymax: 1.462134
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
-<p>Converting to a <code>ppp</code> and jittering the duplicates, exactly as in Hands-on Exercise 2. <code>st_geometry()</code> is used so the pattern is unmarked; passing the whole <code>sf</code> object would turn the sixteen attribute columns into marks and stop <code>duplicated()</code> from seeing coincident locations. The summary functions below assume a simple point pattern, so removing the 187 duplicates is a precondition rather than a nicety:</p>
+<p>Converting to a <code>ppp</code> and jittering the duplicates, exactly as in Hands-on Exercise 2a. <code>st_geometry()</code> is used so the pattern is unmarked; passing the whole <code>sf</code> object would turn the sixteen attribute columns into marks and stop <code>duplicated()</code> from seeing coincident locations. The summary functions below assume a simple point pattern, so removing the 187 duplicates is a precondition rather than a nicety:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>childcare_ppp <span class="ot">&lt;-</span> <span class="fu">as.ppp</span>(<span class="fu">st_geometry</span>(childcare_sf))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>

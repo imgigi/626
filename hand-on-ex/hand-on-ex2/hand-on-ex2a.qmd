@@ -1,5 +1,5 @@
 ---
-title: "Hands-on Exercise 2: 1st Order Spatial Point Patterns Analysis"
+title: "Hands-on Exercise 2a: 1st Order Spatial Point Patterns Analysis"
 author: "Ji Guofang"
 date: "last-modified"
 date-modified: "last-modified"

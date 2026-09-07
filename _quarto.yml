@@ -1,5 +1,8 @@
 project:
   type: website
+  render:
+    - "*.qmd"
+    - "!hand-on-ex/hand-on-ex3/**"   # 数据齐备前先不渲染
 
 website:
   title: "ISSS626-GAA"
@@ -9,21 +12,19 @@ website:
         text: Home
       - text: "Hands-on Exercise"
         menu:
-          - text: "Ex 1a: Geospatial Data Science with R"
+          - text: "Exercise 1a · Geospatial Data Science with R"
             href: hand-on-ex/hand-on-ex1/hand-on-ex1.qmd
-          - text: "Ex 1b: Thematic Mapping and GeoVisualisation"
+          - text: "Exercise 1b · Thematic Mapping and GeoVisualisation"
             href: hand-on-ex/hand-on-ex1/hand-on-ex1b.qmd
           - text: "---"
-          - text: "Ex 2: 1st Order Spatial Point Patterns Analysis"
-            href: hand-on-ex/hand-on-ex2/hand-on-ex2.qmd
-          - text: "Ex 2b: 2nd Order Spatial Point Patterns Analysis"
+          - text: "Exercise 2a · 1st Order Spatial Point Patterns Analysis"
+            href: hand-on-ex/hand-on-ex2/hand-on-ex2a.qmd
+          - text: "Exercise 2b · 2nd Order Spatial Point Patterns Analysis"
             href: hand-on-ex/hand-on-ex2/hand-on-ex2b.qmd
       - text: "In-class Exercise"
         menu:
-          - text: "Ex 1: Geospatial Data Science with R"
+          - text: "Exercise 1 · Analytical Maps and the Raster Data Model"
             href: in-class-ex/in-class-ex1/in-class-ex1.qmd
-          - text: "Ex 2: Quadrat Analysis and Monte Carlo Resolution"
-            href: in-class-ex/in-class-ex2/in-class-ex2.qmd
       - href: about.qmd
         text: About
 
@@ -32,3 +33,8 @@ format:
     theme: cosmo
     css: styles.css
     toc: true
+    page-layout: full
+    grid:
+      body-width: 1400px
+      sidebar-width: 220px
+      margin-width: 300px
