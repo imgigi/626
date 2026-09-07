@@ -1,8 +1,5 @@
 project:
   type: website
-  render:
-    - "*.qmd"
-    - "!hand-on-ex/hand-on-ex3/**"   # 数据齐备前先不渲染
 
 website:
   title: "ISSS626-GAA"
@@ -21,6 +18,9 @@ website:
             href: hand-on-ex/hand-on-ex2/hand-on-ex2a.qmd
           - text: "Exercise 2b · 2nd Order Spatial Point Patterns Analysis"
             href: hand-on-ex/hand-on-ex2/hand-on-ex2b.qmd
+          - text: "---"
+          - text: "Exercise 3 · Spatio-Temporal Point Patterns Analysis"
+            href: hand-on-ex/hand-on-ex3/hand-on-ex3.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"

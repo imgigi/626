@@ -40,6 +40,24 @@ Two data sets are used:
 | `forestfires.csv` | Locations of forest fires detected by the Moderate Resolution Imaging Spectroradiometer (MODIS) sensor. Only fires within Kepulauan Bangka Belitung are used. | [FIRMS](https://firms.modaps.eosdis.nasa.gov/) |
 | `Kepulauan_Bangka_Belitung` | ESRI shapefile of the sub-district (kelurahan) boundaries of Kepulauan Bangka Belitung | Indonesia Geospatial portal |
 
+::: callout-note
+## How this copy of the data differs from the textbook's
+
+The textbook's files come from the Indonesia Geospatial portal and FIRMS' authenticated archive. Neither is scriptable without an account, so the same two layers were rebuilt from open sources: the boundaries from **GADM 4.1** at level 4, which is the kelurahan/desa level, and the fires from the **FIRMS country archive** for Indonesia 2023, clipped to the province.
+
+The result is close but not identical, and the difference is worth stating:
+
+| | This exercise | Textbook |
+|----|----|----|
+| Boundary polygons | 362 | 297 |
+| Fire detections | 898 | 741 |
+| Eastern extent | 108.85 E | 106.85 E |
+
+The extent is the substantive difference. Belitung island lies between 107.5 E and 108.3 E, so the textbook's boundary — despite the name Kepulauan Bangka Belitung — stops short of it and covers Bangka alone. Clipping to Bangka only gives 766 fires, which is much nearer the textbook's 741; the remaining 132 fires are on Belitung.
+
+The whole province is used here, since that is what the dataset is called and what the research question asks about. Every figure below therefore differs from the textbook's, and the selected bandwidths differ with them.
+:::
+
 ## Installing and Loading the R Packages
 
 Six packages are used:
@@ -282,14 +300,22 @@ BOOT.spattemp(fire_yday_owin)
 
 ### Computing spatio-temporal KDE
 
-The STKDE is now derived using the `h` and `lambda` values from the previous step, rounded:
+The STKDE is now derived using the `h` and `lambda` values the bootstrap returned, rounded:
 
 ```{r}
 kde_yday <- spattemp.density(fire_yday_owin,
-                             h = 9000,
-                             lambda = 19)
+                             h = 21900,
+                             lambda = 19.9)
 summary(kde_yday)
 ```
+
+::: callout-warning
+## Do not carry the textbook's numbers across
+
+The textbook reaches `h = 9105` and hardcodes `h = 9000`. The bootstrap run above returns **h = 21893** on this data — roughly 2.4 times larger — because the study area here includes Belitung and holds more events, and the optimal spatial bandwidth scales with both.
+
+The temporal bandwidth is the opposite case: **lambda = 19.89** against the textbook's 18.85, almost the same, because the fire season has the same length either way. Copying `h = 9000` across would have imposed a kernel far too narrow for this window and produced a spuriously spiky surface.
+:::
 
 ### Plotting the output spatio-temporal KDE
 
