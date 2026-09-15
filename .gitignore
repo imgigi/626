@@ -10,3 +10,14 @@
 # Quarto build byproducts left in the source tree (the real copies live in _site/)
 /hand-on-ex/**/*_files/
 /in-class-ex/**/*_files/
+
+# Take-home Exercise 1 (see take-home-ex/take-home-ex1/scripts/ for the pipeline)
+/take-home-ex/**/*_files/
+# Monte-Carlo results: seeded, so a recomputation reproduces them exactly
+take-home-ex/take-home-ex1/data/cache/
+# Bulk source data that can be re-downloaded from a stable URL. The analysed
+# FIRMS CSV and the OSM extracts ARE committed: the FIRMS open archive is a
+# rolling 7-day window, so those exact records cannot be recovered.
+take-home-ex/take-home-ex1/data/raw/idn_cod_ab/
+take-home-ex/take-home-ex1/data/raw/*_SouthEast_Asia_7d.csv
+take-home-ex/take-home-ex1/data/raw/geoBoundaries-*.geojson
