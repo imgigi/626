@@ -1,5 +1,23 @@
 project:
   type: website
+  # Quarto's default input list includes *.rmarkdown, which is also the
+  # extension of the intermediate file its knitr engine writes next to a .qmd
+  # while rendering. If a render is interrupted that intermediate survives, and
+  # the next render picks it up as an extra input document -- which broke two
+  # renders here, once by rendering the take-home report twice and once by
+  # leaving the output-moving step with a file it could not find. Naming the
+  # inputs explicitly keeps a stray intermediate from ever becoming one.
+  # `_sections/` and `_include/` need no exclusion: Quarto already skips paths
+  # whose name begins with an underscore.
+  render:
+    - "**/*.qmd"
+    # Take-home Exercise 1 is written but not published yet, so it stays out of
+    # the build: leaving it in put its text into `_site/search.json`, which is
+    # the whole site's search index, and a partial render of it had already
+    # overwritten that index with take-home entries alone. Its 145 chunks are
+    # also the only part of the site that needs several GB to render. Remove
+    # this line to publish it.
+    - "!take-home-ex/"
 
 website:
   title: "ISSS626-GAA"
@@ -21,10 +39,19 @@ website:
           - text: "---"
           - text: "Exercise 3 · Spatio-Temporal Point Patterns Analysis"
             href: hand-on-ex/hand-on-ex3/hand-on-ex3.qmd
+          - text: "---"
+          - text: "Exercise 4 · Spatial Weights and Applications"
+            href: hand-on-ex/hand-on-ex4/hand-on-ex4.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"
             href: in-class-ex/in-class-ex1/in-class-ex1.qmd
+      - text: "Take-home Exercise"
+        menu:
+          - text: "Exercise 1 · Technical Report"
+            href: take-home-ex/take-home-ex1/take-home-ex1.qmd
+          - text: "Exercise 1 · Executive Summary"
+            href: take-home-ex/take-home-ex1/take-home-ex1-slides.qmd
       - href: about.qmd
         text: About
 
@@ -32,6 +59,13 @@ format:
   html:
     theme: cosmo
     css: styles.css
+    # The EN / 中文 switch is site chrome, so it is declared once here rather
+    # than per document. Before this it was injected by the two take-home
+    # documents' own YAML, which is why nine of the eleven pages had no switch
+    # at all. Documents that set their own `include-in-header` override this,
+    # so those must include the same files themselves.
+    include-in-header: _include/lang-head.html
+    include-after-body: _include/lang-toggle.html
     toc: true
     page-layout: full
     grid:

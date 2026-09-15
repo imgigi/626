@@ -287,6 +287,7 @@ body:has(.dash) main.content {
 .fill-coral  { background: var(--coral); }
 .fill-amber  { background: var(--amber); }
 .fill-blue   { background: var(--blue); }
+.fill-green  { background: var(--green); }
 
 /* ----- Exercise list ---------------------------------------------------- */
 
@@ -432,6 +433,87 @@ body:has(.dash) main.content {
   color: #6c5ce7 !important;
   background: #eeeaff;
 }
+
+/* --------------------------------------------------------------------------
+   Search control
+   The navbar markup still carries Bootstrap's `data-bs-theme="dark"`, which
+   colours non-link navbar text cream -- correct for a dark navbar, invisible
+   against the white one above. The menu links escape it because they are
+   restyled here; the search button is not a `.nav-link`, so it did not, and
+   its magnifier rendered nearly white on white on every page.
+   -------------------------------------------------------------------------- */
+
+#quarto-search .aa-DetachedSearchButton,
+#quarto-search .aa-SubmitIcon,
+#quarto-search svg,
+#quarto-search button {
+  color: #6f6e93 !important;
+}
+#quarto-search svg { fill: currentColor; opacity: 0.85; }
+#quarto-search .aa-DetachedSearchButton:hover,
+#quarto-search button:hover { color: #6c5ce7 !important; }
+
+/* --------------------------------------------------------------------------
+   Language switch (EN / 中文) - site-wide
+   Defined here, not in a single exercise's stylesheet, so that every page
+   carries the identical control. The toggle script moves it into the navbar's
+   own tool slot and adds `.in-navbar`; on pages without a navbar (the slides)
+   it stays pinned to the corner, styled by slides.scss.
+   Colours are the dashboard palette, because the switch sits in the dashboard
+   navbar -- an earlier version used cream-on-dark and was invisible here.
+   -------------------------------------------------------------------------- */
+
+.lang-switch {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #e0dcf5;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f6f4ff;
+  font-size: 0.74rem;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.lang-switch button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #6f6e93;
+  padding: 0.34rem 0.74rem;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lang-switch button:hover { background: #ebe6ff; color: #6c5ce7; }
+.lang-switch button.active { background: #6c5ce7; color: #fff; }
+.lang-switch button:focus-visible { outline: 2px solid #6c5ce7; outline-offset: -2px; }
+
+.lang-switch.in-navbar { margin-left: 0.6rem; }
+
+#quarto-header .quarto-navbar-tools { display: flex; align-items: center; }
+
+@media print { .lang-switch { display: none; } }
+
+/* --------------------------------------------------------------------------
+   Bilingual display (EN / 中文) - site-wide
+   Both languages are present in the HTML; exactly one is shown. These rules
+   used to live in the take-home report's own stylesheet, which is why the
+   switch worked on two pages and nowhere else.
+   -------------------------------------------------------------------------- */
+
+:root[data-lang="en"] .zh,
+:root[data-lang="zh"] .en { display: none !important; }
+:root:not([data-lang="zh"]) .zh { display: none !important; }
+
+.zh {
+  font-family: "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
+}
+.zh em { font-style: normal; font-weight: 600; }
+:root[data-lang="zh"] body { line-height: 1.75; }
 
 .navbar .dropdown-menu {
   border: 1px solid #ececf6;

@@ -16,15 +16,15 @@ toc: false
     </p>
 
     <p class="dash-eyebrow">Code chunks written</p>
-    <p class="dash-figure">184</p>
-    <p class="dash-figure-note">across six published exercises</p>
+    <p class="dash-figure">244</p>
+    <p class="dash-figure-note">across seven published exercises</p>
 
     <div class="dash-rows">
       <div class="dash-row">
         <div class="dash-tile tile-purple">◧</div>
         <div>
           <div class="dash-row-label">Hands-on exercises</div>
-          <div class="dash-row-value">5</div>
+          <div class="dash-row-value">6</div>
         </div>
       </div>
       <div class="dash-row">
@@ -38,7 +38,7 @@ toc: false
         <div class="dash-tile tile-green">◉</div>
         <div>
           <div class="dash-row-label">R packages applied</div>
-          <div class="dash-row-value">6</div>
+          <div class="dash-row-value">11</div>
         </div>
       </div>
     </div>
@@ -46,16 +46,16 @@ toc: false
 
       <div class="dash-card">
         <h3>Maps and plots produced</h3>
-        <p class="dash-card-figure">75</p>
+        <p class="dash-card-figure">86</p>
         <p class="dash-card-note">
-          Figures rendered across the six exercises — choropleths, kernel density
+          Figures rendered across the seven exercises — choropleths, kernel density
           surfaces, envelope plots and diagnostic charts
         </p>
       </div>
 
       <div class="dash-card">
         <h3>Words written</h3>
-        <p class="dash-card-figure">13,131</p>
+        <p class="dash-card-figure">12,766</p>
         <p class="dash-card-note">
           Method notes and interpretation accompanying the code, not counting the
           code itself
@@ -67,32 +67,37 @@ toc: false
         <div class="dash-chart">
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 1a</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:75.6%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:56.7%"></span></span>
             <span class="dash-chart-value">34</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 1b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:73.3%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:55.0%"></span></span>
             <span class="dash-chart-value">33</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 2a</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:100%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:75.0%"></span></span>
             <span class="dash-chart-value">45</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 2b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:48.9%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:36.7%"></span></span>
             <span class="dash-chart-value">22</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 3</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-amber" style="width:64.4%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-amber" style="width:48.3%"></span></span>
             <span class="dash-chart-value">29</span>
           </div>
           <div class="dash-chart-row">
+            <span class="dash-chart-label">Ex 4</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-green" style="width:100%"></span></span>
+            <span class="dash-chart-value">60</span>
+          </div>
+          <div class="dash-chart-row">
             <span class="dash-chart-label">In-cl 1</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:46.7%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:35.0%"></span></span>
             <span class="dash-chart-value">21</span>
           </div>
         </div>
@@ -165,6 +170,18 @@ toc: false
       <div class="dash-xmeta"><span><b>29</b> chunks</span><span><b>7</b> figures</span></div>
     </a>
 
+    <a class="dash-xcard" href="hand-on-ex/hand-on-ex4/hand-on-ex4.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-green">4</span>
+        <span class="dash-xchip chip-green">Lesson 4</span>
+      </div>
+      <h3>Spatial Weights and Applications</h3>
+      <p>Contiguity, fixed and adaptive distance and inverse-distance weights
+      with <b>spdep</b>, and the four spatially lagged variables built from
+      them, across Hunan's 88 counties</p>
+      <div class="dash-xmeta"><span><b>60</b> chunks</span><span><b>11</b> figures</span></div>
+    </a>
+
   </div>
 
   <h2 class="dash-section-title">In-class Exercises</h2>
@@ -188,12 +205,36 @@ toc: false
 
   <div class="dash-cards">
 
+    <a class="dash-xcard" href="take-home-ex/take-home-ex1/take-home-ex1.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-coral">1</span>
+        <span class="dash-xchip chip-coral">Public Safety</span>
+      </div>
+      <h3>Fire on Drained Peat</h3>
+      <p>Spatial and spatio-temporal point patterns of VIIRS active-fire detections
+      in Pulang Pisau, Central Kalimantan — intensity against <b>engineered
+      drainage</b>, five nested null models, and a fitted <b>Thomas cluster
+      process</b></p>
+      <div class="dash-xmeta"><span><b>3,101</b> detections</span><span><b>22</b> figures</span><span><b>EN / 中文</b></span></div>
+    </a>
+
+    <a class="dash-xcard" href="take-home-ex/take-home-ex1/take-home-ex1-slides.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-coral">1</span>
+        <span class="dash-xchip chip-coral">Slides</span>
+      </div>
+      <h3>Executive Summary</h3>
+      <p>The same study as a ten-slide revealjs deck — research question, study
+      design, key visual evidence, limitations and public-safety implications</p>
+      <div class="dash-xmeta"><span><b>10</b> slides</span><span><b>EN / 中文</b></span></div>
+    </a>
+
     <div class="dash-xcard dash-xcard-empty">
       <div class="dash-xcard-top">
         <span class="dash-xnum tile-grey">—</span>
         <span class="dash-xchip chip-grey">Pending</span>
       </div>
-      <h3>Three take-home exercises</h3>
+      <h3>Take-home Exercises 2 and 3</h3>
       <p>15% each. Not yet released; they will appear here as they are completed.</p>
     </div>
 
@@ -207,10 +248,12 @@ toc: false
   const canvas = document.getElementById("dash-globe");
   if (!canvas || typeof d3 === "undefined") return;
 
-  // 分析过的地点：新加坡（Ex 1-2）、邦加勿里洞（Ex 3）
+  // 分析过的地点：新加坡（Hands-on 1-2）、邦加勿里洞（Hands-on 3）、
+  // 普朗皮绍（Take-home 1）
   const SITES = [
     { name: "Singapore",       lon: 103.82, lat:  1.35, colour: "#6c5ce7", icon: "◉", dx: -74, dy: -60 },
-    { name: "Bangka Belitung", lon: 106.44, lat: -2.74, colour: "#ff6b6b", icon: "▲", dx:  78, dy:  54 }
+    { name: "Bangka Belitung", lon: 106.44, lat: -2.74, colour: "#ff6b6b", icon: "▲", dx:  78, dy:  54 },
+    { name: "Pulang Pisau",    lon: 114.01, lat: -2.50, colour: "#ff9f43", icon: "■", dx:  84, dy: -34 }
   ];
 
   let land = null, borders = null;

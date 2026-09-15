@@ -1,0 +1,11 @@
+<!-- Set the language attribute BEFORE the body paints, so a reader who chose
+     中文 does not see a flash of English first. The button and its handler
+     live in _include/lang-toggle.html, which is injected after the body. -->
+<script>
+(function () {
+  var l = "en";
+  try { l = localStorage.getItem("isss626-th1-lang") || "en"; } catch (e) {}
+  if (l !== "en" && l !== "zh") l = "en";
+  document.documentElement.setAttribute("data-lang", l);
+})();
+</script>

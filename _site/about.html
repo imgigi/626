@@ -68,6 +68,17 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<!-- Set the language attribute BEFORE the body paints, so a reader who chose
+     中文 does not see a flash of English first. The button and its handler
+     live in _include/lang-toggle.html, which is injected after the body. -->
+<script>
+(function () {
+  var l = "en";
+  try { l = localStorage.getItem("isss626-th1-lang") || "en"; } catch (e) {}
+  if (l !== "en" && l !== "zh") l = "en";
+  document.documentElement.setAttribute("data-lang", l);
+})();
+</script>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -121,6 +132,11 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="./hand-on-ex/hand-on-ex3/hand-on-ex3.html">
  <span class="dropdown-text">Exercise 3 · Spatio-Temporal Point Patterns Analysis</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="./hand-on-ex/hand-on-ex4/hand-on-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -131,6 +147,21 @@ ul.task-list li input[type="checkbox"] {
         <li>
     <a class="dropdown-item" href="./in-class-ex/in-class-ex1/in-class-ex1.html">
  <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-take-home-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Take-home Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-take-home-exercise">    
+        <li>
+    <a class="dropdown-item" href="./take-home-ex/take-home-ex1/take-home-ex1.qmd">
+ <span class="dropdown-text">Exercise 1 · Technical Report</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./take-home-ex/take-home-ex1/take-home-ex1-slides.qmd">
+ <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
   </li>  
     </ul>
   </li>
@@ -368,6 +399,182 @@ ul.task-list li input[type="checkbox"] {
 
 
 </main> <!-- /main -->
+<!-- =====================================================================
+     Language toggle (EN / 中文)
+     Take-home Exercise 1 | ISSS626
+
+     Both language versions of every prose block are present in the HTML;
+     this switch only changes which one is displayed, so switching is
+     instant and needs no server and no second render.
+
+     The choice is stored in localStorage under one key shared by the
+     technical report and the executive summary, so moving between the two
+     documents keeps the selected language.
+
+     Three things are NOT handled by the .en / .zh markup and are handled
+     here instead:
+
+       1. Placement. On the technical report the site navbar is fixed to the
+          top of the viewport, so a `position: fixed` switch would sit on top
+          of it. The switch is therefore moved into the navbar's own tool
+          slot (`.quarto-navbar-tools`), which is a sibling of the collapsing
+          menu and so stays visible at every width. On the slides there is no
+          navbar and the switch stays fixed in the corner.
+
+       2. Template chrome. Strings such as the table-of-contents heading and
+          the "Author" / "Published" labels are emitted by Quarto's template,
+          not by the document body, so no .en / .zh span can reach them. They
+          are swapped from the DICT table below.
+
+       3. Figures keep their English titles and axis labels: that text is
+          drawn into the PNG by R at render time.
+     ===================================================================== -->
+
+<div class="lang-switch" role="group" aria-label="Language / 语言">
+  <button type="button" data-lang="en" aria-pressed="true">EN</button>
+  <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+</div>
+
+<script>
+(function () {
+  var KEY = "isss626-th1-lang";
+  var VALID = { en: 1, zh: 1 };
+
+  // ---- 1. Move the switch into the navbar, where one exists ---------------
+  // Done before the first apply() so the switch never paints in the wrong
+  // place. `.quarto-navbar-tools` is a sibling of `#navbarCollapse`, not a
+  // child, so the switch is not swallowed by the mobile hamburger.
+  var sw = document.querySelector(".lang-switch");
+  var tools = document.querySelector("#quarto-header .quarto-navbar-tools");
+  if (sw && tools) {
+    tools.appendChild(sw);
+    sw.classList.add("in-navbar");
+  }
+
+  // ---- 2. Template chrome -------------------------------------------------
+  // Quarto writes these strings itself. Each entry is keyed by the English
+  // the template produces; the original is cached on first pass so that
+  // switching back to English restores it exactly.
+  var DICT = {
+    "Contents": "目录",
+    "Table of contents": "目录",
+    "Author": "作者",
+    "Authors": "作者",
+    "Published": "发布日期",
+    "Modified": "最后修改",
+    "Code": "代码",
+    "Show All Code": "展开全部代码",
+    "Hide All Code": "折叠全部代码",
+    "View Source": "查看源文件",
+    "Full Screen": "全屏",
+    "Close": "关闭",
+    "Note": "注",
+    "Tip": "提示",
+    "Warning": "注意",
+    "Important": "要点",
+    "Caution": "当心",
+    // Navbar. Most pages on this site are English-only in the body, so without
+    // these the switch would be present everywhere and do nothing on nine of
+    // the eleven pages. Translating the site chrome makes it meaningful on all
+    // of them, and keeps the chosen language visible while browsing.
+    "Home": "首页",
+    "About": "关于",
+    "Hands-on Exercise": "课堂练习",
+    "In-class Exercise": "堂上练习",
+    "Take-home Exercise": "课后作业",
+    "Search": "搜索",
+    "ISSS626-GAA": "ISSS626-GAA"
+  };
+
+  var CHROME_SEL = [
+    "#toc-title",
+    "nav[role=doc-toc] > h2",
+    ".quarto-title-meta-heading",
+    ".code-tools-button",
+    "#quarto-code-tools-menu",
+    ".dropdown-menu .dropdown-item",
+    ".callout-title-container",
+    ".callout-caption",
+    "#quarto-header .navbar .menu-text",
+    "#quarto-header .navbar .dropdown-item",
+    "#quarto-search .aa-DetachedSearchButtonPlaceholder",
+    "#quarto-search [title]"
+  ].join(",");
+
+  // Text nodes are collected once. Holding the nodes themselves (rather than
+  // re-querying) keeps the swap independent of how Quarto nests the labels,
+  // and avoids touching any markup inside them, such as the Bootstrap icon
+  // in the code-tools button.
+  var chrome = null;
+  function collectChrome() {
+    var out = [];
+    var hosts = document.querySelectorAll(CHROME_SEL);
+    for (var i = 0; i < hosts.length; i++) {
+      var walker = document.createTreeWalker(hosts[i], NodeFilter.SHOW_TEXT, null);
+      var n;
+      while ((n = walker.nextNode())) {
+        var t = n.nodeValue.trim();
+        if (DICT[t]) out.push({ node: n, en: n.nodeValue, zh: n.nodeValue.replace(t, DICT[t]) });
+      }
+    }
+    return out;
+  }
+
+  function applyChrome(lang) {
+    if (chrome === null) chrome = collectChrome();
+    for (var i = 0; i < chrome.length; i++) {
+      chrome[i].node.nodeValue = lang === "zh" ? chrome[i].zh : chrome[i].en;
+    }
+  }
+
+  // ---- 3. The switch itself ----------------------------------------------
+  function apply(lang, persist) {
+    if (!VALID[lang]) lang = "en";
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("lang", lang === "zh" ? "zh-Hans" : "en");
+    if (persist) {
+      try { localStorage.setItem(KEY, lang); } catch (e) { /* private mode */ }
+    }
+    applyChrome(lang);
+    var btns = document.querySelectorAll(".lang-switch button");
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute("data-lang") === lang;
+      btns[i].classList.toggle("active", on);
+      btns[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    // Reveal.js lays slides out once on load; a language change alters
+    // block heights, so ask it to re-measure if it is present.
+    if (window.Reveal && typeof window.Reveal.layout === "function") {
+      window.Reveal.layout();
+    }
+  }
+
+  var saved = "en";
+  try { saved = localStorage.getItem(KEY) || "en"; } catch (e) { /* ignore */ }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest(".lang-switch button") : null;
+    if (b) { ev.preventDefault(); apply(b.getAttribute("data-lang"), true); }
+  });
+
+  // Keyboard shortcut: Alt+L cycles the language.
+  document.addEventListener("keydown", function (ev) {
+    if (ev.altKey && (ev.key === "l" || ev.key === "L")) {
+      apply(document.documentElement.getAttribute("data-lang") === "zh" ? "en" : "zh", true);
+    }
+  });
+
+  apply(saved, false);
+
+  // The code-tools dropdown items exist from the start, but the callout
+  // labels of any lazily-rendered block may not. One re-collect after load
+  // is cheap insurance and keeps the swap correct.
+  window.addEventListener("load", function () {
+    chrome = null;
+    applyChrome(document.documentElement.getAttribute("data-lang"));
+  });
+})();
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
