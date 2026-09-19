@@ -17,7 +17,7 @@ project:
     # overwritten that index with take-home entries alone. Its 145 chunks are
     # also the only part of the site that needs several GB to render. Remove
     # this line to publish it.
-    - "!take-home-ex/"
+    # - "!take-home-ex/"   # re-enabled: see note above
 
 website:
   title: "ISSS626-GAA"
@@ -42,6 +42,11 @@ website:
           - text: "---"
           - text: "Exercise 4 · Spatial Weights and Applications"
             href: hand-on-ex/hand-on-ex4/hand-on-ex4.qmd
+          - text: "---"
+          - text: "Exercise 5a · Global Measures of Spatial Autocorrelation"
+            href: hand-on-ex/hand-on-ex5/hand-on-ex5a.qmd
+          - text: "Exercise 5b · Local Measures of Spatial Autocorrelation"
+            href: hand-on-ex/hand-on-ex5/hand-on-ex5b.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"
