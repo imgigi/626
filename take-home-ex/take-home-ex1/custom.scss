@@ -160,3 +160,11 @@ pre code { white-space: pre; }
 :root[data-lang="zh"] {
   p, li, td, th, .interp, .rq, .callout-body { line-height: 1.75; }
 }
+
+/* Asset revision marker. Quarto names the compiled stylesheet by the hash of
+   its contents, and the CDN had pinned a 404 against the previous hash under
+   `immutable`, so the only way past it is a filename the edge has never seen.
+   A comment cannot do that: Dart Sass strips comments from the compressed
+   output, leaving the bytes, and the hash, unchanged. A real declaration can.
+   Inert by design, and bumping it is the lever if this is ever needed again. */
+:root { --thex1-asset-rev: 2; }

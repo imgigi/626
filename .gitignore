@@ -27,3 +27,12 @@ take-home-ex/take-home-ex1/data/raw/geoBoundaries-*.geojson
 .firms_key
 *.key
 .env
+
+# Intermediates Quarto leaves behind when a render is interrupted. A stray one
+# of these once became a 13th project input and broke the build, which is what
+# `render: ["**/*.qmd"]` in _quarto.yml now guards against; ignoring them keeps
+# them out of the repo as well. Nothing here is a source file.
+**/*.rmarkdown
+# Freeze output. Freeze is not enabled for this project, so anything Quarto
+# writes here is a byproduct; the real copies live in _site/.
+/_freeze/
