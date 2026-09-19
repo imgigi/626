@@ -21,3 +21,9 @@ take-home-ex/take-home-ex1/data/cache/
 take-home-ex/take-home-ex1/data/raw/idn_cod_ab/
 take-home-ex/take-home-ex1/data/raw/*_SouthEast_Asia_7d.csv
 take-home-ex/take-home-ex1/data/raw/geoBoundaries-*.geojson
+
+# FIRMS API credentials. scripts/01_download_firms.R reads the key from here
+# or from the FIRMS_MAP_KEY environment variable; neither belongs in the repo.
+.firms_key
+*.key
+.env
