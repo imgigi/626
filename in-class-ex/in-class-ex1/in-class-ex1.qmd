@@ -23,8 +23,8 @@ Lesson 1 covers geospatial data models, coordinate systems, and thematic mapping
 This in-class exercise extends those methods to the parts the hands-on exercises do not reach:
 
 - confirming a spatial relationship statistically with **ggstatsplot** rather than describing it by eye,
-- building two **analytical maps** — a percentile map and a box map — whose class breaks are computed from the data distribution instead of chosen by a built-in `style`,
-- putting the same phenomenon into the **raster** data model with **terra**, the counterpart to the vector model used throughout Lesson 1.
+- building two analytical maps, a percentile map and a box map, whose class breaks are computed from the data distribution instead of chosen by a built-in `style`,
+- putting the same phenomenon into the raster data model with **terra**, the counterpart to the vector model used throughout Lesson 1.
 
 ```{r}
 pacman::p_load(tidyverse, sf, terra, tmap, ggstatsplot)
@@ -42,7 +42,7 @@ Two packages are new relative to the hands-on exercises. **ggstatsplot** extends
 
 ## Inputs Carried Over from Hands-on Exercise 1
 
-The two derived variables used below — pre-school density per subzone, and the dependency ratio — were both produced in Hands-on Exercise 1. The code is repeated here only so that this document runs on its own. The methods behind it are explained where they were first used: point-in-polygon counting and area normalisation in [1a](../../hand-on-ex/hand-on-ex1/hand-on-ex1.qmd), the age-group wrangling and the join in [1b](../../hand-on-ex/hand-on-ex1/hand-on-ex1b.qmd).
+The two derived variables used below, pre-school density per subzone and the dependency ratio, were both produced in Hands-on Exercise 1. The code is repeated here only so that this document runs on its own. The methods behind it are explained where they were first used: point-in-polygon counting and area normalisation in [1a](../../hand-on-ex/hand-on-ex1/hand-on-ex1.qmd), the age-group wrangling and the join in [1b](../../hand-on-ex/hand-on-ex1/hand-on-ex1b.qmd).
 
 ```{r}
 mpsz19 <- st_read("data/geospatial/MasterPlan2019SubzoneBoundaryNoSea.geojson",
@@ -94,7 +94,7 @@ nrow(mpsz_pop2024)
 ::: callout-warning
 ## 94 subzones are dropped
 
-`drop_na()` removes 94 of the 332 subzones, leaving 238. Checking column by column confirms these are exactly the rows where the population join found no match — no other column contributes an `NA`, so nothing is being discarded accidentally. They are the subzones with no resident population: the central water catchment, Tengah forest, the airport, the western industrial estates, and the offshore islands.
+`drop_na()` removes 94 of the 332 subzones, leaving 238. Checking column by column confirms these are exactly the rows where the population join found no match. No other column contributes an `NA`, so nothing is being discarded accidentally. They are the subzones with no resident population: the central water catchment, Tengah forest, the airport, the western industrial estates, and the offshore islands.
 
 Two consequences follow, and both matter when reading the maps below. The white areas are not missing data in the usual sense but genuinely unpopulated land, so a dependency ratio is undefined there rather than merely unknown. And the sample size changes between sections: the correlation in the next section is computed over all 332 subzones, while the analytical maps are built from 238.
 :::
@@ -126,26 +126,19 @@ ggscatterstats(data = mpsz19_df,
                label.expression = `PreSch Count` > 40)
 ```
 
-::: callout-note
-## Interpretation
-
 The subtitle reports the Pearson correlation together with its confidence interval, *p*-value, and sample size, which turns the visual impression into a testable claim: *r* = 0.64, 95% CI \[0.57, 0.70\], *p* \< 0.001, *n* = 332.
 
-So the relationship is positive and clearly significant, but only moderate — density explains roughly 40% of the variance in count. That gap is the substantive finding, not noise: a large outlying subzone can hold many pre-schools while remaining sparse, and a small dense residential subzone can reach a high density on only a handful. Count and density are therefore *not* interchangeable, and the choice between them changes what a choropleth map of pre-school provision would show. The labelled points are the subzones with more than 40 pre-schools.
-:::
+The relationship is positive and clearly significant, but only moderate, since density explains roughly 40% of the variance in count. That gap is the substantive finding rather than noise. A large outlying subzone can hold many pre-schools while remaining sparse, and a small dense residential subzone can reach a high density on only a handful. Count and density are therefore *not* interchangeable, and the choice between them changes what a choropleth map of pre-school provision would show. The labelled points are the subzones with more than 40 pre-schools.
 
 ## Analytical Map: Percentile Map
 
 The classification methods available through `style` in `tm_scale_intervals()` all place the breaks automatically. An analytical map instead computes its own breaks, so that the classes carry a specific statistical meaning.
 
-A percentile map is a quantile map with six fixed categories — 0–1%, 1–10%, 10–50%, 50–90%, 90–99%, 99–100% — obtained by passing an explicit vector of cumulative probabilities to `quantile()`. Both endpoints must be included.
+A percentile map is a quantile map with six fixed categories, 0–1%, 1–10%, 10–50%, 50–90%, 90–99% and 99–100%, obtained by passing an explicit vector of cumulative probabilities to `quantile()`. Both endpoints must be included.
 
 ### The `get.var()` function
 
-Extracts a variable from an `sf` data frame as a plain, unnamed vector.
-
-- **arguments** — `vname`: variable name as a quoted character; `df`: an `sf` data frame
-- **returns** — a vector of values with no column name
+`get.var()` extracts a variable from an `sf` data frame as a plain, unnamed vector. It takes `vname`, the variable name as a quoted character, and `df`, an `sf` data frame, and returns a vector of values with no column name.
 
 ```{r}
 get.var <- function(vname, df) {
@@ -183,15 +176,11 @@ percentmap <- function(vnam, df, legtitle = NA, mtitle = "Percentile Map") {
 }
 ```
 
-::: callout-note
-## tmap v4 syntax
-
-Lesson 1 and the earlier cohorts' exercises use tmap v3, where breaks, palette, and labels are passed straight to `tm_fill()`. In **tmap 4.x** they belong to a scale specification handed to `fill.scale`, the legend title moves into `tm_legend()` via `fill.legend`, and the map title becomes a standalone `tm_title()` element instead of `tm_layout(main.title =)`.
+The call above is written for tmap 4.x, which differs from the v3 syntax used in Lesson 1 and in earlier cohorts' exercises. In v3, breaks, palette and labels are passed straight to `tm_fill()`. In v4 they belong to a scale specification handed to `fill.scale`, the legend title moves into `tm_legend()` via `fill.legend`, and the map title becomes a standalone `tm_title()` element rather than `tm_layout(main.title =)`. The version in use here is:
 
 ```{r}
 packageVersion("tmap")
 ```
-:::
 
 ```{r}
 #| fig-width: 9
@@ -201,21 +190,15 @@ percentmap("DEPENDENCY", mpsz_pop2024,
            mtitle = "Percentile Map of Dependency Ratio")
 ```
 
-The percentile map isolates the extremes a standard quantile map hides: the outer classes hold only the top and bottom 1% of subzones — three each, out of 238 — so genuinely unusual values stand out instead of being absorbed into a broad top class.
+The percentile map isolates the extremes a standard quantile map hides. The outer classes hold only the top and bottom 1% of subzones, three each out of 238, so genuinely unusual values stand out instead of being absorbed into a broad top class.
 
 ## Analytical Map: Box Map
 
-A box map is an augmented quartile map with two extra classes for outliers, using the fences of a boxplot as break points. Which value opens the sequence depends on whether outliers exist:
-
-- **no lower outliers** — the first break is the lower fence and the second is the minimum, so the first class is necessarily empty;
-- **lower outliers present** — the first break is the minimum and the second is the lower fence.
-
-The upper end follows the same logic in reverse.
+A box map is an augmented quartile map with two extra classes for outliers, using the fences of a boxplot as break points. Which value opens the sequence depends on whether outliers exist. Where there are no lower outliers, the first break is the lower fence and the second is the minimum, so the first class is necessarily empty. Where lower outliers are present, the first break is the minimum and the second is the lower fence. The upper end follows the same logic in reverse.
 
 ### The `boxbreaks()` function
 
-- **arguments** — `v`: vector of observations; `mult`: multiplier for the IQR, default 1.5
-- **returns** — a vector of seven break points
+`boxbreaks()` takes `v`, a vector of observations, and `mult`, the multiplier for the IQR, which defaults to 1.5. It returns a vector of seven break points.
 
 ```{r}
 boxbreaks <- function(v, mult = 1.5) {
@@ -260,8 +243,7 @@ boxbreaks(get.var("DEPENDENCY", mpsz_pop2024))
 
 ### The `boxmap()` function
 
-- **arguments** — `vnam`: variable name as a quoted character; `df`: an `sf` polygon layer; `legtitle`: legend title; `mtitle`: map title; `mult`: IQR multiplier
-- **returns** — a tmap element that plots the map
+`boxmap()` takes `vnam`, the variable name as a quoted character; `df`, an `sf` polygon layer; `legtitle` and `mtitle` for the legend and map titles; and `mult`, the IQR multiplier. It returns a tmap element that plots the map.
 
 ```{r}
 boxmap <- function(vnam, df,
@@ -301,25 +283,21 @@ boxmap("DEPENDENCY", mpsz_pop2024,
        mtitle = "Box Map of Dependency Ratio")
 ```
 
-::: callout-note
-## Interpretation
+The two outlier classes are what distinguish a box map from an ordinary quartile map, and both are populated here. Of the 238 mapped subzones, 17 fall below the lower fence of 0.467 and 3 sit above the upper fence of 1.022.
 
-The two outlier classes are what distinguish a box map from an ordinary quartile map, and both are populated here — of the 238 mapped subzones, 17 fall below the lower fence of 0.467 and 3 sit above the upper fence of 1.022.
-
-The lower outliers are almost entirely city-centre subzones — Clarke Quay, City Hall, Boat Quay, Tanjong Pagar, Cecil — where the resident population is small and overwhelmingly working-age. The upper outliers are the opposite case, and Loyang West is the extreme: 500 aged residents against only 50 economy active, giving a dependency ratio of 10 against a median of 0.73.
+The lower outliers are almost entirely city-centre subzones, among them Clarke Quay, City Hall, Boat Quay, Tanjong Pagar and Cecil, where the resident population is small and overwhelmingly working-age. The upper outliers are the opposite case, and Loyang West is the extreme: 500 aged residents against only 50 economy active, giving a dependency ratio of 10 against a median of 0.73.
 
 That single value stretches the top class from 1.02 all the way to 10. An ordinary quartile map would have absorbed it into a "\> 75%" class alongside subzones with a ratio of 0.9, whereas the box map separates it out as statistically exceptional.
-:::
 
 ::: callout-warning
 ## Small denominators
 
-SingStat rounds subzone populations to the nearest 10, so a ratio computed over a denominator of 50 residents is highly unstable — one rounding step moves it substantially. The most extreme values at both ends of this map sit in subzones with fewer than a few hundred residents, so they are better read as a signal to check the underlying counts than as a reliable measure of demographic structure.
+SingStat rounds subzone populations to the nearest 10, so a ratio computed over a denominator of 50 residents is highly unstable, since one rounding step moves it substantially. The most extreme values at both ends of this map sit in subzones with fewer than a few hundred residents, so they are better read as a signal to check the underlying counts than as a reliable measure of demographic structure.
 :::
 
 ### Interactive box map
 
-`tmap_mode("view")` switches to interactive rendering, and `tm_basemap()` places a reference tile layer underneath so the outlier subzones can be located on the ground. (The v3 guard `tmap_options(check.and.fix = TRUE)` is not needed — that option no longer exists in tmap 4.x, which validates geometries on its own.)
+`tmap_mode("view")` switches to interactive rendering, and `tm_basemap()` places a reference tile layer underneath so the outlier subzones can be located on the ground. The v3 guard `tmap_options(check.and.fix = TRUE)` is not needed, because that option no longer exists in tmap 4.x, which validates geometries on its own.
 
 ```{r}
 tmap_mode("view")
@@ -337,28 +315,26 @@ tmap_mode("plot")
 
 ## The Raster Data Model with **terra**
 
-Everything so far has used the **vector** data model: pre-schools as discrete points, subzones as discrete polygons, each carrying its own attributes. Lesson 1 presents the **raster** model as the alternative — "cells organized in a matrix of rows and columns", with the observed value encoded on the cell rather than attached to an object.
+Everything so far has used the vector data model: pre-schools as discrete points, subzones as discrete polygons, each carrying its own attributes. Lesson 1 presents the raster model as the alternative, "cells organized in a matrix of rows and columns", with the observed value encoded on the cell rather than attached to an object.
 
 The lesson covers the raster model conceptually but works entirely in **sf**. This section closes that gap by putting the *same* phenomenon into both models, which is the clearest way to see what actually differs between them.
 
 ### Building a raster template
 
-`vect()` converts an `sf` object into terra's own `SpatVector` class, and `rast()` builds an empty raster covering its extent. Only the geometry of the grid is defined at this point — cell size, extent, and CRS — not any values:
+`vect()` converts an `sf` object into terra's own `SpatVector` class, and `rast()` builds an empty raster covering its extent. Only the geometry of the grid is defined at this point, meaning cell size, extent and CRS, and not any values:
 
 ```{r}
 sg_grid <- rast(vect(mpsz19), resolution = 500)
 sg_grid
 ```
 
-The printed header *is* the raster data model. `size` gives the matrix shape (69 rows x 107 columns x 1 layer = 7,383 cells), `resolution` the edge length of one cell in map units — 500 m, which is meaningful only because the layer is in svy21 and not in degrees — and `extent` the bounding box the matrix covers.
+The printed header *is* the raster data model. `size` gives the matrix shape, 69 rows by 107 columns by 1 layer, for 7,383 cells. `resolution` gives the edge length of one cell in map units, 500 m, which is meaningful only because the layer is in svy21 and not in degrees. `extent` gives the bounding box the matrix covers.
 
-::: callout-note
-Note what the header does *not* contain: any list of features. A vector layer stores an explicit record per object, so `mpsz19` has 332 rows. A raster stores a value for every cell whether or not anything is there, so this grid has 7,383 slots regardless of how many pre-schools exist. That is the storage trade-off between the two models.
-:::
+What the header does *not* contain is any list of features. A vector layer stores an explicit record per object, so `mpsz19` has 332 rows. A raster stores a value for every cell whether or not anything is there, so this grid has 7,383 slots regardless of how many pre-schools exist. That is the storage trade-off between the two models.
 
 ### Rasterizing the pre-school points
 
-`rasterize()` transfers the point layer onto the grid. `fun = "length"` makes each cell hold the number of points falling in it, and `background = 0` writes a true zero into empty cells rather than `NA` — an important distinction, since "no pre-school here" is a measurement, while "outside Singapore" is not. `mask()` then sets everything beyond the coastline back to `NA`:
+`rasterize()` transfers the point layer onto the grid. `fun = "length"` makes each cell hold the number of points falling in it, and `background = 0` writes a true zero into empty cells rather than `NA`. The distinction matters, since "no pre-school here" is a measurement while "outside Singapore" is not. `mask()` then sets everything beyond the coastline back to `NA`:
 
 ```{r}
 presch_rast <- rasterize(vect(preschool), sg_grid,
@@ -372,7 +348,7 @@ presch_rast
 
 The header now carries `min value` and `max value`: no cell holds more than 16 pre-schools.
 
-Checking that the conversion conserved the data — the cell counts must sum back to the original number of points:
+Checking that the conversion conserved the data means confirming that the cell counts sum back to the original number of points:
 
 ```{r}
 c(points = nrow(preschool),
@@ -402,17 +378,13 @@ tm_shape(presch_rast) +
   tm_title("Pre-school counts on a 500 m raster grid")
 ```
 
-::: callout-note
-## Interpretation
+The raster reveals structure the subzone choropleth cannot. Pre-schools trace the built-up corridors, the northern HDB towns, the Jurong and Tampines clusters, and the belt running east from the centre, while the catchment, the western industrial land and the offshore islands stay empty. Because every cell is the same size, colour here means the same thing everywhere on the map, which is not true of a choropleth over subzones of wildly differing area.
 
-The raster reveals structure the subzone choropleth cannot. Pre-schools trace the built-up corridors — the northern HDB towns, the Jurong and Tampines clusters, the belt running east from the centre — while the catchment, the western industrial land, and the offshore islands stay empty. Because every cell is the same size, colour here means the same thing everywhere on the map, which is not true of a choropleth over subzones of wildly differing area.
-
-The cost is that the grid is an arbitrary imposition. Nothing in the world is 500 m square; change the resolution and both the pattern and the maximum count change with it. This is the modifiable areal unit problem, and the raster makes the analyst responsible for it, whereas with subzones the boundaries at least come from a real administrative decision.
-:::
+The cost is that the grid is an arbitrary imposition. Nothing in the world is 500 m square, and changing the resolution changes both the pattern and the maximum count with it. This is the modifiable areal unit problem, and the raster makes the analyst responsible for it, whereas with subzones the boundaries at least come from a real administrative decision.
 
 ## Reference
 
-- Kam, T. S. *ISSS626 Geospatial Analytics and Applications*, Lesson 1 — Introduction to GAA, Geospatial Data Models, GeoVisualisation, and tmap methods.
+- Kam, T. S. *ISSS626 Geospatial Analytics and Applications*, Lesson 1: Introduction to GAA, Geospatial Data Models, GeoVisualisation, and tmap methods.
 - [sf: Simple Features for R](https://r-spatial.github.io/sf/)
 - [tmap: Thematic Maps in R](https://r-tmap.github.io/tmap/)
 - [tmap v3 to v4 migration notes](https://r-tmap.github.io/tmap/articles/versus)

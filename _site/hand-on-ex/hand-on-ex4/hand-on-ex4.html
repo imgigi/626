@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-13">
+<meta name="dcterms.date" content="2026-09-19">
 
 <title>Hands-on Exercise 4: Spatial Weights and Applications – ISSS626-GAA</title>
 <style>
@@ -174,6 +174,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
  <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">
+ <span class="dropdown-text">Exercise 5a · Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">
+ <span class="dropdown-text">Exercise 5b · Local Measures of Spatial Autocorrelation</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -185,6 +194,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../in-class-ex/in-class-ex1/in-class-ex1.html">
  <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex4/in-class-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Geographically Weighted Summary Statistics</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -193,11 +207,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </a>
     <ul class="dropdown-menu" aria-labelledby="nav-menu-take-home-exercise">    
         <li>
-    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.qmd">
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.html">
  <span class="dropdown-text">Exercise 1 · Technical Report</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.qmd">
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.html">
  <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
   </li>  
     </ul>
@@ -292,14 +306,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 13, 2026</p>
+      <p class="date">September 19, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 13, 2026</p>
+      <p class="date-modified">September 19, 2026</p>
     </div>
   </div>
     
@@ -312,7 +326,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>Every measure of spatial association — Moran’s I, Geary’s C, the local indicators that follow in later exercises — rests on a prior decision that is rarely stated explicitly: which areas count as neighbours of which. That decision is encoded in a <strong>spatial weights matrix</strong>, an <em>n</em> × <em>n</em> object whose entry <em>w<sub>ij</sub></em> records how strongly area <em>i</em> is linked to area <em>j</em>. The matrix is not given by the data; it is constructed, and the construction is a modelling choice.</p>
+<p>Every measure of spatial association, from Moran’s I and Geary’s C to the local indicators that follow in later exercises, rests on a prior decision that is rarely stated explicitly: which areas count as neighbours of which. That decision is encoded in a <strong>spatial weights matrix</strong>, an <em>n</em> × <em>n</em> object whose entry <em>w<sub>ij</sub></em> records how strongly area <em>i</em> is linked to area <em>j</em>. The matrix is not given by the data; it is constructed, and the construction is a modelling choice.</p>
 <p>This exercise builds that matrix four different ways for the 88 counties of Hunan province, then puts it to work by computing spatially lagged versions of a development indicator. By the end of it the following are in place:</p>
 <ul>
 <li>geospatial data imported with the appropriate functions of <strong>sf</strong>,</li>
@@ -356,7 +370,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The textbook distributes these two files inside the course data archive, which is not retrievable from a script. The same pair was taken instead from a public course repository, and the import below confirms they are the textbook’s own files rather than a reconstruction: 88 polygons, seven attribute fields, a bounding box of 108.7831–114.2544 E by 24.6342–30.1281 N, and geodetic CRS WGS 84 — identical to the figures printed in the chapter. Every number produced in this document therefore matches the textbook’s, which is not the case for <a href="../../hand-on-ex/hand-on-ex3/hand-on-ex3.html">Hands-on Exercise 3</a>, where the source data had to be rebuilt.</p>
+<p>The textbook distributes these two files inside the course data archive, which is not retrievable from a script. The same pair was taken instead from a public course repository, and the import below confirms they are the textbook’s own files rather than a reconstruction: 88 polygons, seven attribute fields, a bounding box of 108.7831–114.2544 E by 24.6342–30.1281 N, and geodetic CRS WGS 84, all identical to the figures printed in the chapter. Every number produced in this document therefore matches the textbook’s, which is not the case for <a href="../../hand-on-ex/hand-on-ex3/hand-on-ex3.html">Hands-on Exercise 3</a>, where the source data had to be rebuilt.</p>
 </div>
 </div>
 <section id="getting-started" class="level3">
@@ -432,7 +446,7 @@ Geodetic CRS:  WGS 84</code></pre>
 </section>
 <section id="performing-relational-join" class="level3">
 <h3 class="anchored" data-anchor-id="performing-relational-join">Performing relational join</h3>
-<p><code>left_join()</code> of <strong>dplyr</strong> attaches the indicator fields to the attribute table of the <code>hunan</code> simple feature object. Both tables carry a <code>County</code> field, so that is the join key. <code>select()</code> then keeps only the identifying fields and GDPPC — gross domestic product per capita — which is the variable carried through the rest of the exercise:</p>
+<p><code>left_join()</code> of <strong>dplyr</strong> attaches the indicator fields to the attribute table of the <code>hunan</code> simple feature object. Both tables carry a <code>County</code> field, so that is the join key. <code>select()</code> then keeps only the identifying fields and GDPPC, gross domestic product per capita, which is the variable carried through the rest of the exercise:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, hunan2012, <span class="at">by =</span> <span class="st">"County"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="dv">7</span>, <span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -495,7 +509,7 @@ Link number distribution:
 <pre><code>[1]  2  3  4 57 85</code></pre>
 </div>
 </div>
-<p>Polygon 1 has five neighbours. The numbers are the polygon IDs as stored in the <code>hunan</code> object — row positions, not county identifiers. The name behind ID 1 is recovered with:</p>
+<p>Polygon 1 has five neighbours. The numbers are the polygon IDs as stored in the <code>hunan</code> object, which are row positions rather than county identifiers. The name behind ID 1 is recovered with:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>hunan<span class="sc">$</span>County[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -631,8 +645,8 @@ Link number distribution:
  - attr(*, "snap")= num 9e-08
  - attr(*, "sym")= logi TRUE
  - attr(*, "ncomp")=List of 2
-  ..$ nc     : int 1
-  ..$ comp.id: int [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+  ..$ nc     : num 1
+  ..$ comp.id: num [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
 </div>
 </div>
 </div>
@@ -661,7 +675,7 @@ Link number distribution:
 85 with 10 links</code></pre>
 </div>
 </div>
-<p>Eight links are lost — 440 against 448 — and the average number of links falls from 5.09 to 5.00. Those eight are the corner touches that the Queen criterion admits and the Rook criterion rejects. The most connected unit drops from 11 neighbours to 10, and the same two units remain with one neighbour each. For irregular administrative polygons of this kind the two criteria rarely diverge much, since exact corner contacts are uncommon; the difference is far more consequential on a regular grid.</p>
+<p>Eight links are lost, 440 against 448, and the average number of links falls from 5.09 to 5.00. Those eight are the corner touches that the Queen criterion admits and the Rook criterion rejects. The most connected unit drops from 11 neighbours to 10, and the same two units remain with one neighbour each. For irregular administrative polygons of this kind the two criteria rarely diverge much, since exact corner contacts are uncommon; the difference is far more consequential on a regular grid.</p>
 </section>
 <section id="visualising-contiguity-weights" class="level3">
 <h3 class="anchored" data-anchor-id="visualising-contiguity-weights">Visualising contiguity weights</h3>
@@ -678,7 +692,7 @@ Link number distribution:
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">cbind</span>(longitude, latitude)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The first few rows confirm the format — a two column matrix in the order expected by the <strong>spdep</strong> plotting and distance functions:</p>
+<p>The first few rows confirm the format, a two column matrix in the order expected by the <strong>spdep</strong> plotting and distance functions:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(coords)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -736,13 +750,13 @@ Link number distribution:
 </div>
 </div>
 </div>
-<p>Both graphs are fully connected — every county is reachable from every other — which is what the absence of isolated units in the two summaries already implied.</p>
+<p>Both graphs are fully connected, meaning every county is reachable from every other, which is what the absence of isolated units in the two summaries already implied.</p>
 </section>
 </section>
 </section>
 <section id="computing-distance-based-neighbours" class="level2">
 <h2 class="anchored" data-anchor-id="computing-distance-based-neighbours">Computing distance based neighbours</h2>
-<p>Contiguity is not the only way to define a neighbour. <code>dnearneigh()</code> of <strong>spdep</strong> identifies neighbours of region points by Euclidean distance, within a band whose lower and upper bounds are set by <code>d1=</code> and <code>d2=</code>. If the coordinates are unprojected and <code>longlat = TRUE</code> is passed, great circle distances in kilometres are calculated on the WGS 84 reference ellipsoid — which is the case here, since <code>coords</code> holds longitude and latitude.</p>
+<p>Contiguity is not the only way to define a neighbour. <code>dnearneigh()</code> of <strong>spdep</strong> identifies neighbours of region points by Euclidean distance, within a band whose lower and upper bounds are set by <code>d1=</code> and <code>d2=</code>. If the coordinates are unprojected and <code>longlat = TRUE</code> is passed, great circle distances in kilometres are calculated on the WGS 84 reference ellipsoid, which is the case here, since <code>coords</code> holds longitude and latitude.</p>
 <section id="determine-the-cut-off-distance" class="level3">
 <h3 class="anchored" data-anchor-id="determine-the-cut-off-distance">Determine the cut-off distance</h3>
 <p>The upper limit of the distance band has to be chosen rather than assumed. A defensible choice is the smallest radius at which no county is left without a neighbour, and that is found in four steps:</p>
@@ -904,8 +918,8 @@ Average number of links: 3.681818 </code></pre>
  - attr(*, "nbtype")= chr "distance"
  - attr(*, "sym")= logi TRUE
  - attr(*, "ncomp")=List of 2
-  ..$ nc     : int 1
-  ..$ comp.id: int [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+  ..$ nc     : num 1
+  ..$ comp.id: num [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
 </div>
 </div>
 </div>
@@ -1073,8 +1087,8 @@ Non-symmetric neighbours list</code></pre>
  - attr(*, "knn-k")= num 6
  - attr(*, "class")= chr "nb"
  - attr(*, "ncomp")=List of 2
-  ..$ nc     : int 1
-  ..$ comp.id: int [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+  ..$ nc     : num 1
+  ..$ comp.id: num [1:88] 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
 </div>
 </div>
 </div>
@@ -1112,7 +1126,7 @@ Non-symmetric neighbours list</code></pre>
 <pre><code>[1] 0.01535405 0.03916350 0.01820896 0.02807922 0.01145113</code></pre>
 </div>
 </div>
-<p>The values are in reciprocal kilometres, so 0.0392 corresponds to a centroid roughly 26 km away and 0.0115 to one roughly 87 km away — a factor of more than three between the strongest and weakest of Anxiang’s five links, where the plain contiguity matrix would have given all five the same value.</p>
+<p>The values are in reciprocal kilometres, so 0.0392 corresponds to a centroid roughly 26 km away and 0.0115 to one roughly 87 km away, a factor of more than three between the strongest and weakest of Anxiang’s five links, where the plain contiguity matrix would have given all five the same value.</p>
 <p>The full set of inverse distances is:</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
@@ -1470,11 +1484,11 @@ B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 0.008218 0.015088 0.018739 0.019614 0.022823 0.040338 </code></pre>
 </div>
 </div>
-<p><code>style = "B"</code> here leaves the supplied values as they are rather than rescaling them, so these rows do not sum to one — the row sums vary with both the number and the proximity of each county’s neighbours.</p>
+<p><code>style = "B"</code> here leaves the supplied values as they are rather than rescaling them, so these rows do not sum to one, and the row sums vary with both the number and the proximity of each county’s neighbours.</p>
 </section>
 <section id="application-of-spatial-weight-matrix" class="level2">
 <h2 class="anchored" data-anchor-id="application-of-spatial-weight-matrix">Application of Spatial Weight Matrix</h2>
-<p>A weights matrix earns its keep by transforming a variable into a <strong>spatially lagged</strong> version of itself: a summary, for each unit, of the values observed around it. Four such variables are created below, and the differences between them come down to two binary choices — whether the weights are row-standardised or binary, and whether the unit itself is included among its own neighbours.</p>
+<p>A weights matrix earns its keep by transforming a variable into a <strong>spatially lagged</strong> version of itself: a summary, for each unit, of the values observed around it. Four such variables are created below, and the differences between them come down to two binary choices: whether the weights are row-standardised or binary, and whether the unit itself is included among its own neighbours.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -1521,7 +1535,7 @@ B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 [81] 18145.00 21617.00 29203.89 41363.67 22259.09 44939.56 16902.00 16930.00</code></pre>
 </div>
 </div>
-<p>The first entry, 24847.20, is the mean of the five GDPPC values retrieved for the neighbours of Anxiang in the earlier section — 20981, 34592, 24473, 21311 and 22879 — each multiplied by its weight of 0.2 and summed. That is what a row-standardised spatial lag is: the neighbourhood mean, with the unit’s own value excluded.</p>
+<p>The first entry, 24847.20, is the mean of the five GDPPC values retrieved for the neighbours of Anxiang in the earlier section, namely 20981, 34592, 24473, 21311 and 22879, each multiplied by its weight of 0.2 and summed. That is what a row-standardised spatial lag is: the neighbourhood mean, with the unit’s own value excluded.</p>
 <p>The lagged values are appended to the <code>hunan</code> data frame:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>lag.list <span class="ot">&lt;-</span> <span class="fu">list</span>(hunan<span class="sc">$</span>NAME_3, <span class="fu">lag.listw</span>(rswm_q, hunan<span class="sc">$</span>GDPPC))</span>
@@ -1567,7 +1581,7 @@ Geodetic CRS:  WGS 84
 </div>
 </div>
 </div>
-<p>The lagged map is smoother, and the isolated high-GDPPC counties of the original are pulled towards their surroundings — spatial lagging is a spatial smoother, which is exactly why comparing a value to its lag is the basis of the autocorrelation statistics that follow in later exercises.</p>
+<p>The lagged map is smoother, and the isolated high-GDPPC counties of the original are pulled towards their surroundings. Spatial lagging is a spatial smoother, which is exactly why comparing a value to its lag is the basis of the autocorrelation statistics that follow in later exercises.</p>
 </section>
 <section id="spatial-lag-as-a-sum-of-neighboring-values" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-lag-as-a-sum-of-neighboring-values">Spatial lag as a sum of neighboring values</h3>
@@ -1658,7 +1672,7 @@ B 88 7744 448 896 10224</code></pre>
 </section>
 <section id="spatial-window-average" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-window-average">Spatial window average</h3>
-<p>The spatial window average uses row-standardised weights and includes the diagonal element — that is, it treats each county as one of its own neighbours. The neighbours structure is returned to and the diagonal added before weights are assigned, using <code>include.self()</code> of <strong>spdep</strong>:</p>
+<p>The spatial window average uses row-standardised weights and includes the diagonal element, which is to say it treats each county as one of its own neighbours. The neighbours structure is returned to and the diagonal added before weights are assigned, using <code>include.self()</code> of <strong>spdep</strong>:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>wm_qs <span class="ot">&lt;-</span> <span class="fu">include.self</span>(wm_q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -2766,8 +2780,8 @@ B 88 7744 536 1072 14160</code></pre>
 <ul>
 <li>Kam, T. S. <em>R for Geospatial Data Science and Analytics</em>, <a href="https://r4gdsa.netlify.app/chap08">Chapter 8: Spatial Weights and Applications</a>.</li>
 <li>Bivand, R. S. and Wong, D. W. S. (2018) <a href="https://link.springer.com/article/10.1007/s11749-018-0599-x">“Comparing implementations of global and local indicators of spatial association”</a>, <em>TEST</em>, Vol. 27, pp.&nbsp;716-748.</li>
-<li><a href="https://r-spatial.github.io/spdep/articles/nb.html">Creating Neighbours</a> — <strong>spdep</strong> vignette on building neighbour lists from <code>sf</code> objects.</li>
-<li><a href="https://cran.r-project.org/web/packages/spdep/index.html">spdep: Spatial Dependence — Weighting Schemes, Statistics</a></li>
+<li><a href="https://r-spatial.github.io/spdep/articles/nb.html">Creating Neighbours</a>, the <strong>spdep</strong> vignette on building neighbour lists from <code>sf</code> objects.</li>
+<li><a href="https://cran.r-project.org/web/packages/spdep/index.html">spdep: Spatial Dependence - Weighting Schemes, Statistics</a></li>
 </ul>
 
 

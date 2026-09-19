@@ -18,9 +18,9 @@ editor: visual
 
 ## Overview
 
-[Hands-on Exercise 2a](hand-on-ex2a.qmd) used first-order methods, which describe how the *intensity* of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers "how many events per unit area, here?"
+[Hands-on Exercise 2a](hand-on-ex2a.qmd) used first-order methods, which describe how the *intensity* of a point process varies across space, meaning where events are dense and where they are sparse. Kernel density estimation answers "how many events per unit area, here?"
 
-Second-order methods ask a different question: given the intensity, do events attract or repel one another, and **at what distance**? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise — **G**, **F**, **K**, and **L** — are functions of distance, so they can.
+Second-order methods ask a different question: given the intensity, do events attract or repel one another, and **at what distance**? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise, G, F, K and L, are functions of distance, so they can.
 
 The null hypothesis tested throughout is **complete spatial randomness (CSR)**: the childcare centres are randomly distributed over the study area, following a homogeneous Poisson process. The significance level is 0.001.
 
@@ -37,7 +37,7 @@ The null hypothesis tested throughout is **complete spatial randomness (CSR)**: 
 pacman::p_load(sf, spatstat, tmap, tidyverse)
 ```
 
-**terra** is not needed here — no density surface is converted to a raster in this exercise.
+**terra** is not needed here, because no density surface is converted to a raster in this exercise.
 
 ## Data Import and Preparation
 
@@ -69,7 +69,7 @@ any(duplicated(childcare_ppp_jit))
 
 ### The two study areas
 
-The analysis is run on two planning areas rather than the whole country. Second-order functions assume the process is **homogeneous** — that intensity is roughly constant across the window — and that assumption is untenable for Singapore as a whole, where the centre and the outlying areas differ by an order of magnitude. Within one planning area it is defensible:
+The analysis is run on two planning areas rather than the whole country. Second-order functions assume the process is homogeneous, meaning that intensity is roughly constant across the window, and that assumption is untenable for Singapore as a whole, where the centre and the outlying areas differ by an order of magnitude. Within one planning area it is defensible:
 
 ```{r}
 ck <- mpsz_cl %>% filter(PLN_AREA_N == "CHOA CHU KANG")
@@ -96,7 +96,7 @@ plot(childcare_tm_ppp, main = "Tampines")
 
 Each function below is accompanied by an `envelope()` plot. The procedure simulates many point patterns under CSR, computes the same function on each, and shades the region between the pointwise minimum and maximum.
 
-The interpretation is the same in every case: where the observed curve lies **inside** the grey envelope, the pattern is indistinguishable from randomness at that distance. Where it strays **outside**, CSR is rejected — and which side it exits on says whether the departure is clustering or regularity.
+The interpretation is the same in every case: where the observed curve lies **inside** the grey envelope, the pattern is indistinguishable from randomness at that distance. Where it strays outside, CSR is rejected, and which side it exits on says whether the departure is clustering or regularity.
 
 `set.seed()` is called before every envelope so the simulations are reproducible.
 :::
@@ -151,7 +151,7 @@ plot(G_tm.csr)
 
 The F-function is the complement of G. Instead of measuring from events, it measures from **arbitrary locations** in the window to the nearest event. F(r) is the proportion of such locations with an event within distance *r*.
 
-The two are sensitive to different things. G describes how events sit relative to each other; F describes how much empty space the pattern leaves. A clustered pattern leaves large gaps, so its F curve rises **more slowly** than under CSR — the opposite direction to its G curve. Reporting both guards against a conclusion that is an artefact of one measurement's blind spot.
+The two are sensitive to different things. G describes how events sit relative to each other; F describes how much empty space the pattern leaves. A clustered pattern leaves large gaps, so its F curve rises more slowly than under CSR, the opposite direction to its G curve. Reporting both guards against a conclusion that is an artefact of one measurement's blind spot.
 
 ### Choa Chu Kang planning area
 
@@ -236,7 +236,7 @@ plot(K_tm.csr, . - r ~ r, xlab = "d", ylab = "K(d)-r", xlim = c(0, 500))
 
 `glocal = TRUE` requests a *global* envelope. A pointwise envelope is a separate test at every distance, so with hundreds of distances some will fall outside by chance alone and the apparent significance is inflated. A global envelope has the stated coverage across the whole curve simultaneously, which is what a claim about the pattern actually requires.
 
-The simulation count drops to 99 because K is far more expensive to compute than G — it counts every pair of events at every distance rather than one distance per event. With `rank = 1` and 99 simulations the envelope is the pointwise extreme of those runs, giving a test at the 0.01 level.
+The simulation count drops to 99 because K is far more expensive to compute than G, since it counts every pair of events at every distance rather than one distance per event. With `rank = 1` and 99 simulations the envelope is the pointwise extreme of those runs, giving a test at the 0.01 level.
 :::
 
 ## Analysing Spatial Point Process Using L-Function
@@ -245,7 +245,7 @@ K(r) grows as r², so its variance grows with distance too, and the envelope fan
 
 $$L(r) = \sqrt{\frac{K(r)}{\pi}}$$
 
-Under CSR, L(r) = r, so plotting `L(d) - r` again flattens the expectation onto the horizontal axis — but now with roughly constant variance across the whole range, which makes the envelope width comparable at every distance. This is why L is normally the function reported.
+Under CSR, L(r) = r, so plotting `L(d) - r` again flattens the expectation onto the horizontal axis, but now with roughly constant variance across the whole range, which makes the envelope width comparable at every distance. This is why L is normally the function reported.
 
 ### Choa Chu Kang planning area
 

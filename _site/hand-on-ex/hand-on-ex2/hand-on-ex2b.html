@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-07">
+<meta name="dcterms.date" content="2026-09-19">
 
 <title>Hands-on Exercise 2b: 2nd Order Spatial Point Patterns Analysis – ISSS626-GAA</title>
 <style>
@@ -203,6 +203,15 @@ window.Quarto = {
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
  <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">
+ <span class="dropdown-text">Exercise 5a · Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">
+ <span class="dropdown-text">Exercise 5b · Local Measures of Spatial Autocorrelation</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -214,6 +223,11 @@ window.Quarto = {
     <a class="dropdown-item" href="../../in-class-ex/in-class-ex1/in-class-ex1.html">
  <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex4/in-class-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Geographically Weighted Summary Statistics</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -222,11 +236,11 @@ window.Quarto = {
     </a>
     <ul class="dropdown-menu" aria-labelledby="nav-menu-take-home-exercise">    
         <li>
-    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.qmd">
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.html">
  <span class="dropdown-text">Exercise 1 · Technical Report</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.qmd">
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.html">
  <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
   </li>  
     </ul>
@@ -309,14 +323,14 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 7, 2026</p>
+      <p class="date">September 19, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 7, 2026</p>
+      <p class="date-modified">September 19, 2026</p>
     </div>
   </div>
     
@@ -329,8 +343,8 @@ window.Quarto = {
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">Hands-on Exercise 2a</a> used first-order methods, which describe how the <em>intensity</em> of a point process varies across space — where events are dense and where they are sparse. Kernel density estimation answers “how many events per unit area, here?”</p>
-<p>Second-order methods ask a different question: given the intensity, do events attract or repel one another, and <strong>at what distance</strong>? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise — <strong>G</strong>, <strong>F</strong>, <strong>K</strong>, and <strong>L</strong> — are functions of distance, so they can.</p>
+<p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">Hands-on Exercise 2a</a> used first-order methods, which describe how the <em>intensity</em> of a point process varies across space, meaning where events are dense and where they are sparse. Kernel density estimation answers “how many events per unit area, here?”</p>
+<p>Second-order methods ask a different question: given the intensity, do events attract or repel one another, and <strong>at what distance</strong>? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise, G, F, K and L, are functions of distance, so they can.</p>
 <p>The null hypothesis tested throughout is <strong>complete spatial randomness (CSR)</strong>: the childcare centres are randomly distributed over the study area, following a homogeneous Poisson process. The significance level is 0.001.</p>
 </section>
 <section id="the-data" class="level2">
@@ -362,7 +376,7 @@ window.Quarto = {
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, spatstat, tmap, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p><strong>terra</strong> is not needed here — no density surface is converted to a raster in this exercise.</p>
+<p><strong>terra</strong> is not needed here, because no density surface is converted to a raster in this exercise.</p>
 </section>
 <section id="data-import-and-preparation" class="level2">
 <h2 class="anchored" data-anchor-id="data-import-and-preparation">Data Import and Preparation</h2>
@@ -402,7 +416,7 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 <section id="the-two-study-areas" class="level3">
 <h3 class="anchored" data-anchor-id="the-two-study-areas">The two study areas</h3>
-<p>The analysis is run on two planning areas rather than the whole country. Second-order functions assume the process is <strong>homogeneous</strong> — that intensity is roughly constant across the window — and that assumption is untenable for Singapore as a whole, where the centre and the outlying areas differ by an order of magnitude. Within one planning area it is defensible:</p>
+<p>The analysis is run on two planning areas rather than the whole country. Second-order functions assume the process is homogeneous, meaning that intensity is roughly constant across the window, and that assumption is untenable for Singapore as a whole, where the centre and the outlying areas differ by an order of magnitude. Within one planning area it is defensible:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ck <span class="ot">&lt;-</span> mpsz_cl <span class="sc">%&gt;%</span> <span class="fu">filter</span>(PLN_AREA_N <span class="sc">==</span> <span class="st">"CHOA CHU KANG"</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>tm <span class="ot">&lt;-</span> mpsz_cl <span class="sc">%&gt;%</span> <span class="fu">filter</span>(PLN_AREA_N <span class="sc">==</span> <span class="st">"TAMPINES"</span>)</span>
@@ -440,7 +454,7 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 <div class="callout-body-container callout-body">
 <p>Each function below is accompanied by an <code>envelope()</code> plot. The procedure simulates many point patterns under CSR, computes the same function on each, and shades the region between the pointwise minimum and maximum.</p>
-<p>The interpretation is the same in every case: where the observed curve lies <strong>inside</strong> the grey envelope, the pattern is indistinguishable from randomness at that distance. Where it strays <strong>outside</strong>, CSR is rejected — and which side it exits on says whether the departure is clustering or regularity.</p>
+<p>The interpretation is the same in every case: where the observed curve lies <strong>inside</strong> the grey envelope, the pattern is indistinguishable from randomness at that distance. Where it strays outside, CSR is rejected, and which side it exits on says whether the departure is clustering or regularity.</p>
 <p><code>set.seed()</code> is called before every envelope so the simulations are reproducible.</p>
 </div>
 </div>
@@ -553,7 +567,7 @@ Done.</code></pre>
 <section id="analysing-spatial-point-process-using-f-function" class="level2">
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-f-function">Analysing Spatial Point Process Using F-Function</h2>
 <p>The F-function is the complement of G. Instead of measuring from events, it measures from <strong>arbitrary locations</strong> in the window to the nearest event. F(r) is the proportion of such locations with an event within distance <em>r</em>.</p>
-<p>The two are sensitive to different things. G describes how events sit relative to each other; F describes how much empty space the pattern leaves. A clustered pattern leaves large gaps, so its F curve rises <strong>more slowly</strong> than under CSR — the opposite direction to its G curve. Reporting both guards against a conclusion that is an artefact of one measurement’s blind spot.</p>
+<p>The two are sensitive to different things. G describes how events sit relative to each other; F describes how much empty space the pattern leaves. A clustered pattern leaves large gaps, so its F curve rises more slowly than under CSR, the opposite direction to its G curve. Reporting both guards against a conclusion that is an artefact of one measurement’s blind spot.</p>
 <section id="choa-chu-kang-planning-area-1" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area-1">Choa Chu Kang planning area</h3>
 <div class="cell">
@@ -742,7 +756,7 @@ Done.</code></pre>
 </div>
 <div class="callout-body-container callout-body">
 <p><code>glocal = TRUE</code> requests a <em>global</em> envelope. A pointwise envelope is a separate test at every distance, so with hundreds of distances some will fall outside by chance alone and the apparent significance is inflated. A global envelope has the stated coverage across the whole curve simultaneously, which is what a claim about the pattern actually requires.</p>
-<p>The simulation count drops to 99 because K is far more expensive to compute than G — it counts every pair of events at every distance rather than one distance per event. With <code>rank = 1</code> and 99 simulations the envelope is the pointwise extreme of those runs, giving a test at the 0.01 level.</p>
+<p>The simulation count drops to 99 because K is far more expensive to compute than G, since it counts every pair of events at every distance rather than one distance per event. With <code>rank = 1</code> and 99 simulations the envelope is the pointwise extreme of those runs, giving a test at the 0.01 level.</p>
 </div>
 </div>
 </section>
@@ -751,7 +765,7 @@ Done.</code></pre>
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-l-function">Analysing Spatial Point Process Using L-Function</h2>
 <p>K(r) grows as r², so its variance grows with distance too, and the envelope fans out at larger <em>r</em> even when nothing is happening. The L-function is the square-root transformation that removes this:</p>
 <p><span class="math display">\[L(r) = \sqrt{\frac{K(r)}{\pi}}\]</span></p>
-<p>Under CSR, L(r) = r, so plotting <code>L(d) - r</code> again flattens the expectation onto the horizontal axis — but now with roughly constant variance across the whole range, which makes the envelope width comparable at every distance. This is why L is normally the function reported.</p>
+<p>Under CSR, L(r) = r, so plotting <code>L(d) - r</code> again flattens the expectation onto the horizontal axis, but now with roughly constant variance across the whole range, which makes the envelope width comparable at every distance. This is why L is normally the function reported.</p>
 <section id="choa-chu-kang-planning-area-3" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area-3">Choa Chu Kang planning area</h3>
 <div class="cell">

@@ -46,11 +46,7 @@ pacman::p_load(sf, terra, spatstat, tmap, tidyverse)
 | **tmap** | Plotting the point map and the density surfaces |
 | **tidyverse** | Data import and wrangling |
 
-::: callout-note
-## The spatstat family
-
 `spatstat` is a meta-package. Loading it pulls in `spatstat.geom` (the `ppp` and `owin` classes), `spatstat.random` (simulation), `spatstat.explore` (density estimation and the summary functions used in Hands-on Exercise 2b), and others. Everything below comes from one of these.
-:::
 
 ## Importing and Wrangling Geospatial Data Sets
 
@@ -61,11 +57,7 @@ mpsz_sf <- st_read("data/geospatial/MasterPlan2019SubzoneBoundaryNoSea.geojson")
   st_transform(crs = 3414)
 ```
 
-::: callout-note
-## GeoJSON instead of KML
-
-The textbook imports the KML release of this layer, which stores every attribute inside a single `Description` field as an HTML table, and so needs **rvest** and a custom `extract_kml_field()` helper to parse them out. The GeoJSON release carries `REGION_N`, `PLN_AREA_N`, `SUBZONE_N` and `SUBZONE_C` as ordinary columns, so that step is not required here and **rvest** is not loaded.
-:::
+The GeoJSON release of this layer is used rather than the KML one the textbook imports. KML stores every attribute inside a single `Description` field as an HTML table, so parsing them out needs **rvest** and a custom `extract_kml_field()` helper. The GeoJSON release carries `REGION_N`, `PLN_AREA_N`, `SUBZONE_N` and `SUBZONE_C` as ordinary columns, so that step is not required here and **rvest** is not loaded.
 
 The offshore islands are excluded. They are separated from the mainland by open water, and leaving them in would stretch the observation window across areas no childcare centre could occupy, distorting every density estimate that follows:
 
@@ -92,7 +84,7 @@ childcare_sf <- st_read("data/geospatial/ChildCareServices.geojson") %>%
   st_transform(crs = 3414)
 ```
 
-The import reports 1925 point features with proper attribute columns — `NAME`, the address fields, `DESCRIPTION` — so, as with the subzone layer, no HTML parsing is needed.
+The import reports 1925 point features with proper attribute columns, among them `NAME`, the address fields and `DESCRIPTION`, so as with the subzone layer no HTML parsing is needed.
 
 `st_zm()` drops any Z (and M) dimension. This GeoJSON release is already plain XY, so the call does nothing here, but it is kept as a guard: the KML release of the same dataset carries a Z coordinate fixed at 0, and spatstat's `ppp` class is strictly two-dimensional, so the conversion below fails if a third coordinate survives. Keeping the call means the document works with either download format.
 
@@ -169,7 +161,7 @@ sum(multiplicity(childcare_ppp) > 1)
 
 The duplication is substantial: 187 points sit on a location already occupied, and 338 points are involved in a coincidence, so the 1925 centres occupy only 1738 distinct locations. Multiple centres registered at the same block or the same mall share one address point.
 
-There are three ways to deal with duplicates. Deleting them is simplest but discards real centres. Attaching weights to the retained points keeps the information but complicates every subsequent analysis. **Jittering** — displacing each duplicate by a tiny random amount so that no two points coincide — keeps all the events and is the approach used here:
+There are three ways to deal with duplicates. Deleting them is simplest but discards real centres. Attaching weights to the retained points keeps the information but complicates every subsequent analysis. Jittering, which displaces each duplicate by a tiny random amount so that no two points coincide, keeps all the events and is the approach used here:
 
 ```{r}
 set.seed(1234)
@@ -186,14 +178,14 @@ any(duplicated(childcare_ppp_jit))
 ::: callout-warning
 ## Seed the jitter, not just the envelopes
 
-`set.seed()` is called before `rjitter()`, which the textbook does not do — it seeds only before the simulation envelopes. That is not enough, because `rjitter()` displaces **every** point by a random amount, not merely the duplicated ones. Without a seed, every re-render produces a slightly different pattern, and with it different Clark-Evans statistics, different selected bandwidths, and different G, F, K and L curves.
+`set.seed()` is called before `rjitter()`, which the textbook does not do, since it seeds only before the simulation envelopes. That is not enough, because `rjitter()` displaces every point by a random amount, not merely the duplicated ones. Without a seed, every re-render produces a slightly different pattern, and with it different Clark-Evans statistics, different selected bandwidths, and different G, F, K and L curves.
 
 Rendering this document twice without the seed gave *R* = 0.55568 and then *R* = 0.55431 from identical code. The conclusions are unaffected at that magnitude, but any number quoted in the text stops matching the output beneath it. Hands-on Exercise 2b seeds the same call with the same value, so both documents work from the identical jittered pattern.
 :::
 
 ### Creating owin object
 
-An `owin` confines the analysis to the region where events could actually occur. Without one, spatstat uses the bounding box of the points, which for Singapore would include a large amount of sea and Malaysian territory — and density is events divided by area, so the wrong window gives the wrong answer everywhere.
+An `owin` confines the analysis to the region where events could actually occur. Without one, spatstat uses the bounding box of the points, which for Singapore would include a large amount of sea and Malaysian territory. Density is events divided by area, so the wrong window gives the wrong answer everywhere.
 
 ```{r}
 sg_owin <- as.owin(mpsz_cl)
@@ -242,18 +234,14 @@ clarkevans.test(childcareSG_ppp,
                 nsim = 99)
 ```
 
-::: callout-warning
-## `nsim` is silently ignored here
-
-The header of that output reports a **Z-test**, not a Monte Carlo test, even though `nsim = 99` was passed. The signature is
+The header of that output reports a Z-test rather than a Monte Carlo test, even though `nsim = 99` was passed. The signature explains why:
 
 ```
 clarkevans.test(X, ..., correction, clipregion = NULL, alternative = ...,
                 method = c("asymptotic", "MonteCarlo"), nsim = 999)
 ```
 
-so `method` defaults to `"asymptotic"` and `nsim` does nothing unless `method = "MonteCarlo"` is set explicitly. No warning is raised. The `clipregion` argument is likewise inert with `correction = "none"`, since it is only consulted by the guard-area correction.
-:::
+`method` defaults to `"asymptotic"`, so `nsim` does nothing unless `method = "MonteCarlo"` is set explicitly, and no warning is raised. The `clipregion` argument is likewise inert with `correction = "none"`, since it is only consulted by the guard-area correction.
 
 ### Performing the Clark-Evans test with CSR
 
@@ -270,13 +258,11 @@ clarkevans.test(childcareSG_ppp,
 
 Both tests reject H₀. *R* = 0.552 is well below 1, so the childcare centres are clustered rather than randomly distributed across Singapore.
 
-::: callout-note
-The two p-values are not comparable at face value. The Z-test reports *p* < 2.2e-16, while the Monte Carlo test reports *p* = 0.001 — which is not weaker evidence but the **smallest value 999 simulations can produce**, since the p-value is (1 + number of simulations at least as extreme) / (1 + nsim). Not one of the 999 CSR simulations came close to the observed *R*. Increasing `nsim` would lower the floor; it would not change the conclusion.
-:::
+The two p-values are not comparable at face value. The Z-test reports *p* < 2.2e-16 while the Monte Carlo test reports *p* = 0.001, which is not weaker evidence but the smallest value 999 simulations can produce, since the p-value is (1 + number of simulations at least as extreme) / (1 + nsim). Not one of the 999 CSR simulations came close to the observed *R*. Increasing `nsim` would lower that floor without changing the conclusion.
 
 ## Kernel Density Estimation Method
 
-KDE estimates the intensity of the point process — the expected number of events per unit area — as a smooth surface, by centring a kernel function on each event and summing the contributions.
+KDE estimates the intensity of the point process, meaning the expected number of events per unit area, as a smooth surface, by centring a kernel function on each event and summing the contributions.
 
 The single most consequential choice is the **bandwidth** (`sigma`), the width of that kernel. Too small and the surface degenerates into a spike at every event; too large and every local structure is smoothed away.
 
@@ -304,7 +290,7 @@ The chosen bandwidth can be retrieved directly:
 bw.diggle(childcareSG_ppp)
 ```
 
-Note the density values on the colour bar. The layer is in svy21, so the coordinate unit is the metre and the intensity is reported as events per square metre — numbers so small they are awkward to read.
+Note the density values on the colour bar. The layer is in svy21, so the coordinate unit is the metre and the intensity is reported as events per square metre, in numbers so small they are awkward to read.
 
 ### Rescaling KDE values
 
@@ -342,11 +328,7 @@ c(bw.diggle = bw.diggle(childcareSG_ppp.km),
 bw.scott(childcareSG_ppp.km)
 ```
 
-::: callout-note
-## Which selector to use
-
 `bw.CvL` returns a far larger bandwidth than the other two, and `bw.scott` returns one value per axis. Baddeley and colleagues recommend `bw.ppl` when the pattern consists predominantly of tight clusters, on the grounds that it tends to produce more sensible results in that case, while `bw.diggle` is preferable when the aim is to detect a single tight cluster against a sparse background.
-:::
 
 Comparing the two most commonly used selectors side by side:
 
@@ -401,13 +383,11 @@ kde_childcareSG_600 <- density(childcareSG_ppp.km,
 plot(kde_childcareSG_600, main = "Fixed bandwidth, sigma = 0.6 km")
 ```
 
-::: callout-warning
 This is where the earlier rescaling matters. Had the pattern stayed in metres, `sigma = 0.6` would mean a 60-centimetre kernel and the surface would be meaningless. The number is always in the pattern's current units.
-:::
 
 ### Computing KDE by using adaptive bandwidth
 
-A fixed bandwidth is a poor fit for Singapore, where density varies enormously between the city centre and the outlying areas. Adaptive estimation varies the bandwidth with the local intensity — narrow where events are dense, wide where they are sparse:
+A fixed bandwidth is a poor fit for Singapore, where density varies enormously between the city centre and the outlying areas. Adaptive estimation varies the bandwidth with the local intensity, narrow where events are dense and wide where they are sparse:
 
 ```{r}
 #| fig-width: 12
@@ -437,7 +417,7 @@ kde_childcareSG_raster
 ::: callout-warning
 ## Do not rasterise the kilometre version
 
-Converting the km-rescaled image instead gives a raster whose extent runs from 2.67 to 55.94 — kilometre numbers. Labelling that with `EPSG:3414`, whose unit is the metre, places the surface within 56 metres of the svy21 origin, roughly a thousandfold too small and nowhere near Singapore, so it will not overlay the subzone layer.
+Converting the km-rescaled image instead gives a raster whose extent runs from 2.67 to 55.94, which are kilometre numbers. Labelling that with `EPSG:3414`, whose unit is the metre, places the surface within 56 metres of the svy21 origin, roughly a thousandfold too small and nowhere near Singapore, so it will not overlay the subzone layer.
 
 Rescaling is useful for reading intensity values off a legend, but the raster has to be built from the pattern in the units its CRS actually declares.
 :::
@@ -560,24 +540,18 @@ clarkevans.test(childcare_tm_ppp,
                 nsim = 999)
 ```
 
-::: callout-note
-## Interpretation
-
 The two areas do not give the same answer.
 
 | Planning area | *R* | *p* | At α = 0.001 |
 |----|----|----|----|
-| Choa Chu Kang | 0.868 | 0.0293 | **fail to reject H₀** |
-| Tampines | 0.679 | 2.9e-11 | reject H₀ — clustered |
+| Choa Chu Kang | 0.868 | 0.0293 | fail to reject H₀ |
+| Tampines | 0.679 | 2.9e-11 | reject H₀, clustered |
 
-Tampines is clearly clustered. Choa Chu Kang is the more interesting case: *R* = 0.868 is below 1, and at the conventional α = 0.05 the result would count as significant — but the threshold stated for this exercise is 0.001, and 0.0293 does not meet it. On the stated criterion the Choa Chu Kang pattern cannot be distinguished from complete spatial randomness.
+Tampines is clearly clustered. Choa Chu Kang is the more interesting case. Its *R* of 0.868 is below 1, and at the conventional α = 0.05 the result would count as significant, but the threshold stated for this exercise is 0.001 and 0.0293 does not meet it. On the stated criterion the Choa Chu Kang pattern cannot be distinguished from complete spatial randomness.
 
-Note also that these two calls use the default `method = "asymptotic"`, so both are Z-tests and the `nsim = 999` argument is doing nothing, exactly as in the national test above.
-:::
+These two calls also use the default `method = "asymptotic"`, so both are Z-tests and the `nsim = 999` argument is doing nothing, exactly as in the national test above.
 
-::: callout-note
-The Clark-Evans statistic condenses the whole pattern into one number, so it says *whether* the pattern departs from randomness but not *at what distance* it does so. A pattern can be clustered at 200 m and regular at 2 km, and *R* will report only the net effect. That is precisely the limitation the Choa Chu Kang result runs into. Answering the distance question requires the summary functions — G, F, K and L — which are the subject of [Hands-on Exercise 2b](hand-on-ex2b.qmd).
-:::
+The Clark-Evans statistic condenses the whole pattern into one number, so it says *whether* the pattern departs from randomness but not *at what distance* it does so. A pattern can be clustered at 200 m and regular at 2 km, and *R* will report only the net effect. That is precisely the limitation the Choa Chu Kang result runs into. Answering the distance question requires the summary functions G, F, K and L, which are the subject of [Hands-on Exercise 2b](hand-on-ex2b.qmd).
 
 ### Computing KDE surfaces by planning area
 
