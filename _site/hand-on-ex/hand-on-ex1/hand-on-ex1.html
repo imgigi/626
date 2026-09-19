@@ -174,6 +174,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
  <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">
+ <span class="dropdown-text">Exercise 5a · Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">
+ <span class="dropdown-text">Exercise 5b · Local Measures of Spatial Autocorrelation</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -299,7 +308,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">August 31, 2026</p>
+      <p class="date-modified">September 19, 2026</p>
     </div>
   </div>
     
@@ -340,8 +349,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
 <p>Two R packages are used in this exercise:</p>
 <ul>
-<li><strong>sf</strong> — for importing, managing, and processing geospatial data</li>
-<li><strong>tidyverse</strong> — for data science tasks including importing, wrangling, and visualising data</li>
+<li><strong>sf</strong> for importing, managing, and processing geospatial data</li>
+<li><strong>tidyverse</strong> for data science tasks including importing, wrangling, and visualising data</li>
 </ul>
 <p>Within tidyverse, the following packages are specifically used: <strong>readr</strong> (importing csv), <strong>tidyr</strong> (manipulating data), <strong>dplyr</strong> (transforming data), and <strong>ggplot2</strong> (visualising data).</p>
 <div class="cell">
@@ -607,7 +616,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>In some workflows — particularly when importing shapefiles that were incorrectly labelled — the EPSG code may show as 9001 instead of 3414. In that case, <code>st_set_crs(mpsz, 3414)</code> can be used to assign the correct label. However, this only changes the label and does <strong>not</strong> mathematically reproject the coordinates. If the data is truly in WGS84 (as with GeoJSON files from data.gov.sg), <code>st_transform(crs = 3414)</code> must be used instead.</p>
+<p>In some workflows, particularly when importing shapefiles that were incorrectly labelled, the EPSG code may show as 9001 instead of 3414. In that case, <code>st_set_crs(mpsz, 3414)</code> can be used to assign the correct label. However, this only changes the label and does <strong>not</strong> mathematically reproject the coordinates. If the data is truly in WGS84 (as with GeoJSON files from data.gov.sg), <code>st_transform(crs = 3414)</code> must be used instead.</p>
 </div>
 </div>
 </section>
@@ -629,7 +638,7 @@ Projected CRS: SVY21 / Singapore TM
 First 5 geometries:</code></pre>
 </div>
 </div>
-<p>The preschool data is now in svy21. The bounding box values confirm this — coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.</p>
+<p>The preschool data is now in svy21. The bounding box values confirm this: the coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.</p>
 <p>Now overlaying the preschool layer on mpsz works correctly:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(mpsz))</span>
@@ -937,7 +946,7 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
-<p>The scatterplot shows a general positive relationship — planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.</p>
+<p>The scatterplot shows a general positive relationship: planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.</p>
 
 
 </section>

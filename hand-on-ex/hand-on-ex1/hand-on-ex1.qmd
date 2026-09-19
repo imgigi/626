@@ -44,8 +44,8 @@ The geospatial files (`MP14_SUBZONE_WEB_PL`, `CyclingPathGazette`, and `PreSchoo
 
 Two R packages are used in this exercise:
 
-- **sf** — for importing, managing, and processing geospatial data
-- **tidyverse** — for data science tasks including importing, wrangling, and visualising data
+- **sf** for importing, managing, and processing geospatial data
+- **tidyverse** for data science tasks including importing, wrangling, and visualising data
 
 Within tidyverse, the following packages are specifically used: **readr** (importing csv), **tidyr** (manipulating data), **dplyr** (transforming data), and **ggplot2** (visualising data).
 
@@ -159,7 +159,7 @@ st_crs(mpsz)
 The output confirms `mpsz` is in **svy21** (EPSG: 3414).
 
 ::: callout-note
-In some workflows — particularly when importing shapefiles that were incorrectly labelled — the EPSG code may show as 9001 instead of 3414. In that case, `st_set_crs(mpsz, 3414)` can be used to assign the correct label. However, this only changes the label and does **not** mathematically reproject the coordinates. If the data is truly in WGS84 (as with GeoJSON files from data.gov.sg), `st_transform(crs = 3414)` must be used instead.
+In some workflows, particularly when importing shapefiles that were incorrectly labelled, the EPSG code may show as 9001 instead of 3414. In that case, `st_set_crs(mpsz, 3414)` can be used to assign the correct label. However, this only changes the label and does **not** mathematically reproject the coordinates. If the data is truly in WGS84 (as with GeoJSON files from data.gov.sg), `st_transform(crs = 3414)` must be used instead.
 :::
 
 ### Transforming the projection of preschool from wgs84 to svy21
@@ -177,7 +177,7 @@ Verifying the transformation:
 st_geometry(preschool)
 ```
 
-The preschool data is now in svy21. The bounding box values confirm this — coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.
+The preschool data is now in svy21. The bounding box values confirm this: the coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.
 
 Now overlaying the preschool layer on mpsz works correctly:
 
@@ -354,4 +354,4 @@ ggplot(data = mpsz,
        y = "Pre-school count")
 ```
 
-The scatterplot shows a general positive relationship — planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.
+The scatterplot shows a general positive relationship: planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.

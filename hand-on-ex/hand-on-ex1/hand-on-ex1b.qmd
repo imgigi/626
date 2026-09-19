@@ -27,9 +27,9 @@ In this hands-on exercise, I learn how to plot functional and truthful choroplet
 
 The following R packages are used in this exercise:
 
-- **tmap** — for thematic map creation
-- **sf** — for handling geospatial data
-- **tidyverse** (includes **readr**, **tidyr**, **dplyr**) — for data import and wrangling
+- **tmap** for thematic map creation
+- **sf** for handling geospatial data
+- **tidyverse**, which includes **readr**, **tidyr** and **dplyr**, for data import and wrangling
 
 ```{r}
 pacman::p_load(sf, tmap, tidyverse)
@@ -41,8 +41,8 @@ pacman::p_load(sf, tmap, tidyverse)
 
 Two datasets are used:
 
-- **Master Plan 2019 Subzone Boundary (No Sea) (GeoJSON)** from [data.gov.sg](https://data.gov.sg/) — geospatial data providing Singapore's planning subzone boundaries based on URA Master Plan 2019.
-- **Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2024** (`respopagesextod2024.csv`) from [Department of Statistics, Singapore](https://www.singstat.gov.sg/) — aspatial data with PA and SZ fields used to georeference to the subzone boundaries.
+- **Master Plan 2019 Subzone Boundary (No Sea) (GeoJSON)** from [data.gov.sg](https://data.gov.sg/), the geospatial data providing Singapore's planning subzone boundaries based on URA Master Plan 2019.
+- **Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2024** (`respopagesextod2024.csv`) from [Department of Statistics, Singapore](https://www.singstat.gov.sg/), the aspatial data whose PA and SZ fields georeference it to the subzone boundaries.
 
 ### Importing Geospatial Data into R
 
@@ -446,7 +446,7 @@ mpsz_pop2024 %>%
 
 ## Complementing Thematic Map with Statistical Chart
 
-Maps and statistical charts complement each other — maps show spatial patterns while charts display numerical distributions. **tmap** supports embedding statistical charts directly into map visualisations using the `fill.chart` argument.
+Maps and statistical charts complement each other: maps show spatial patterns while charts display numerical distributions. **tmap** supports embedding statistical charts directly into map visualisations using the `fill.chart` argument.
 
 Adding a box plot to the Central Region dependency map:
 

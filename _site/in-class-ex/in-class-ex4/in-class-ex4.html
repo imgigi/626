@@ -174,6 +174,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
  <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">
+ <span class="dropdown-text">Exercise 5a · Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">
+ <span class="dropdown-text">Exercise 5b · Local Measures of Spatial Autocorrelation</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -297,12 +306,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>Lesson 4 defines a neighbourhood twice over. The first definition is combinatorial — two counties are neighbours or they are not, by shared boundary or by a distance threshold — and it produces the neighbour lists and row-standardised weights built throughout <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Hands-on Exercise 4</a>, together with the spatially lagged variables that follow from them. None of that is taught again here.</p>
-<p>The second definition is continuous. A <strong>kernel</strong> replaces the in-or-out decision with a weight that decays with distance, and a <strong>bandwidth</strong> sets how quickly it decays. Every observation then contributes to every location, just by progressively less. This in-class exercise works entirely in that second branch:</p>
+<p>Lesson 4 defines a neighbourhood twice over. The first definition is combinatorial: two counties are neighbours or they are not, by shared boundary or by a distance threshold. That definition produces the neighbour lists and row-standardised weights built throughout <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Hands-on Exercise 4</a>, together with the spatially lagged variables that follow from them, and none of it is taught again here.</p>
+<p>The second definition is continuous. A kernel replaces the in-or-out decision with a weight that decays with distance, and a bandwidth sets how quickly it decays. Every observation then contributes to every location, just by progressively less. This in-class exercise works entirely in that second branch:</p>
 <ul>
-<li>selecting a bandwidth by <strong>cross-validation</strong> and by <strong>AIC</strong>, adaptive and fixed,</li>
-<li>computing <strong>geographically weighted summary statistics</strong> — local mean, local median, and the rest of the robust family — with <code>gwss()</code> of <strong>GWmodel</strong>,</li>
-<li>computing <strong>geographically weighted correlation</strong>, and reading it against the single global correlation that conventional analysis would report.</li>
+<li>selecting a bandwidth by cross-validation and by AIC, adaptive and fixed,</li>
+<li>computing geographically weighted summary statistics, meaning the local mean, the local median and the rest of the robust family, with <code>gwss()</code> of <strong>GWmodel</strong>,</li>
+<li>computing geographically weighted correlation, and reading it against the single global correlation that conventional analysis would report.</li>
 </ul>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, ggstatsplot, tmap, tidyverse, knitr, GWmodel)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -356,8 +365,8 @@ Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
-<p>The import header is left visible: 88 polygon features with seven attribute fields, bounded by 108.7831–114.2544 E and 24.6342–30.1281 N, on geodetic CRS WGS 84. The layer is left unprojected throughout — <code>longlat = TRUE</code> in the <strong>GWmodel</strong> calls below makes them compute great circle distances in kilometres from those coordinates.</p>
-<p>One thing does differ from the hands-on version, and it is not cosmetic. There the join kept <code>select(1:4, 7, 15)</code> — the identifiers and GDPPC alone, because a spatial lag needs exactly one variable. Here the selection is widened to eight columns, adding <code>GIO</code> (gross industrial output), <code>Agri</code> and <code>Service</code>, because the correlation section needs a second variable to correlate GDPPC <em>against</em>:</p>
+<p>The import header is left visible: 88 polygon features with seven attribute fields, bounded by 108.7831–114.2544 E and 24.6342–30.1281 N, on geodetic CRS WGS 84. The layer is left unprojected throughout, since <code>longlat = TRUE</code> in the <strong>GWmodel</strong> calls below makes them compute great circle distances in kilometres from those coordinates.</p>
+<p>One thing does differ from the hands-on version, and it is not cosmetic. There the join kept <code>select(1:4, 7, 15)</code>, the identifiers and GDPPC alone, because a spatial lag needs exactly one variable. Here the selection is widened to eight columns, adding <code>GIO</code> (gross industrial output), <code>Agri</code> and <code>Service</code>, because the correlation section needs a second variable to correlate GDPPC <em>against</em>:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(hunan_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -382,27 +391,15 @@ $ geometry &lt;POLYGON [°]&gt; POLYGON ((112.0625 29.75523..., POLYGON ((112.22
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>hunan_sp <span class="ot">&lt;-</span> hunan_sf <span class="sc">%&gt;%</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_Spatial</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Two objects now describe the same 88 counties. <code>hunan_sp</code> is the input for <strong>GWmodel</strong>, and <code>hunan_sf</code> remains the object <strong>tmap</strong> is given at the end. Results come back from <code>gwss()</code> in the order of the rows that went in, which is what makes the <code>cbind()</code> in the mapping sections legitimate — that join is positional, not by key, so nothing between here and there may reorder or filter either object.</p>
-</div>
-</div>
+<p>Two objects now describe the same 88 counties. <code>hunan_sp</code> is the input for <strong>GWmodel</strong>, and <code>hunan_sf</code> remains the object <strong>tmap</strong> is given at the end. Results come back from <code>gwss()</code> in the order of the rows that went in, which is what makes the <code>cbind()</code> in the mapping sections legitimate. That join is positional rather than by key, so nothing between here and there may reorder or filter either object.</p>
 </section>
 <section id="determining-the-bandwidth" class="level2">
 <h2 class="anchored" data-anchor-id="determining-the-bandwidth">Determining the Bandwidth</h2>
-<p>The bandwidth is the one parameter that decides how local “local” is, and it is chosen by optimisation rather than by hand. <code>bw.gwr()</code> searches for the value that minimises a chosen criterion, either <strong>CV</strong> — leave-one-out cross-validation, scoring how well each location is predicted from its neighbours — or <strong>AIC</strong>, which penalises model complexity instead.</p>
+<p>The bandwidth is the one parameter that decides how local “local” is, and it is chosen by optimisation rather than by hand. <code>bw.gwr()</code> searches for the value that minimises a chosen criterion. CV is leave-one-out cross-validation, scoring how well each location is predicted from its neighbours; AIC penalises model complexity instead.</p>
 <p>The search is run against the intercept-only model <code>GDPPC ~ 1</code>, since what is wanted is a bandwidth for describing GDPPC locally, not for regressing it on anything.</p>
 <section id="adaptive-bandwidth" class="level3">
 <h3 class="anchored" data-anchor-id="adaptive-bandwidth">Adaptive bandwidth</h3>
-<p>An <strong>adaptive</strong> bandwidth holds the <em>number</em> of neighbours constant and lets the radius stretch or contract, so the kernel covers as many counties in the sparse west as in the dense north-east:</p>
+<p>An adaptive bandwidth holds the <em>number</em> of neighbours constant and lets the radius stretch or contract, so the kernel covers as many counties in the sparse west as in the dense north-east:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bw_CV_adaptive <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                         <span class="at">data =</span> hunan_sp,</span>
@@ -421,7 +418,7 @@ Note
 </section>
 <section id="fixed-bandwidth" class="level3">
 <h3 class="anchored" data-anchor-id="fixed-bandwidth">Fixed bandwidth</h3>
-<p>A <strong>fixed</strong> bandwidth holds the <em>radius</em> constant instead, and the neighbour count varies with local density:</p>
+<p>A fixed bandwidth holds the <em>radius</em> constant instead, and the neighbour count varies with local density:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>bw_CV_fixed <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> hunan_sp,</span>
@@ -483,26 +480,14 @@ Note
 </table>
 </div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Interpretation
-</div>
-</div>
-<div class="callout-body-container callout-body">
 <p>The two criteria behave differently depending on which kind of bandwidth they are searching over.</p>
-<p>Adaptive: CV and AIC both settle on <strong>22 nearest neighbours</strong>. Agreement between two criteria that optimise different things is the strongest evidence available here that 22 is a feature of the data rather than an artefact of the search — a quarter of the province, which is a defensible reading of “local”.</p>
-<p>Fixed: CV returns <strong>76.3 km</strong> and AIC returns <strong>160.6 km</strong>, more than double. That disagreement is diagnostic rather than a failure of either method. Hunan’s counties vary greatly in area, so a single radius means a different sample size everywhere it is placed; CV, scored point by point, chases the radius that fits the densest parts, while AIC tolerates a much broader kernel for the province as a whole. When a fixed bandwidth makes the two criteria disagree this sharply and an adaptive one makes them agree exactly, the adaptive specification is the one the data supports.</p>
-</div>
-</div>
+<p>On the adaptive side, CV and AIC both settle on 22 nearest neighbours. Agreement between two criteria that optimise different things is the strongest evidence available here that 22 is a feature of the data rather than an artefact of the search. It amounts to a quarter of the province, which is a defensible reading of “local”.</p>
+<p>On the fixed side, CV returns 76.3 km and AIC returns 160.6 km, more than double. That disagreement is diagnostic rather than a failure of either method. Hunan’s counties vary greatly in area, so a single radius means a different sample size everywhere it is placed. CV, scored point by point, chases the radius that fits the densest parts, while AIC tolerates a much broader kernel for the province as a whole. When a fixed bandwidth makes the two criteria disagree this sharply and an adaptive one makes them agree exactly, the adaptive specification is the one the data supports.</p>
 </section>
 </section>
 <section id="geographically-weighted-summary-statistics" class="level2">
 <h2 class="anchored" data-anchor-id="geographically-weighted-summary-statistics">Geographically Weighted Summary Statistics</h2>
-<p><code>gwss()</code> computes the summary statistics at every location, each one weighted by the kernel. Setting <code>quantile = TRUE</code> adds the robust family — local median, interquartile range, and quantile imbalance — alongside the moment-based statistics:</p>
+<p><code>gwss()</code> computes the summary statistics at every location, each one weighted by the kernel. Setting <code>quantile = TRUE</code> adds the robust family, meaning the local median, interquartile range and quantile imbalance, alongside the moment-based statistics:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gwstat <span class="ot">&lt;-</span> <span class="fu">gwss</span>(<span class="at">data =</span> hunan_sp,</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">vars =</span> <span class="st">"GDPPC"</span>,</span>
@@ -519,7 +504,7 @@ Note
 [6] "GDPPC_Median" "GDPPC_IQR"    "GDPPC_QI"    </code></pre>
 </div>
 </div>
-<p>Eight surfaces for a single variable: local mean, standard deviation, variance, skewness and coefficient of variation from the moment-based side, then median, IQR and quantile imbalance from the robust side. Each is a vector of 88 values — one per county — not a single number.</p>
+<p>Eight surfaces for a single variable: local mean, standard deviation, variance, skewness and coefficient of variation from the moment-based side, then median, IQR and quantile imbalance from the robust side. Each is a vector of 88 values, one per county, rather than a single number.</p>
 <section id="preparing-the-output" class="level3">
 <h3 class="anchored" data-anchor-id="preparing-the-output">Preparing the output</h3>
 <p><code>gwss()</code> returns its results in the <code>SDF</code> slot as a <code>Spatial*DataFrame</code>. Extracting the data table and binding it column-wise to <code>hunan_sf</code> restores a mappable <code>sf</code> object:</p>
@@ -599,20 +584,8 @@ Note
 </table>
 </div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Interpretation
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Conventional analysis would report one number for Hunan: a mean GDPPC of 24,405 yuan. The geographically weighted mean replaces it with 88, running from <strong>13,689</strong> around Wugang in Shaoyang to <strong>49,006</strong> at Changsha — a 3.6-fold spread the single figure conceals entirely. This is spatial non-stationarity made measurable: the provincial average describes nowhere in particular, because the north-east corridor and the south-western uplands are not samples from the same population.</p>
-<p>The smoothing is substantial and deliberate. Raw GDPPC ranges from 8,497 to 88,656, so the local mean surface compresses a 10-fold spread into a 3.6-fold one. What survives that compression is the regional signal; what is removed is the county-level idiosyncrasy a spatial lag would have retained.</p>
-</div>
-</div>
+<p>Conventional analysis would report one number for Hunan, a mean GDPPC of 24,405 yuan. The geographically weighted mean replaces it with 88, running from 13,689 around Wugang in Shaoyang to 49,006 at Changsha, a 3.6-fold spread the single figure conceals entirely. This is spatial non-stationarity made measurable: the provincial average describes nowhere in particular, because the north-east corridor and the south-western uplands are not samples from the same population.</p>
+<p>The smoothing is substantial and deliberate. Raw GDPPC ranges from 8,497 to 88,656, so the local mean surface compresses a 10-fold spread into a 3.6-fold one. What survives that compression is the regional signal, and what is removed is the county-level idiosyncrasy a spatial lag would have retained.</p>
 </section>
 <section id="robust-statistics-local-mean-against-local-median" class="level3">
 <h3 class="anchored" data-anchor-id="robust-statistics-local-mean-against-local-median">Robust statistics: local mean against local median</h3>
@@ -650,20 +623,8 @@ Note
  0.9186  1.0918  1.1473  1.1737  1.2298  1.6355 </code></pre>
 </div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Interpretation
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The two maps share a pattern but not a level. The ratio of local mean to local median exceeds 1 almost everywhere, reaching <strong>1.64</strong>: in the neighbourhoods around Changsha the weighted mean sits 64% above the weighted median, because a handful of very rich counties pull it upward while the median ignores them by construction.</p>
+<p>The two maps share a pattern but not a level. The ratio of local mean to local median exceeds 1 almost everywhere, reaching 1.64. In the neighbourhoods around Changsha the weighted mean sits 64% above the weighted median, because a handful of very rich counties pull it upward while the median ignores them by construction.</p>
 <p>That gap is itself the finding. Where mean and median agree, the local distribution is symmetric and either statistic describes the neighbourhood honestly. Where they diverge this far, the neighbourhood contains counties unlike their surroundings, and the mean surface is reporting their influence rather than the typical county. The robust surface is the more defensible description of the north-east, and the divergence between the two is more informative than either alone.</p>
-</div>
-</div>
 </section>
 </section>
 <section id="the-effect-of-the-bandwidth" class="level2">
@@ -706,27 +667,15 @@ Note
 </div>
 </div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Interpretation
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The 160.6 km fixed kernel produces a local mean surface spanning 14,259 to 47,833 — close to the adaptive result, but reached for a different reason. A fixed radius over Hunan’s uneven county sizes draws on roughly thirty counties in the compact north-east and barely a dozen in the large western ones, so the western estimates rest on fewest observations exactly where the counties are largest. The CV bandwidth of 76.3 km makes this visible: at that radius the local mean runs from 10,135 to 72,045, a surface so close to the raw data that it has stopped summarising anything.</p>
-<p>The adaptive kernel removes that dependence by construction, which is why it is the appropriate specification for administrative areas of unequal size — the usual case.</p>
-</div>
-</div>
+<p>The 160.6 km fixed kernel produces a local mean surface spanning 14,259 to 47,833, close to the adaptive result but reached for a different reason. A fixed radius over Hunan’s uneven county sizes draws on roughly thirty counties in the compact north-east and barely a dozen in the large western ones, so the western estimates rest on fewest observations exactly where the counties are largest. The CV bandwidth of 76.3 km makes this visible: at that radius the local mean runs from 10,135 to 72,045, a surface so close to the raw data that it has stopped summarising anything.</p>
+<p>The adaptive kernel removes that dependence by construction, which is why it is the appropriate specification for administrative areas of unequal size, the usual case.</p>
 </section>
 <section id="geographically-weighted-correlation" class="level2">
 <h2 class="anchored" data-anchor-id="geographically-weighted-correlation">Geographically Weighted Correlation</h2>
 <p>The same kernel machinery applies to a statistic computed from two variables. The question is whether the relationship between GDP per capita and gross industrial output holds with equal strength across the province.</p>
 <section id="the-conventional-analysis-first" class="level3">
 <h3 class="anchored" data-anchor-id="the-conventional-analysis-first">The conventional analysis first</h3>
-<p><code>ggscatterstats()</code> gives the global answer — one coefficient for all 88 counties, with its test:</p>
+<p><code>ggscatterstats()</code> gives the global answer, one coefficient for all 88 counties, with its test:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggscatterstats</span>(<span class="at">data =</span> hunan_sf <span class="sc">%&gt;%</span> <span class="fu">st_drop_geometry</span>(),</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">x =</span> GIO,</span>
@@ -747,7 +696,7 @@ Note
 </div>
 </div>
 </div>
-<p>Pearson’s <em>r</em> = 0.77, clearly significant — a strong positive relationship, and the analysis would conventionally stop there.</p>
+<p>Pearson’s <em>r</em> = 0.77 and clearly significant, a strong positive relationship, and the analysis would conventionally stop there.</p>
 </section>
 <section id="determining-the-bandwidth-1" class="level3">
 <h3 class="anchored" data-anchor-id="determining-the-bandwidth-1">Determining the bandwidth</h3>
@@ -849,11 +798,11 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The selected bandwidth is <strong>84 of 88 counties</strong>. Every local correlation is therefore computed from almost the entire province, and the result is what that implies: local Pearson spans 0.682 to 0.761 around a global 0.765, local Spearman 0.579 to 0.733 around a global 0.732. The map above is close to a constant.</p>
+<p>The selected bandwidth is 84 of 88 counties. Every local correlation is therefore computed from almost the entire province, and the result is what that implies: local Pearson spans 0.682 to 0.761 around a global 0.765, and local Spearman 0.579 to 0.733 around a global 0.732. The map above is close to a constant.</p>
 <p>This is not a null finding about Hunan. It is a consequence of where the bandwidth came from. <code>bw.gwr()</code> selected 84 as the bandwidth at which a <em>regression</em> of GDPPC on GIO is best supported, and a near-global bandwidth is the correct answer to that question when the relationship is genuinely strong everywhere. But the statistic being mapped is not that regression, and a criterion chosen for one is not automatically valid for the other.</p>
 </div>
 </div>
-<p>Recomputing on the bandwidth the data itself supported earlier — the 22 neighbours on which CV and AIC agreed — asks the intended question:</p>
+<p>Recomputing on the bandwidth the data itself supported earlier, the 22 neighbours on which CV and AIC agreed, asks the intended question:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>gwstats_local <span class="ot">&lt;-</span> <span class="fu">gwss</span>(hunan_sp,</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"GDPPC"</span>, <span class="st">"GIO"</span>),</span>
@@ -904,30 +853,18 @@ Note
  0.1768  0.5631  0.6583  0.6351  0.7507  0.8744 </code></pre>
 </div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Interpretation
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>On the same colour scale the left map is one shade and the right map is four. At 22 neighbours the local Pearson correlation runs from <strong>0.18 to 0.87</strong>, and local Spearman from 0.12 to 0.92 — the relationship the global coefficient reports as uniformly strong is strong in some parts of Hunan and close to absent in others.</p>
-<p>Both maps are correct at their own bandwidth; they answer different questions. The left one asks whether industrial output predicts GDP per capita across Hunan, and the answer is yes, consistently. The right one asks whether a county’s prosperity tracks its industry <em>among its own neighbours</em>, and the answer is that it depends where the county is: in the industrial north-east the two move together closely, while in the west a county’s GDP per capita owes comparatively little to its industrial output.</p>
-<p>The conclusion concerns method rather than Hunan. Bandwidth is not a nuisance parameter to be delegated to a selection routine — it declares the scale at which a question is being asked, and a bandwidth optimised for one statistic can suppress precisely the variation another statistic exists to reveal.</p>
-</div>
-</div>
+<p>On the same colour scale the left map is one shade and the right map is four. At 22 neighbours the local Pearson correlation runs from 0.18 to 0.87, and local Spearman from 0.12 to 0.92. The relationship the global coefficient reports as uniformly strong is strong in some parts of Hunan and close to absent in others.</p>
+<p>Both maps are correct at their own bandwidth, and they answer different questions. The left one asks whether industrial output predicts GDP per capita across Hunan, and the answer is yes, consistently. The right one asks whether a county’s prosperity tracks its industry <em>among its own neighbours</em>, and the answer is that it depends where the county is. In the industrial north-east the two move together closely, while in the west a county’s GDP per capita owes comparatively little to its industrial output.</p>
+<p>The conclusion concerns method rather than Hunan. Bandwidth is not a nuisance parameter to be delegated to a selection routine. It declares the scale at which a question is being asked, and a bandwidth optimised for one statistic can suppress precisely the variation another statistic exists to reveal.</p>
 </section>
 </section>
 <section id="reference" class="level2">
 <h2 class="anchored" data-anchor-id="reference">Reference</h2>
 <ul>
-<li>Kam, T. S. <em>ISSS626 Geospatial Analytics and Applications</em>, Lesson 4 — Spatial Weights and Applications.</li>
+<li>Kam, T. S. <em>ISSS626 Geospatial Analytics and Applications</em>, Lesson 4: Spatial Weights and Applications.</li>
 <li><a href="https://cran.r-project.org/package=GWmodel">GWmodel: Geographically-Weighted Models</a></li>
 <li>Gollini, I., Lu, B., Charlton, M., Brunsdon, C., Harris, P. (2015) <a href="https://www.jstatsoft.org/article/view/v063i17">“GWmodel: An R Package for Exploring Spatial Heterogeneity Using Geographically Weighted Models”</a>, <em>Journal of Statistical Software</em>, 63(17).</li>
-<li>Brunsdon, C., Fotheringham, A. S., Charlton, M. (2002) “Geographically weighted summary statistics — a framework for localised exploratory data analysis”, <em>Computers, Environment and Urban Systems</em>, 26(6), 501–524.</li>
+<li>Brunsdon, C., Fotheringham, A. S., Charlton, M. (2002) “Geographically weighted summary statistics: a framework for localised exploratory data analysis”, <em>Computers, Environment and Urban Systems</em>, 26(6), 501–524.</li>
 <li><a href="https://indrajeetpatil.github.io/ggstatsplot/">ggstatsplot</a></li>
 <li><a href="https://r-tmap.github.io/tmap/">tmap: Thematic Maps in R</a></li>
 </ul>

@@ -18,7 +18,7 @@ editor: visual
 
 ## Overview
 
-A spatio-temporal point process — also called a space-time or spatial-temporal point process — is a random collection of points where each point represents the **time and location** of an event. Examples include the incidence of disease, sightings or births of a species, and the occurrence of fires, earthquakes, lightning strikes, tsunamis or volcanic eruptions.
+A spatio-temporal point process, also called a space-time or spatial-temporal point process, is a random collection of points where each point represents the **time and location** of an event. Examples include the incidence of disease, sightings or births of a species, and the occurrence of fires, earthquakes, lightning strikes, tsunamis or volcanic eruptions.
 
 The analysis of spatio-temporal point patterns is becoming increasingly necessary given the rapid emergence of geographically and temporally indexed data. This exercise combines several R packages to run a set of spatio-temporal point pattern analyses, using real-world forest fire events in Kepulauan Bangka Belitung, Indonesia from 1 January 2023 to 31 December 2023.
 
@@ -53,7 +53,7 @@ The result is close but not identical, and the difference is worth stating:
 | Fire detections | 898 | 741 |
 | Eastern extent | 108.85 E | 106.85 E |
 
-The extent is the substantive difference. Belitung island lies between 107.5 E and 108.3 E, so the textbook's boundary — despite the name Kepulauan Bangka Belitung — stops short of it and covers Bangka alone. Clipping to Bangka only gives 766 fires, which is much nearer the textbook's 741; the remaining 132 fires are on Belitung.
+The extent is the substantive difference. Belitung island lies between 107.5 E and 108.3 E, so the textbook's boundary, despite the name Kepulauan Bangka Belitung, stops short of it and covers Bangka alone. Clipping to Bangka only gives 766 fires, which is much nearer the textbook's 741; the remaining 132 fires are on Belitung.
 
 The whole province is used here, since that is what the dataset is called and what the research question asks about. Every figure below therefore differs from the textbook's, and the selected bandwidths differ with them.
 :::
@@ -78,7 +78,7 @@ pacman::p_load(sf, raster, spatstat, sparr, stpp, tmap, tidyverse)
 ```
 
 ::: callout-note
-**raster** appears in the textbook's package list but no raster object is created anywhere in this chapter — the density surfaces stay as `sparr` objects and are drawn with base `plot()`. It is loaded here for consistency with the textbook, not because it is needed.
+**raster** appears in the textbook's package list but no raster object is created anywhere in this chapter, since the density surfaces stay as `sparr` objects and are drawn with base `plot()`. It is loaded here for consistency with the textbook, not because it is needed.
 :::
 
 ## Importing and Preparing Study Area
@@ -214,7 +214,7 @@ plot(fire_month_owin)
 
 ### Computing spatio-temporal KDE
 
-`spattemp.density()` estimates the density over space and time jointly. With no bandwidths supplied it selects both automatically — an isotropic spatial bandwidth `h` and a temporal bandwidth `lambda`:
+`spattemp.density()` estimates the density over space and time jointly. With no bandwidths supplied it selects both automatically, an isotropic spatial bandwidth `h` and a temporal bandwidth `lambda`:
 
 ```{r}
 st_kde <- spattemp.density(fire_month_owin)
@@ -312,9 +312,9 @@ summary(kde_yday)
 ::: callout-warning
 ## Do not carry the textbook's numbers across
 
-The textbook reaches `h = 9105` and hardcodes `h = 9000`. The bootstrap run above returns **h = 21893** on this data — roughly 2.4 times larger — because the study area here includes Belitung and holds more events, and the optimal spatial bandwidth scales with both.
+The textbook reaches `h = 9105` and hardcodes `h = 9000`. The bootstrap run above returns h = 21893 on this data, roughly 2.4 times larger, because the study area here includes Belitung and holds more events, and the optimal spatial bandwidth scales with both.
 
-The temporal bandwidth is the opposite case: **lambda = 19.89** against the textbook's 18.85, almost the same, because the fire season has the same length either way. Copying `h = 9000` across would have imposed a kernel far too narrow for this window and produced a spuriously spiky surface.
+The temporal bandwidth is the opposite case: lambda = 19.89 against the textbook's 18.85, almost the same, because the fire season has the same length either way. Copying `h = 9000` across would have imposed a kernel far too narrow for this window and produced a spuriously spiky surface.
 :::
 
 ### Plotting the output spatio-temporal KDE
@@ -387,7 +387,7 @@ plotK(kbb_stik)
 - If the contours show high values for small values of *u* and *v*, it suggests clustering at short spatial and temporal distances, meaning events occur close to each other in both space and time.
 - If the contours are flat or show low values, it indicates a more random distribution or a lack of significant clustering at those distances.
 
-The spatial and temporal extent of clustering can be understood by observing how rapidly the contours increase or decrease along the axes — the spacing and values of the contour lines show at which distances clustering occurs.
+The spatial and temporal extent of clustering can be understood by observing how rapidly the contours increase or decrease along the axes: the spacing and values of the contour lines show at which distances clustering occurs.
 
 ## Reference
 

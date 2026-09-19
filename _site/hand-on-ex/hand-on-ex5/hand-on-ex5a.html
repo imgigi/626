@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ji Guofang">
+<meta name="dcterms.date" content="2026-09-19">
+
+<title>Hands-on Exercise 5a: Global Measures of Spatial Autocorrelation – ISSS626-GAA</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-b63d4034c3481c87820d918ed17e6fb1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<!-- Set the language attribute BEFORE the body paints, so a reader who chose
+     中文 does not see a flash of English first. The button and its handler
+     live in _include/lang-toggle.html, which is injected after the body. -->
+<script>
+(function () {
+  var l = "en";
+  try { l = localStorage.getItem("isss626-th1-lang") || "en"; } catch (e) {}
+  if (l !== "en" && l !== "zh") l = "en";
+  document.documentElement.setAttribute("data-lang", l);
+})();
+</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">ISSS626-GAA</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-hands-on-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Hands-on Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-hands-on-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1.html">
+ <span class="dropdown-text">Exercise 1a · Geospatial Data Science with R</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1b.html">
+ <span class="dropdown-text">Exercise 1b · Thematic Mapping and GeoVisualisation</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">
+ <span class="dropdown-text">Exercise 2a · 1st Order Spatial Point Patterns Analysis</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2b.html">
+ <span class="dropdown-text">Exercise 2b · 2nd Order Spatial Point Patterns Analysis</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex3/hand-on-ex3.html">
+ <span class="dropdown-text">Exercise 3 · Spatio-Temporal Point Patterns Analysis</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">
+ <span class="dropdown-text">Exercise 5a · Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">
+ <span class="dropdown-text">Exercise 5b · Local Measures of Spatial Autocorrelation</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-in-class-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">In-class Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-in-class-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex1/in-class-ex1.html">
+ <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex4/in-class-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Geographically Weighted Summary Statistics</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-take-home-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Take-home Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-take-home-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.html">
+ <span class="dropdown-text">Exercise 1 · Technical Report</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.html">
+ <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#getting-started" id="toc-getting-started" class="nav-link" data-scroll-target="#getting-started">Getting Started</a>
+  <ul>
+  <li><a href="#the-analytical-question" id="toc-the-analytical-question" class="nav-link" data-scroll-target="#the-analytical-question">The analytical question</a></li>
+  <li><a href="#the-study-area-and-data" id="toc-the-study-area-and-data" class="nav-link" data-scroll-target="#the-study-area-and-data">The Study Area and Data</a></li>
+  <li><a href="#setting-the-analytical-tools" id="toc-setting-the-analytical-tools" class="nav-link" data-scroll-target="#setting-the-analytical-tools">Setting the Analytical Tools</a></li>
+  </ul></li>
+  <li><a href="#getting-the-data-into-r-environment" id="toc-getting-the-data-into-r-environment" class="nav-link" data-scroll-target="#getting-the-data-into-r-environment">Getting the Data Into R Environment</a>
+  <ul>
+  <li><a href="#import-shapefile-into-r-environment" id="toc-import-shapefile-into-r-environment" class="nav-link" data-scroll-target="#import-shapefile-into-r-environment">Import shapefile into R environment</a></li>
+  <li><a href="#import-csv-file-into-r-environment" id="toc-import-csv-file-into-r-environment" class="nav-link" data-scroll-target="#import-csv-file-into-r-environment">Import csv file into R environment</a></li>
+  <li><a href="#performing-relational-join" id="toc-performing-relational-join" class="nav-link" data-scroll-target="#performing-relational-join">Performing relational join</a></li>
+  <li><a href="#visualising-regional-development-indicator" id="toc-visualising-regional-development-indicator" class="nav-link" data-scroll-target="#visualising-regional-development-indicator">Visualising Regional Development Indicator</a></li>
+  </ul></li>
+  <li><a href="#global-measures-of-spatial-autocorrelation" id="toc-global-measures-of-spatial-autocorrelation" class="nav-link" data-scroll-target="#global-measures-of-spatial-autocorrelation">Global Measures of Spatial Autocorrelation</a>
+  <ul>
+  <li><a href="#computing-contiguity-spatial-weights" id="toc-computing-contiguity-spatial-weights" class="nav-link" data-scroll-target="#computing-contiguity-spatial-weights">Computing Contiguity Spatial Weights</a></li>
+  <li><a href="#row-standardised-weights-matrix" id="toc-row-standardised-weights-matrix" class="nav-link" data-scroll-target="#row-standardised-weights-matrix">Row-standardised weights matrix</a></li>
+  </ul></li>
+  <li><a href="#global-measures-of-spatial-autocorrelation-morans-i" id="toc-global-measures-of-spatial-autocorrelation-morans-i" class="nav-link" data-scroll-target="#global-measures-of-spatial-autocorrelation-morans-i">Global Measures of Spatial Autocorrelation: Moran’s I</a>
+  <ul>
+  <li><a href="#morans-i-test" id="toc-morans-i-test" class="nav-link" data-scroll-target="#morans-i-test">Moran’s I test</a></li>
+  <li><a href="#computing-monte-carlo-morans-i" id="toc-computing-monte-carlo-morans-i" class="nav-link" data-scroll-target="#computing-monte-carlo-morans-i">Computing Monte Carlo Moran’s I</a></li>
+  <li><a href="#visualising-monte-carlo-morans-i" id="toc-visualising-monte-carlo-morans-i" class="nav-link" data-scroll-target="#visualising-monte-carlo-morans-i">Visualising Monte Carlo Moran’s I</a></li>
+  </ul></li>
+  <li><a href="#global-measures-of-spatial-autocorrelation-gearys-c" id="toc-global-measures-of-spatial-autocorrelation-gearys-c" class="nav-link" data-scroll-target="#global-measures-of-spatial-autocorrelation-gearys-c">Global Measures of Spatial Autocorrelation: Geary’s C</a>
+  <ul>
+  <li><a href="#gearys-c-test" id="toc-gearys-c-test" class="nav-link" data-scroll-target="#gearys-c-test">Geary’s C test</a></li>
+  <li><a href="#computing-monte-carlo-gearys-c" id="toc-computing-monte-carlo-gearys-c" class="nav-link" data-scroll-target="#computing-monte-carlo-gearys-c">Computing Monte Carlo Geary’s C</a></li>
+  <li><a href="#visualising-the-monte-carlo-gearys-c" id="toc-visualising-the-monte-carlo-gearys-c" class="nav-link" data-scroll-target="#visualising-the-monte-carlo-gearys-c">Visualising the Monte Carlo Geary’s C</a></li>
+  </ul></li>
+  <li><a href="#spatial-correlogram" id="toc-spatial-correlogram" class="nav-link" data-scroll-target="#spatial-correlogram">Spatial Correlogram</a>
+  <ul>
+  <li><a href="#compute-morans-i-correlogram" id="toc-compute-morans-i-correlogram" class="nav-link" data-scroll-target="#compute-morans-i-correlogram">Compute Moran’s I correlogram</a></li>
+  <li><a href="#compute-gearys-c-correlogram-and-plot" id="toc-compute-gearys-c-correlogram-and-plot" class="nav-link" data-scroll-target="#compute-gearys-c-correlogram-and-plot">Compute Geary’s C correlogram and plot</a></li>
+  </ul></li>
+  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Hands-on Exercise 5a: Global Measures of Spatial Autocorrelation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta column-page-left">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ji Guofang </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 19, 2026</p>
+    </div>
+  </div>
+  
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">September 19, 2026</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>A choropleth map can look clustered without being clustered. The eye is a poor judge of randomness. It finds pattern in noise, and it is easily led by whichever class breaks the cartographer happened to choose. Whether similar values really do sit next to one another more often than chance allows is a statistical question, and the statistics that answer it are the global measures of spatial autocorrelation.</p>
+<p>This exercise computes those measures for the 88 counties of Hunan province, using GDP per capita in 2012 as the variable of interest and the <strong>spdep</strong> package throughout. Three instruments are applied to the same data. Moran’s I is a cross-product statistic that behaves like a correlation coefficient between each value and the average of its neighbours. Geary’s C is a squared-difference statistic that compares the dissimilarity of neighbouring pairs with the dissimilarity of all pairs. The spatial correlogram recomputes either statistic at successive orders of contiguity, and so shows how far the dependence reaches.</p>
+<p>Each of the first two is evaluated twice, once against its analytical sampling distribution and once against a Monte Carlo permutation distribution. The two routes rest on different assumptions, so agreement between them is informative in itself. By the end of the exercise the following are in place:</p>
+<ul>
+<li>geospatial data imported with the appropriate functions of <strong>sf</strong>,</li>
+<li>a csv file imported with the appropriate function of <strong>readr</strong>,</li>
+<li>a relational join performed with the appropriate function of <strong>dplyr</strong>,</li>
+<li>global spatial autocorrelation statistics computed with the appropriate functions of <strong>spdep</strong>, and</li>
+<li>a statistically defensible reading of what those statistics say.</li>
+</ul>
+<p>The local counterpart of these measures, which asks not whether the province clusters but <em>where</em>, is the subject of <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">Hands-on Exercise 5b</a>.</p>
+</section>
+<section id="getting-started" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
+<section id="the-analytical-question" class="level3">
+<h3 class="anchored" data-anchor-id="the-analytical-question">The analytical question</h3>
+<p>Equal distribution of development across a province is a standard objective of local government and planning. The analytical task that follows from it is a chain of three questions, each asked only if the previous one has been answered:</p>
+<ol type="1">
+<li>Is development evenly distributed geographically? If the answer is <strong>no</strong>, then</li>
+<li>is there a sign of spatial clustering? And if the answer to that is <strong>yes</strong>, then</li>
+<li>where are those clusters?</li>
+</ol>
+<p>This exercise settles the first two for GDP per capita in Hunan province, People’s Republic of China. The third is left to <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">Exercise 5b</a>. A global statistic is by construction a single number for the whole map, so it cannot locate anything.</p>
+</section>
+<section id="the-study-area-and-data" class="level3">
+<h3 class="anchored" data-anchor-id="the-study-area-and-data">The Study Area and Data</h3>
+<p>Two data sets are used:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Hunan</code></td>
+<td>County boundary layer of Hunan province, China, in ESRI shapefile format</td>
+</tr>
+<tr class="even">
+<td><code>Hunan_2012.csv</code></td>
+<td>Selected local development indicators for Hunan in 2012</td>
+</tr>
+</tbody>
+</table>
+<p>These are the same two files used in <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Hands-on Exercise 4</a>, carried over unchanged, so the neighbour structure built below is identical to the Queen contiguity list constructed there.</p>
+</section>
+<section id="setting-the-analytical-tools" class="level3">
+<h3 class="anchored" data-anchor-id="setting-the-analytical-tools">Setting the Analytical Tools</h3>
+<p>Four packages are used:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Package</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>sf</strong></td>
+<td>Importing and handling geospatial data</td>
+</tr>
+<tr class="even">
+<td><strong>spdep</strong></td>
+<td>Spatial weights, and the global autocorrelation statistics and their permutation tests</td>
+</tr>
+<tr class="odd">
+<td><strong>tmap</strong></td>
+<td>Cartographic quality thematic maps</td>
+</tr>
+<tr class="even">
+<td><strong>tidyverse</strong></td>
+<td>Data import, transformation and wrangling</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, spdep, tmap, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="getting-the-data-into-r-environment" class="level2">
+<h2 class="anchored" data-anchor-id="getting-the-data-into-r-environment">Getting the Data Into R Environment</h2>
+<section id="import-shapefile-into-r-environment" class="level3">
+<h3 class="anchored" data-anchor-id="import-shapefile-into-r-environment">Import shapefile into R environment</h3>
+<p><code>st_read()</code> of <strong>sf</strong> imports the Hunan shapefile as a simple feature object:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">layer =</span> <span class="st">"Hunan"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `Hunan' from data source 
+  `C:\Users\Imgigi\Desktop\629\hand-on-ex\hand-on-ex5\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 88 features and 7 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+<p>The header reports 88 polygon features with seven attribute fields, in geographic coordinates on WGS 84. The coordinates are deliberately left unprojected. Every statistic in this document is computed from a contiguity relation, and whether two counties share a boundary does not depend on the coordinate system. <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5b.html">Exercise 5b</a> does project the layer, because the distance bands used there do depend on it.</p>
+</section>
+<section id="import-csv-file-into-r-environment" class="level3">
+<h3 class="anchored" data-anchor-id="import-csv-file-into-r-environment">Import csv file into R environment</h3>
+<p><code>read_csv()</code> of <strong>readr</strong> imports the indicator table. The output is a plain data frame with no geometry:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>hunan2012 <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial/Hunan_2012.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="performing-relational-join" class="level3">
+<h3 class="anchored" data-anchor-id="performing-relational-join">Performing relational join</h3>
+<p><code>left_join()</code> of <strong>dplyr</strong> attaches the indicator fields to the attribute table of the <code>hunan</code> simple feature object, and <code>select()</code> keeps the identifying fields and GDPPC:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, hunan2012, <span class="at">by =</span> <span class="st">"County"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="dv">7</span>, <span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The join key is written out rather than left to automatic matching, and <code>hunan</code> is named first so that the result keeps its geometry column and remains an <code>sf</code> object.</p>
+</section>
+<section id="visualising-regional-development-indicator" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-regional-development-indicator">Visualising Regional Development Indicator</h3>
+<p>Before any test is run, the variable is mapped. Two choropleths of the same column are drawn, one classified by equal interval and one by quantile, because the pair shows that the first question above cannot be settled by looking:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>equal <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan) <span class="sc">+</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"equal"</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">n =</span> <span class="dv">5</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">title =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>                <span class="at">position =</span> <span class="fu">tm_pos_in</span>(<span class="st">"left"</span>, <span class="st">"bottom"</span>))) <span class="sc">+</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">fill_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Equal interval classification"</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>quantile <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan) <span class="sc">+</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>,</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>                <span class="at">n =</span> <span class="dv">5</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>                <span class="at">title =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>                <span class="at">position =</span> <span class="fu">tm_pos_in</span>(<span class="st">"left"</span>, <span class="st">"bottom"</span>))) <span class="sc">+</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">fill_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Quantile classification"</span>)</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(equal, quantile, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The two maps are drawn from identical numbers and tell different stories. GDPPC in Hunan ranges from 8,497 to 88,656 with a median of 20,433, so the distribution is strongly right-skewed. Under equal interval that skew puts 58 of the 88 counties into the lowest class and only nine into the top three, so most of the province is drawn in one pale colour and the map reads as broadly uniform. Under quantile the same data fill all five classes by construction, and a dark north-eastern corner appears around Changsha.</p>
+<p>Neither map is wrong, and that is the difficulty. A classification choice has changed the apparent answer to question 1, which is why a statistic that does not depend on class breaks is needed.</p>
+</section>
+</section>
+<section id="global-measures-of-spatial-autocorrelation" class="level2">
+<h2 class="anchored" data-anchor-id="global-measures-of-spatial-autocorrelation">Global Measures of Spatial Autocorrelation</h2>
+<section id="computing-contiguity-spatial-weights" class="level3">
+<h3 class="anchored" data-anchor-id="computing-contiguity-spatial-weights">Computing Contiguity Spatial Weights</h3>
+<p>Every measure below is a weighted sum over pairs of counties, so the neighbour relation has to be fixed before anything can be computed. <code>poly2nb()</code> of <strong>spdep</strong> builds a neighbours list from regions with contiguous boundaries. Its <code>queen</code> argument defaults to <code>TRUE</code>, which returns first order neighbours under the Queen criterion, where a single shared point is enough to make two counties neighbours.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>wm_q <span class="ot">&lt;-</span> <span class="fu">poly2nb</span>(hunan, <span class="at">queen =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(wm_q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Neighbour list object:
+Number of regions: 88 
+Number of nonzero links: 448 
+Percentage nonzero weights: 5.785124 
+Average number of links: 5.090909 
+Link number distribution:
+
+ 1  2  3  4  5  6  7  8  9 11 
+ 2  2 12 16 24 14 11  4  2  1 
+2 least connected regions:
+30 65 with 1 link
+1 most connected region:
+85 with 11 links</code></pre>
+</div>
+</div>
+<p>There are 88 area units, 448 non-zero links, and an average of 5.09 neighbours per county. The most connected unit has 11 neighbours, and two units have one neighbour each. No unit is isolated, which matters here: a county with no neighbours contributes nothing to the cross-products that make up these statistics, and has to be handled explicitly.</p>
+</section>
+<section id="row-standardised-weights-matrix" class="level3">
+<h3 class="anchored" data-anchor-id="row-standardised-weights-matrix">Row-standardised weights matrix</h3>
+<p>The neighbour list records <em>who</em> is a neighbour. The weights matrix records <em>how much</em> each neighbour counts, and <code>nb2listw()</code> converts one into the other. With <code>style = "W"</code> each of a county’s neighbours receives the fraction 1/(number of neighbours), so the weights in every row sum to one and the spatial lag of a county is the plain average of its neighbours’ values.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>rswm_q <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_q,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">style =</span> <span class="st">"W"</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">zero.policy =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>rswm_q</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Characteristics of weights list object:
+Neighbour list object:
+Number of regions: 88 
+Number of nonzero links: 448 
+Percentage nonzero weights: 5.785124 
+Average number of links: 5.090909 
+
+Weights style: W 
+Weights constants summary:
+   n   nn S0       S1       S2
+W 88 7744 88 37.86334 365.9147</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>What the arguments do
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The input to <code>nb2listw()</code> must be an object of class <code>nb</code>. Two arguments carry most of the meaning:</p>
+<ul>
+<li><strong><code>style</code></strong> takes <code>"W"</code>, <code>"B"</code>, <code>"C"</code>, <code>"U"</code>, <code>"minmax"</code> or <code>"S"</code>. <code>B</code> is basic binary coding; <code>W</code> is row standardised, summing over all links to <em>n</em>; <code>C</code> is globally standardised, also summing to <em>n</em>; <code>U</code> is <code>C</code> divided by the number of neighbours, summing to unity; and <code>S</code> is the variance-stabilising scheme of Tiefelsdorf et al.&nbsp;(1999, pp.&nbsp;167-168).</li>
+<li><strong><code>zero.policy = TRUE</code></strong> inserts a zero-length weights vector for any region with no neighbours, which produces a lag value of zero for that region. Whether zero is a sensible lag for an isolated unit is a substantive question, not a technical one. No unit is isolated here, so the argument never takes effect, and is set only so that the code does not depend on that remaining true.</li>
+</ul>
+</div>
+</div>
+<p>The printed weights constants are the quantities the analytical tests are built from: <em>S<sub>0</sub></em> = 88, the sum of all weights, which equals <em>n</em> exactly because each row sums to one; <em>S<sub>1</sub></em> = 37.86; and <em>S<sub>2</sub></em> = 365.91. Row standardisation carries one well-known cost. Counties on the provincial edge have fewer neighbours, so each of the neighbours they do have takes a larger weight, and their lagged values rest on a thinner base than interior counties’. <code>style = "B"</code> is the more robust alternative, and <code>"W"</code> is kept here for interpretability.</p>
+</section>
+</section>
+<section id="global-measures-of-spatial-autocorrelation-morans-i" class="level2">
+<h2 class="anchored" data-anchor-id="global-measures-of-spatial-autocorrelation-morans-i">Global Measures of Spatial Autocorrelation: Moran’s I</h2>
+<p>Moran’s I compares each value’s deviation from the provincial mean with the deviations of its neighbours. It is bounded approximately by −1 and +1. Positive values mean that similar values sit together, negative values mean that high and low values alternate, and the expectation under no spatial pattern is not zero but −1/(<em>n</em>−1), here −0.0115.</p>
+<section id="morans-i-test" class="level3">
+<h3 class="anchored" data-anchor-id="morans-i-test">Moran’s I test</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">moran.test</span>(hunan<span class="sc">$</span>GDPPC,</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>           <span class="at">listw =</span> rswm_q,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">zero.policy =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">na.action =</span> na.omit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Moran I test under randomisation
+
+data:  hunan$GDPPC  
+weights: rswm_q    
+
+Moran I statistic standard deviate = 4.7351, p-value = 1.095e-06
+alternative hypothesis: greater
+sample estimates:
+Moran I statistic       Expectation          Variance 
+      0.300749970      -0.011494253       0.004348351 </code></pre>
+</div>
+</div>
+<p>The observed I is 0.3007, against an expectation of −0.0115 and a variance of 0.004348 under the randomisation hypothesis. The standard deviate is 4.7351 and the one-sided p-value is 1.095 × 10<sup>-6</sup>, so the null hypothesis of spatial randomness is rejected at any conventional level. The sign is positive, which means the clustering is of like with like: counties with high GDPPC tend to border counties with high GDPPC, and the same holds at the low end. Development in Hunan is therefore <strong>not</strong> evenly distributed, and there <strong>is</strong> a sign of spatial clustering, which answers the first two of the three questions above.</p>
+<p>The magnitude carries as much information as the p-value. An I of 0.30 is moderate rather than overwhelming. Neighbourhood explains a real but partial share of the variation in county income, and a great deal of that variation remains local to individual counties.</p>
+</section>
+<section id="computing-monte-carlo-morans-i" class="level3">
+<h3 class="anchored" data-anchor-id="computing-monte-carlo-morans-i">Computing Monte Carlo Moran’s I</h3>
+<p>The test above draws its p-value from an analytical approximation to the sampling distribution of I. That approximation is asymptotic and assumes a normality or randomisation null. A permutation test avoids the assumption entirely: <code>moran.mc()</code> reassigns the 88 observed GDPPC values to the 88 counties at random, recomputes I, and repeats, building the null distribution from the data rather than from theory. With <code>nsim = 999</code> the observed value is compared against 999 simulations, for 1000 values in total.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>bperm <span class="ot">&lt;-</span> <span class="fu">moran.mc</span>(hunan<span class="sc">$</span>GDPPC,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">listw =</span> rswm_q,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">nsim =</span> <span class="dv">999</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">zero.policy =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">na.action =</span> na.omit)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>bperm</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Monte-Carlo simulation of Moran I
+
+data:  hunan$GDPPC 
+weights: rswm_q  
+number of simulations + 1: 1000 
+
+statistic = 0.30075, observed rank = 1000, p-value = 0.001
+alternative hypothesis: greater</code></pre>
+</div>
+</div>
+<p><code>set.seed()</code> is called first so that the permutations, and therefore the printed p-value, are reproducible across renders.</p>
+<p>The observed I of 0.30075 has rank 1000 of 1000, meaning no permutation of the data produced a value as high. The pseudo p-value is 1/1000 = 0.001, the smallest value 999 simulations can deliver. That figure is a floor rather than a measurement: the true p-value is smaller than 0.001 by an unknown amount, and the analytical test’s 1.1 × 10<sup>-6</sup> is the better estimate of how much smaller.</p>
+<p>The conclusion matches the analytical one, which is the point of running both. Had they disagreed, the randomisation-based p-value would have been the one to trust, since it makes no distributional assumption.</p>
+</section>
+<section id="visualising-monte-carlo-morans-i" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-monte-carlo-morans-i">Visualising Monte Carlo Moran’s I</h3>
+<p>The simulated statistics are examined directly, rather than only through the p-value derived from them. The mean and variance of the 999 simulated values come first:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -0.01504572</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">var</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.004371574</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+-0.18339 -0.06168 -0.02125 -0.01505  0.02611  0.27593 </code></pre>
+</div>
+</div>
+<p>The simulated mean is −0.01505, against the theoretical expectation of −0.01149, and the simulated variance is 0.004372 against the theoretical 0.004348. The permutation distribution has reproduced the analytical moments to three decimal places. That is empirical confirmation that the assumptions behind <code>moran.test()</code> hold for this data set.</p>
+<p>The distribution is then plotted with <code>hist()</code> and <code>abline()</code> of R Graphics:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(bperm<span class="sc">$</span>res,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">freq =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">breaks =</span> <span class="dv">20</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Simulated Moran's I"</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="dv">0</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The simulated values form a roughly symmetric distribution centred just below zero and running from −0.183 to 0.276. The observed I of 0.30075 is the single bar at the far right, outside the range of all 999 simulations, which is what rank 1000 means.</p>
+<p>The red line is drawn at zero rather than at the expectation of −0.0115. On this scale the difference is invisible, but it matters in principle. The null value of Moran’s I for a finite sample is slightly negative, so treating zero as the benchmark introduces a small conservative bias into any visual reading.</p>
+<p>The base graphics call answers the question directly. The same distribution drawn with <strong>ggplot2</strong> carries both reference values explicitly, which makes the comparison easier to read:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">data.frame</span>(<span class="at">sim =</span> bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>]),</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> sim)) <span class="sc">+</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">20</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill =</span> <span class="st">"grey75"</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">colour =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="dv">1</span> <span class="sc">/</span> (<span class="fu">length</span>(hunan<span class="sc">$</span>GDPPC) <span class="sc">-</span> <span class="dv">1</span>),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>             <span class="at">colour =</span> <span class="st">"grey30"</span>,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> bperm<span class="sc">$</span>statistic,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>             <span class="at">colour =</span> <span class="st">"red"</span>,</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>             <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>,</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>           <span class="at">x =</span> bperm<span class="sc">$</span>statistic,</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>           <span class="at">y =</span> <span class="cn">Inf</span>,</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>           <span class="at">vjust =</span> <span class="fl">1.8</span>,</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>           <span class="at">hjust =</span> <span class="fl">1.1</span>,</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>           <span class="at">label =</span> <span class="st">"observed I = 0.301"</span>,</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>           <span class="at">colour =</span> <span class="st">"red"</span>,</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>           <span class="at">size =</span> <span class="fl">3.5</span>) <span class="sc">+</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Simulated Moran's I"</span>,</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Frequency"</span>,</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Permutation distribution of Moran's I"</span>,</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"999 simulations; dashed line is the expectation -1/(n-1)"</span>) <span class="sc">+</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The gap between the red line and the right-hand tail of the grey distribution is the visual form of the test result. The observed statistic is not merely in the tail; it is beyond it.</p>
+</section>
+</section>
+<section id="global-measures-of-spatial-autocorrelation-gearys-c" class="level2">
+<h2 class="anchored" data-anchor-id="global-measures-of-spatial-autocorrelation-gearys-c">Global Measures of Spatial Autocorrelation: Geary’s C</h2>
+<p>Moran’s I is built from cross-products of deviations from the mean, so it responds to whether neighbouring counties fall on the same side of the provincial average. Geary’s C is built from the squared differences between neighbouring values directly, so it responds to how far apart neighbours are in absolute terms. Geary’s C is therefore the more sensitive to local differences and Moran’s I the more sensitive to global structure, and the two need not agree.</p>
+<p>The scale is also inverted. Geary’s C has an expectation of exactly 1 under spatial randomness. Values <strong>below</strong> 1 indicate positive spatial autocorrelation, and values above 1 indicate negative autocorrelation.</p>
+<section id="gearys-c-test" class="level3">
+<h3 class="anchored" data-anchor-id="gearys-c-test">Geary’s C test</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">geary.test</span>(hunan<span class="sc">$</span>GDPPC, <span class="at">listw =</span> rswm_q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Geary C test under randomisation
+
+data:  hunan$GDPPC 
+weights: rswm_q   
+
+Geary C statistic standard deviate = 3.6108, p-value = 0.0001526
+alternative hypothesis: Expectation greater than statistic
+sample estimates:
+Geary C statistic       Expectation          Variance 
+        0.6907223         1.0000000         0.0073364 </code></pre>
+</div>
+</div>
+<p>The observed C is 0.6907, against an expectation of 1 and a variance of 0.007336. The standard deviate is 3.6108 and the p-value is 1.526 × 10<sup>-4</sup>. The alternative hypothesis is printed as <em>Expectation greater than statistic</em>, which is the direction corresponding to positive autocorrelation on this inverted scale. C is significantly below 1, so neighbouring counties differ from one another by less than randomly paired counties do. That is the conclusion Moran’s I reached, obtained here from a different functional form.</p>
+<p>The agreement is a genuine finding rather than a formality. Moran’s I and Geary’s C are inversely related but not equivalent, and a data set in which a few extreme local contrasts sit inside an otherwise smooth field can produce a significant I with an unremarkable C. Hunan does not: the clustering is visible both to a statistic that looks at the mean and to one that looks at differences.</p>
+</section>
+<section id="computing-monte-carlo-gearys-c" class="level3">
+<h3 class="anchored" data-anchor-id="computing-monte-carlo-gearys-c">Computing Monte Carlo Geary’s C</h3>
+<p>As with Moran’s I, the analytical result is checked against a permutation distribution, this time with <code>geary.mc()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>bperm <span class="ot">&lt;-</span> <span class="fu">geary.mc</span>(hunan<span class="sc">$</span>GDPPC,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">listw =</span> rswm_q,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">nsim =</span> <span class="dv">999</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>bperm</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Monte-Carlo simulation of Geary C
+
+data:  hunan$GDPPC 
+weights: rswm_q  
+number of simulations + 1: 1000 
+
+statistic = 0.69072, observed rank = 1, p-value = 0.001
+alternative hypothesis: greater</code></pre>
+</div>
+</div>
+<p>The observed C of 0.69072 has rank 1 of 1000, and the pseudo p-value is again 0.001. The two statements are consistent. On the Geary scale the evidence of clustering lies in the lower tail, so being the smallest of the 1000 values is the strongest possible result.</p>
+<p>This is worth spelling out, because the printed line <code>alternative hypothesis: greater</code> looks at first as though the wrong tail is being tested. Inside <code>geary.mc()</code> the p-value is computed from <code>nsim - rank</code>, so it falls as the observed rank falls. Inside <code>moran.mc()</code> it is computed so that it falls as the observed rank rises. The two functions carry the same label and read opposite ends of their respective distributions, which is correct, since a low C and a high I are the same substantive finding.</p>
+</section>
+<section id="visualising-the-monte-carlo-gearys-c" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-monte-carlo-gearys-c">Visualising the Monte Carlo Geary’s C</h3>
+<p>The moments of the simulated distribution are computed as before:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.004402</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">var</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.007436493</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(bperm<span class="sc">$</span>res[<span class="dv">1</span><span class="sc">:</span><span class="dv">999</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.7142  0.9502  1.0052  1.0044  1.0595  1.2722 </code></pre>
+</div>
+</div>
+<p>The simulated mean is 1.0044 against a theoretical expectation of exactly 1, and the simulated variance is 0.007436 against the theoretical 0.007336. Again the match is close, and again it is a reason to trust the analytical test.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(bperm<span class="sc">$</span>res, <span class="at">freq =</span> <span class="cn">TRUE</span>, <span class="at">breaks =</span> <span class="dv">20</span>, <span class="at">xlab =</span> <span class="st">"Simulated Geary c"</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The simulated values run from 0.714 to 1.272 and centre tightly on 1, where the red reference line is drawn. Here the line sits at the true expectation rather than near it, because for Geary’s C the expectation is exactly 1 regardless of <em>n</em>.</p>
+<p>The observed C of 0.69072 falls just outside the left edge of the simulated range. Compared with the Moran’s I histogram the margin is narrower: the observed value is barely beyond the most extreme simulation rather than well beyond it. That is the same information the two standard deviates carry, 3.61 for Geary’s C against 4.74 for Moran’s I. Both reject the null, but Moran’s I rejects it more emphatically, which is the expected ordering when the clustering is driven by a compact cluster of very high values rather than by a uniform smoothness across the whole map.</p>
+</section>
+</section>
+<section id="spatial-correlogram" class="level2">
+<h2 class="anchored" data-anchor-id="spatial-correlogram">Spatial Correlogram</h2>
+<p>Both statistics so far have used one neighbour definition, namely counties that touch. But spatial dependence does not stop at a shared boundary, and its reach is itself a property worth measuring. A spatial correlogram recomputes a global statistic at increasing orders of contiguity: lag 1 is counties that touch, lag 2 is counties two boundaries away, and so on. Plotting the statistic against lag shows how quickly dependence decays, and at what distance it disappears or reverses.</p>
+<p>Correlograms are not as fundamental as variograms, the keystone concept of geostatistics, but for exploratory and descriptive work they provide richer information, since each point comes with its own significance test.</p>
+<section id="compute-morans-i-correlogram" class="level3">
+<h3 class="anchored" data-anchor-id="compute-morans-i-correlogram">Compute Moran’s I correlogram</h3>
+<p><code>sp.correlogram()</code> of <strong>spdep</strong> computes a six-lag correlogram of GDPPC using Moran’s I, and <code>plot()</code> of base graphics draws it:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>MI_corr <span class="ot">&lt;-</span> <span class="fu">sp.correlogram</span>(wm_q,</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>                          hunan<span class="sc">$</span>GDPPC,</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">order =</span> <span class="dv">6</span>,</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">method =</span> <span class="st">"I"</span>,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>                          <span class="at">style =</span> <span class="st">"W"</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(MI_corr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The plot alone does not support a complete interpretation, because not every plotted value is statistically significant. The full analysis report is needed:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(MI_corr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Spatial correlogram for hunan$GDPPC 
+method: Moran's I
+         estimate expectation   variance standard deviate Pr(I) two sided    
+1 (88)  0.3007500  -0.0114943  0.0043484           4.7351       2.189e-06 ***
+2 (88)  0.2060084  -0.0114943  0.0020962           4.7505       2.029e-06 ***
+3 (88)  0.0668273  -0.0114943  0.0014602           2.0496        0.040400 *  
+4 (88)  0.0299470  -0.0114943  0.0011717           1.2107        0.226015    
+5 (88) -0.1530471  -0.0114943  0.0012440          -4.0134       5.984e-05 ***
+6 (88) -0.1187070  -0.0114943  0.0016791          -2.6164        0.008886 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The six estimates are 0.3008, 0.2060, 0.0668, 0.0299, −0.1530 and −0.1187, and the significance codes separate them into three regimes.</p>
+<p>Lags 1 and 2 are strongly positive and highly significant, at p = 2.19 × 10<sup>-6</sup> and 2.03 × 10<sup>-6</sup>. Dependence is not confined to counties that share a boundary. It survives a second step outward at two-thirds of its original strength.</p>
+<p>Lags 3 and 4 fade to nothing. Lag 3 is 0.0668 with p = 0.040, statistically significant at 5% but substantively negligible, and lag 4 is 0.0299 with p = 0.226, which is indistinguishable from the null. Positive dependence has run out somewhere between the second and third ring of neighbours.</p>
+<p>Lags 5 and 6 turn significantly negative, at −0.1530 with p = 5.98 × 10<sup>-5</sup> and −0.1187 with p = 0.0089. This is neither noise nor a failure of the method. At five or six steps from any given county one has crossed most of the province, so the comparison being made is essentially between the prosperous north-east and the poorer west and south. Distant pairs are systematically dissimilar, which is the signature of a single large gradient across the study area rather than of many small clusters.</p>
+<p>Read together, the three regimes give a description that no single statistic could. Hunan’s development has a local neighbourhood effect reaching about two counties, embedded in a province-wide north-east to south-west gradient.</p>
+<p>One caution attaches to the p-values in this table. Each is computed for its own lag with no correction for the fact that six tests are being read together, and the estimates are not independent of one another, since the lag-2 neighbours of a county are defined relative to its lag-1 neighbours. The pattern of the sequence is more informative than any individual p-value in it.</p>
+</section>
+<section id="compute-gearys-c-correlogram-and-plot" class="level3">
+<h3 class="anchored" data-anchor-id="compute-gearys-c-correlogram-and-plot">Compute Geary’s C correlogram and plot</h3>
+<p>The same call with <code>method = "C"</code> produces the Geary’s C correlogram:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>GC_corr <span class="ot">&lt;-</span> <span class="fu">sp.correlogram</span>(wm_q,</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>                          hunan<span class="sc">$</span>GDPPC,</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">order =</span> <span class="dv">6</span>,</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">method =</span> <span class="st">"C"</span>,</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>                          <span class="at">style =</span> <span class="st">"W"</span>)</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GC_corr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hand-on-ex5a_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(GC_corr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Spatial correlogram for hunan$GDPPC 
+method: Geary's C
+        estimate expectation  variance standard deviate Pr(I) two sided    
+1 (88) 0.6907223   1.0000000 0.0073364          -3.6108       0.0003052 ***
+2 (88) 0.7630197   1.0000000 0.0049126          -3.3811       0.0007220 ***
+3 (88) 0.9397299   1.0000000 0.0049005          -0.8610       0.3892612    
+4 (88) 1.0098462   1.0000000 0.0039631           0.1564       0.8757128    
+5 (88) 1.2008204   1.0000000 0.0035568           3.3673       0.0007592 ***
+6 (88) 1.0773386   1.0000000 0.0058042           1.0151       0.3100407    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The Geary estimates are 0.6907, 0.7630, 0.9397, 1.0098, 1.2008 and 1.0773. On the inverted scale they tell the same story as the Moran sequence, mirrored about 1.</p>
+<p>Lags 1 and 2 are well below 1 and highly significant, at p = 3.05 × 10<sup>-4</sup> and 7.22 × 10<sup>-4</sup>: neighbours, and neighbours of neighbours, are more alike than random pairs. Lags 3 and 4 sit at 0.94 and 1.01 with p = 0.389 and 0.876, indistinguishable from the null. Lag 5 rises to 1.2008 with p = 7.59 × 10<sup>-4</sup>, confirming the significant negative dependence the Moran correlogram found at the same lag.</p>
+<p>The two sequences differ in one place. At lag 6 Geary’s C is 1.0773 with p = 0.310, which is not significant, where Moran’s I was −0.1187 with p = 0.0089. The disagreement follows from what each statistic measures. At six steps the pairs being compared are the far corners of the province, which fall on opposite sides of the provincial mean, and Moran’s I registers that reliably because it works from deviations about the mean. Geary’s C works from the squared differences between the pairs themselves, and at that range those differences are large but variable, so the same structure produces a weaker signal.</p>
+<p>Where the two correlograms agree, at lags 1, 2 and 5, the finding can be treated as a property of the data rather than of the statistic chosen to measure it.</p>
+</section>
+</section>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<ul>
+<li>Kam, T. S. <em>R for Geospatial Data Science and Analytics</em>, <a href="https://r4gdsa.netlify.app/chap09">Chapter 9: Global Measures of Spatial Autocorrelation</a>.</li>
+<li>Anselin, L. (1995) <a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1538-4632.1995.tb00338.x">“Local Indicators of Spatial Association - LISA”</a>, <em>Geographical Analysis</em>, Vol. 27, No.&nbsp;2, pp.&nbsp;93-115.</li>
+<li>Bivand, R. S. and Wong, D. W. S. (2018) <a href="https://link.springer.com/article/10.1007/s11749-018-0599-x">“Comparing implementations of global and local indicators of spatial association”</a>, <em>TEST</em>, Vol. 27, pp.&nbsp;716-748.</li>
+<li>Tiefelsdorf, M., Griffith, D. A. and Boots, B. (1999) “A variance-stabilizing coding scheme for spatial link matrices”, <em>Environment and Planning A</em>, Vol. 31, pp.&nbsp;165-180.</li>
+<li><a href="https://cran.r-project.org/web/packages/spdep/index.html">spdep: Spatial Dependence - Weighting Schemes, Statistics</a></li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<!-- =====================================================================
+     Language toggle (EN / 中文)
+     Take-home Exercise 1 | ISSS626
+
+     Both language versions of every prose block are present in the HTML;
+     this switch only changes which one is displayed, so switching is
+     instant and needs no server and no second render.
+
+     The choice is stored in localStorage under one key shared by the
+     technical report and the executive summary, so moving between the two
+     documents keeps the selected language.
+
+     Three things are NOT handled by the .en / .zh markup and are handled
+     here instead:
+
+       1. Placement. On the technical report the site navbar is fixed to the
+          top of the viewport, so a `position: fixed` switch would sit on top
+          of it. The switch is therefore moved into the navbar's own tool
+          slot (`.quarto-navbar-tools`), which is a sibling of the collapsing
+          menu and so stays visible at every width. On the slides there is no
+          navbar and the switch stays fixed in the corner.
+
+       2. Template chrome. Strings such as the table-of-contents heading and
+          the "Author" / "Published" labels are emitted by Quarto's template,
+          not by the document body, so no .en / .zh span can reach them. They
+          are swapped from the DICT table below.
+
+       3. Figures keep their English titles and axis labels: that text is
+          drawn into the PNG by R at render time.
+     ===================================================================== -->
+
+<div class="lang-switch" role="group" aria-label="Language / 语言">
+  <button type="button" data-lang="en" aria-pressed="true">EN</button>
+  <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+</div>
+
+<script>
+(function () {
+  var KEY = "isss626-th1-lang";
+  var VALID = { en: 1, zh: 1 };
+
+  // ---- 1. Move the switch into the navbar, where one exists ---------------
+  // Done before the first apply() so the switch never paints in the wrong
+  // place. `.quarto-navbar-tools` is a sibling of `#navbarCollapse`, not a
+  // child, so the switch is not swallowed by the mobile hamburger.
+  var sw = document.querySelector(".lang-switch");
+  var tools = document.querySelector("#quarto-header .quarto-navbar-tools");
+  if (sw && tools) {
+    tools.appendChild(sw);
+    sw.classList.add("in-navbar");
+  }
+
+  // ---- 2. Template chrome -------------------------------------------------
+  // Quarto writes these strings itself. Each entry is keyed by the English
+  // the template produces; the original is cached on first pass so that
+  // switching back to English restores it exactly.
+  var DICT = {
+    "Contents": "目录",
+    "Table of contents": "目录",
+    "Author": "作者",
+    "Authors": "作者",
+    "Published": "发布日期",
+    "Modified": "最后修改",
+    "Code": "代码",
+    "Show All Code": "展开全部代码",
+    "Hide All Code": "折叠全部代码",
+    "View Source": "查看源文件",
+    "Full Screen": "全屏",
+    "Close": "关闭",
+    "Note": "注",
+    "Tip": "提示",
+    "Warning": "注意",
+    "Important": "要点",
+    "Caution": "当心",
+    // Navbar. Most pages on this site are English-only in the body, so without
+    // these the switch would be present everywhere and do nothing on nine of
+    // the eleven pages. Translating the site chrome makes it meaningful on all
+    // of them, and keeps the chosen language visible while browsing.
+    "Home": "首页",
+    "About": "关于",
+    "Hands-on Exercise": "课堂练习",
+    "In-class Exercise": "堂上练习",
+    "Take-home Exercise": "课后作业",
+    "Search": "搜索",
+    "ISSS626-GAA": "ISSS626-GAA"
+  };
+
+  var CHROME_SEL = [
+    "#toc-title",
+    "nav[role=doc-toc] > h2",
+    ".quarto-title-meta-heading",
+    ".code-tools-button",
+    "#quarto-code-tools-menu",
+    ".dropdown-menu .dropdown-item",
+    ".callout-title-container",
+    ".callout-caption",
+    "#quarto-header .navbar .menu-text",
+    "#quarto-header .navbar .dropdown-item",
+    "#quarto-search .aa-DetachedSearchButtonPlaceholder",
+    "#quarto-search [title]"
+  ].join(",");
+
+  // Text nodes are collected once. Holding the nodes themselves (rather than
+  // re-querying) keeps the swap independent of how Quarto nests the labels,
+  // and avoids touching any markup inside them, such as the Bootstrap icon
+  // in the code-tools button.
+  var chrome = null;
+  function collectChrome() {
+    var out = [];
+    var hosts = document.querySelectorAll(CHROME_SEL);
+    for (var i = 0; i < hosts.length; i++) {
+      var walker = document.createTreeWalker(hosts[i], NodeFilter.SHOW_TEXT, null);
+      var n;
+      while ((n = walker.nextNode())) {
+        var t = n.nodeValue.trim();
+        if (DICT[t]) out.push({ node: n, en: n.nodeValue, zh: n.nodeValue.replace(t, DICT[t]) });
+      }
+    }
+    return out;
+  }
+
+  function applyChrome(lang) {
+    if (chrome === null) chrome = collectChrome();
+    for (var i = 0; i < chrome.length; i++) {
+      chrome[i].node.nodeValue = lang === "zh" ? chrome[i].zh : chrome[i].en;
+    }
+  }
+
+  // ---- 3. The switch itself ----------------------------------------------
+  function apply(lang, persist) {
+    if (!VALID[lang]) lang = "en";
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("lang", lang === "zh" ? "zh-Hans" : "en");
+    if (persist) {
+      try { localStorage.setItem(KEY, lang); } catch (e) { /* private mode */ }
+    }
+    applyChrome(lang);
+    var btns = document.querySelectorAll(".lang-switch button");
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute("data-lang") === lang;
+      btns[i].classList.toggle("active", on);
+      btns[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    // Reveal.js lays slides out once on load; a language change alters
+    // block heights, so ask it to re-measure if it is present.
+    if (window.Reveal && typeof window.Reveal.layout === "function") {
+      window.Reveal.layout();
+    }
+  }
+
+  var saved = "en";
+  try { saved = localStorage.getItem(KEY) || "en"; } catch (e) { /* ignore */ }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest(".lang-switch button") : null;
+    if (b) { ev.preventDefault(); apply(b.getAttribute("data-lang"), true); }
+  });
+
+  // Keyboard shortcut: Alt+L cycles the language.
+  document.addEventListener("keydown", function (ev) {
+    if (ev.altKey && (ev.key === "l" || ev.key === "L")) {
+      apply(document.documentElement.getAttribute("data-lang") === "zh" ? "en" : "zh", true);
+    }
+  });
+
+  apply(saved, false);
+
+  // The code-tools dropdown items exist from the start, but the callout
+  // labels of any lazily-rendered block may not. One re-collect after load
+  // is cheap insurance and keeps the swap correct.
+  window.addEventListener("load", function () {
+    chrome = null;
+    applyChrome(document.documentElement.getAttribute("data-lang"));
+  });
+})();
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
