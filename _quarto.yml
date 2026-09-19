@@ -46,12 +46,19 @@ website:
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"
             href: in-class-ex/in-class-ex1/in-class-ex1.qmd
+          - text: "---"
+          - text: "Exercise 4 · Geographically Weighted Summary Statistics"
+            href: in-class-ex/in-class-ex4/in-class-ex4.qmd
       - text: "Take-home Exercise"
         menu:
+          # These point at the built .html, not at the .qmd. Quarto rewrites a
+          # .qmd navbar href to .html only for documents it renders, and the
+          # take-home pair is excluded from `project.render` above -- so a .qmd
+          # href here was served to the browser as raw source.
           - text: "Exercise 1 · Technical Report"
-            href: take-home-ex/take-home-ex1/take-home-ex1.qmd
+            href: take-home-ex/take-home-ex1/take-home-ex1.html
           - text: "Exercise 1 · Executive Summary"
-            href: take-home-ex/take-home-ex1/take-home-ex1-slides.qmd
+            href: take-home-ex/take-home-ex1/take-home-ex1-slides.html
       - href: about.qmd
         text: About
 
