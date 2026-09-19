@@ -1,0 +1,142 @@
+<!-- ===========================================================================
+     Logic diagram 1 of 3 - the analysis pipeline
+     Take-home Exercise 1 | ISSS626
+
+     Authored on a 1000 x 410 canvas and scaled by `.diagram svg` in
+     slides.scss. Type sizes come from the `dg-*` classes there, so the three
+     diagrams share one scale.
+
+     Shapes are drawn once. The labels are drawn twice, as two sibling <g>
+     layers carrying .en and .zh, which the language switch shows and hides
+     exactly as it does for prose. Keeping the two text layers separate - and
+     the geometry out of both - is what stops a translation from moving a box.
+     =========================================================================== -->
+::: {.diagram}
+<svg viewBox="0 0 1000 410" role="img" aria-label="Analysis pipeline: data, quality and units, first order, second order, value added, and the impasse that sends the second-order stage back to a new null model.">
+<defs>
+<marker id="dgArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#a9b0a6">
+</path>
+</marker>
+<marker id="dgArrowFire" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ad4d33">
+</path>
+</marker>
+</defs>
+<g>
+<rect x="2" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="2" y="86" width="4" height="124" fill="#68736c">
+</rect>
+<rect x="205" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="205" y="86" width="4" height="124" fill="#287a80">
+</rect>
+<rect x="408" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="408" y="86" width="4" height="124" fill="#ad4d33">
+</rect>
+<rect x="611" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="611" y="86" width="4" height="124" fill="#ad4d33">
+</rect>
+<rect x="814" y="86" width="184" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="814" y="86" width="4" height="124" fill="#608473">
+</rect>
+<line x1="192" y1="138" x2="201" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)">
+</line>
+<line x1="395" y1="138" x2="404" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)">
+</line>
+<line x1="598" y1="138" x2="607" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)">
+</line>
+<line x1="801" y1="138" x2="810" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)">
+</line>
+<rect x="205" y="14" width="186" height="46" rx="4" fill="#fffefa" stroke="#287a80" stroke-width="1" stroke-dasharray="4 3">
+</rect>
+<line x1="298" y1="60" x2="298" y2="82" stroke="#287a80" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#dgArrow)">
+</line>
+<path d="M 704 216 C 704 260 505 260 505 220" fill="none" stroke="#ad4d33" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#dgArrowFire)">
+</path>
+<rect x="2" y="303" width="996" height="94" rx="4" fill="#f4ebe0" stroke="#ad4d33" stroke-width="1">
+</rect>
+<rect x="2" y="303" width="5" height="94" fill="#ad4d33">
+</rect>
+</g>
+<g class="en">
+<text class="dg-step" x="18" y="112">01 · DATA</text>
+<text class="dg-node-t" x="18" y="140">3,101 detections</text>
+<text class="dg-node-s" x="18" y="163">
+<tspan x="18" dy="0">VIIRS 375 m · </tspan>
+<tspan x="18" dy="18">4–11 Sep 2026</tspan>
+</text>
+<text class="dg-node-s" x="18" y="199">Pulang Pisau Regency</text>
+<text class="dg-step" x="221" y="112">02 · QA &amp; UNITS</text>
+<text class="dg-node-t" x="221" y="140">Three findings</text>
+<text class="dg-node-s" x="221" y="164">local time, sensor</text>
+<text class="dg-node-s" x="221" y="181">
+<tspan x="221" dy="0">disagreement, </tspan>
+<tspan x="221" dy="18">saturation</tspan>
+</text>
+<text class="dg-step" x="424" y="112">03 · FIRST ORDER</text>
+<text class="dg-node-t" x="424" y="140">Where λ(u) varies</text>
+<text class="dg-node-s" x="424" y="164">~`r sprintf("%.0f", RANGE_FOLD)`× range; canals yes,</text>
+<text class="dg-node-s" x="424" y="182">rivers no</text>
+<text class="dg-step" x="627" y="112">04 · SECOND ORDER</text>
+<text class="dg-node-t" x="627" y="140">Null models</text>
+<text class="dg-node-s" x="627" y="164">CSR rejected but</text>
+<text class="dg-node-s" x="627" y="182">uninformative</text>
+<text class="dg-step" x="830" y="112">05 · VALUE ADDED</text>
+<text class="dg-node-t" x="830" y="140">A model that fits</text>
+<text class="dg-node-s" x="830" y="164">ppm rejected;</text>
+<text class="dg-node-s" x="830" y="182">Thomas kppm fits</text>
+<text class="dg-node-s" x="221" y="34" fill="#287a80">The satellite is part of</text>
+<text class="dg-node-s" x="221" y="52" fill="#287a80">the signal, not a window</text>
+<text class="dg-edge-t" x="604" y="279" text-anchor="middle" fill="#ad4d33">the impasse: the verdict tracked the null’s flexibility</text>
+<text class="dg-step" x="22" y="326">CONCLUSION</text>
+<text class="dg-node-t" x="22" y="354">
+<tspan x="22" dy="0">Engineered drainage, not water · compact ~2.1 km clusters </tspan>
+<tspan x="22" dy="27">· genuine space–time interaction</tspan>
+</text>
+</g>
+<g class="zh">
+<text class="dg-step" x="18" y="112">01 · 数据</text>
+<text class="dg-node-t" x="18" y="140">3,101 个探测</text>
+<text class="dg-node-s" x="18" y="163">
+<tspan x="18" dy="0">VIIRS 375 m · </tspan>
+<tspan x="18" dy="18">2026-09-04 至 11</tspan>
+</text>
+<text class="dg-node-s" x="18" y="199">Pulang Pisau 县</text>
+<text class="dg-step" x="221" y="112">02 · 质量与单位</text>
+<text class="dg-node-t" x="221" y="140">三个发现</text>
+<text class="dg-node-s" x="221" y="163">
+<tspan x="221" dy="0">本地时、传感器</tspan>
+<tspan x="221" dy="18">不一致、</tspan>
+</text>
+<text class="dg-node-s" x="221" y="199">亮温饱和</text>
+<text class="dg-step" x="424" y="112">03 · 一阶</text>
+<text class="dg-node-t" x="424" y="140">λ(u) 如何变化</text>
+<text class="dg-node-s" x="424" y="164">约 40 倍差异;近运河,</text>
+<text class="dg-node-s" x="424" y="182">远天然河流</text>
+<text class="dg-step" x="627" y="112">04 · 二阶</text>
+<text class="dg-node-t" x="627" y="140">零模型</text>
+<text class="dg-node-s" x="627" y="164">CSR 被拒绝,</text>
+<text class="dg-node-s" x="627" y="182">但没有信息量</text>
+<text class="dg-step" x="830" y="112">05 · 增值分析</text>
+<text class="dg-node-t" x="830" y="137">
+<tspan x="830" dy="0">一个拟合得上</tspan>
+<tspan x="830" dy="22">的模型</tspan>
+</text>
+<text class="dg-node-s" x="830" y="181">ppm 被拒绝;</text>
+<text class="dg-node-s" x="830" y="199">Thomas kppm 拟合</text>
+<text class="dg-node-s" x="221" y="34" fill="#287a80">卫星是信号的一部分,</text>
+<text class="dg-node-s" x="221" y="52" fill="#287a80">不是一扇透明的窗</text>
+<text class="dg-edge-t" x="604" y="279" text-anchor="middle" fill="#ad4d33">僵局:判定追踪的是零模型的灵活度</text>
+<text class="dg-step" x="22" y="326">结论</text>
+<text class="dg-node-t" x="22" y="354">
+<tspan x="22" dy="0">是人工排水,不是靠水 · 约 2.1 km 的紧凑簇群 </tspan>
+<tspan x="22" dy="27">· 真实的时空交互</tspan>
+</text>
+</g>
+</svg>
+:::

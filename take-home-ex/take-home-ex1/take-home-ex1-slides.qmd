@@ -1,0 +1,811 @@
+---
+title: '<span class="en">Fire on Drained Peat</span><span class="zh">排水泥炭地上的火</span>'
+pagetitle: "Take-home Exercise 1 · Executive Summary"
+subtitle: '<span class="en">Spatial and spatio-temporal point pattern analysis of active-fire detections<br>Pulang Pisau Regency, Central Kalimantan · 4–11 September 2026</span><span class="zh">卫星活跃火点的空间与时空点模式分析<br>中加里曼丹 Pulang Pisau 县 · 2026 年 9 月 4–11 日</span>'
+author: "Ji Guofang · ISSS626"
+date: 2026-09-12
+format:
+  revealjs:
+    theme: [default, slides.scss]
+    width: 1500
+    height: 900
+    margin: 0.035
+    center: false
+    auto-stretch: false
+    fig-dpi: 180
+    slide-number: c/t
+    show-slide-number: all
+    transition: fade
+    transition-speed: fast
+    incremental: false
+    fig-align: center
+    code-fold: true
+    code-summary: "code"
+    code-overflow: wrap
+    highlight-style: github
+    link-external-newwindow: true
+    controls: true
+    progress: true
+    hash-type: number
+    center-title-slide: false
+    title-slide-attributes:
+      id: title-slide
+      data-background-color: "#213b34"
+    footer: '<span class="en">ISSS626 · Take-home Exercise 1 · Pulang Pisau active-fire point patterns</span><span class="zh">ISSS626 · 课后作业一 · Pulang Pisau 活跃火点模式</span>'
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: false
+bibliography: references.bib
+csl: apa.csl
+suppress-bibliography: true
+---
+
+```{r}
+#| label: slides-setup
+#| include: false
+
+suppressPackageStartupMessages({
+  library(sf); library(dplyr); library(tidyr); library(ggplot2)
+  library(patchwork); library(scales); library(spatstat.geom)
+  library(spatstat.explore); library(spatstat.model); library(gt)
+  library(forcats)
+})
+source("R/utils.R")
+sf::sf_use_s2(FALSE); set.seed(1234)
+
+DER      <- "data/derived"
+P        <- readRDS(file.path(DER, "params.rds"))
+bnd      <- readRDS(file.path(DER, "bnd_proj.rds"))
+kec      <- readRDS(file.path(DER, "fo_kecamatan.rds"))
+win      <- readRDS(file.path(DER, "win.rds"))
+fire_sf  <- readRDS(file.path(DER, "fire_sf.rds"))
+fire_all <- readRDS(file.path(DER, "fire_all_sf.rds"))
+fire_px  <- readRDS(file.path(DER, "fire_pxday_sf.rds"))
+fire_ev  <- readRDS(file.path(DER, "fire_event.rds"))
+ppp_px   <- readRDS(file.path(DER, "ppp_pxday.rds"))
+ppp_det  <- readRDS(file.path(DER, "ppp_det.rds"))
+ppp_ev   <- readRDS(file.path(DER, "ppp_event.rds"))
+covars   <- readRDS(file.path(DER, "covars.rds"))
+osm      <- readRDS(file.path(DER, "osm_clipped.rds"))
+FO_T <- readRDS(file.path(DER, "fo_temporal.rds"))
+FO_K <- readRDS(file.path(DER, "fo_kde.rds"))
+FO_C <- readRDS(file.path(DER, "fo_covsummary.rds"))
+FO_ST <- readRDS(file.path(DER, "fo_stkde.rds"))
+SO   <- readRDS(file.path(DER, "so_results.rds"))
+VA   <- readRDS(file.path(DER, "va_results.rds"))
+
+AREA_KM2 <- area(win) / 1e6
+N_DET <- npoints(ppp_det); N_PX <- npoints(ppp_px); N_EV <- npoints(ppp_ev)
+DATE_MIN <- min(fire_sf$date_local); DATE_MAX <- max(fire_sf$date_local)
+N_DAYS <- as.integer(DATE_MAX - DATE_MIN) + 1L
+LAM_BAR <- N_PX / AREA_KM2
+k_main <- which(FO_K$sigma_ladder == FO_K$sigma_main)
+RANGE_FOLD <- FO_K$int_check$ratio_max_to_mean[k_main]
+
+agree <- fire_all |> st_drop_geometry() |>
+  filter(grepl("VIIRS", firms_source)) |>
+  distinct(pixel_id, date_local, firms_source) |>
+  count(pixel_id, date_local, name = "np")
+
+lad_main <- SO$linhom_ladder[[which(SO$sig_ladder == SO$sigma_main)]]
+gd  <- SO$gd
+ib  <- which(gd$r > 500 & gd$obs <= gd$hi)
+G_CROSS <- if (length(ib)) gd$r[min(ib)] else NA_real_
+k00 <- SO$knox_res |> filter(space_m == 1000, time_d == 0)
+cp  <- VA$clustpar
+N_CLUST <- cp[["kappa"]] * area(win)
+PSIB <- VA$psib
+e_can <- VA$eff |> filter(term == "d_canal")
+e_riv <- VA$eff |> filter(term == "d_river")
+
+# The deck's paper colour. Figures are drawn on it rather than on white, so a
+# plot does not read as a white card floating on the slide.
+PAPER <- "#f8f6f1"
+
+# `theme_th()` sets plot.title.position = "plot", which puts the title at the
+# far-left edge of the canvas -- the same x as the rotated y-axis title. With
+# its default 2pt bottom margin the two collided once a figure was scaled down
+# for a slide, so the margin is opened up here.
+theme_slide <- function(base = 17) theme_th(base) +
+  theme(plot.title    = element_text(size = rel(1.0),  margin = margin(b = 10)),
+        plot.subtitle = element_text(size = rel(0.82), margin = margin(b = 12)),
+        plot.background   = element_rect(fill = PAPER, colour = NA),
+        panel.background  = element_rect(fill = PAPER, colour = NA),
+        legend.background = element_rect(fill = PAPER, colour = NA),
+        legend.key        = element_rect(fill = PAPER, colour = NA))
+
+theme_slide_map <- function(base = 15) theme_map(base) +
+  theme(plot.title    = element_text(margin = margin(b = 10)),
+        plot.subtitle = element_text(margin = margin(b = 12)),
+        plot.background   = element_rect(fill = PAPER, colour = NA),
+        panel.background  = element_rect(fill = PAPER, colour = NA),
+        legend.background = element_rect(fill = PAPER, colour = NA),
+        legend.key        = element_rect(fill = PAPER, colour = NA))
+```
+
+## <span class="en">Main findings</span><span class="zh">主要研究结果</span> {#findings}
+
+::: {.eyebrow}
+<span class="en">RESEARCH QUESTIONS, AND WHAT THEY RETURNED</span><span class="zh">研究问题,及其答案</span>
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card .card-quiet}
+[<span class="en">Q1 &#183; First order, space</span><span class="zh">Q1 &#183; 一阶,空间</span>]{.lab}
+
+::: {.en}
+*How does detection intensity vary across the regency, and is it associated with
+proximity to engineered drainage rather than to water in general?*
+:::
+::: {.zh}
+*探测强度在全县如何变化?它是否与**人工排水**的邻近度相关,而不只是泛泛地「靠水」?*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">Q2 &#183; Second order, space</span><span class="zh">Q2 &#183; 二阶,空间</span>]{.lab}
+
+::: {.en}
+*Once the large-scale intensity gradient is accounted for, do the detections
+still show clustering, and over what range of distances?*
+:::
+::: {.zh}
+*在扣除大尺度强度梯度之后,探测点是否仍表现出聚集?在什么距离尺度上?*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">Q3 &#183; Second order, space&#8211;time</span><span class="zh">Q3 &#183; 二阶,时空</span>]{.lab}
+
+::: {.en}
+*Are detections that are close in space also close in time, beyond what each
+margin alone implies?*
+:::
+::: {.zh}
+*空间上靠近的探测点,在时间上是否也靠近?这种靠近的程度,是否超出两个边缘分布各自
+所隐含的水平?*
+:::
+:::
+:::
+
+::: {.kpi-row}
+::: {.kpi}
+[~`r sprintf("%.0f", RANGE_FOLD)`×]{.kpi-val}
+[<span class="en">Peak-to-mean detection intensity</span><span class="zh">核密度峰值与全县平均值之比</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r sprintf("%.1f", cp[["scale"]]/1000)`[&nbsp;km]{.kpi-unit}]{.kpi-val}
+[<span class="en">Estimated Thomas cluster scale</span><span class="zh">Thomas 模型估计聚集尺度</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-fire}
+[`r sprintf("%.2f", k00$ratio)`×]{.kpi-val}
+[<span class="en">Pair ratio: same day, within 1 km</span><span class="zh">同日、1 km 内观测/期望点对数</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card}
+[<span class="en">Where</span><span class="zh">在哪里</span>]{.lab}
+
+::: {.en}
+Detections sit **closer to engineered canals** and **farther from natural
+rivers** than random locations in the same window.
+:::
+::: {.zh}
+相对同一窗口内的随机位置,火点**更靠近人工运河**,而**相对远离天然河流**。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">How</span><span class="zh">怎样聚集</span>]{.lab}
+
+::: {.en}
+Spatial clustering **remains after adjustment** for the measured distance
+covariates.
+:::
+::: {.zh}
+在控制已测得的距离协变量之后,空间聚集**依然存在**。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">When</span><span class="zh">何时</span>]{.lab}
+
+::: {.en}
+Same-day pairs are in **excess relative to date permutation**, and the excess
+is short-range.
+:::
+::: {.zh}
+同日邻近点对数**高于日期置换下的期望值**,且这一超额是短程的。
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">In one line</span><span class="zh">一句话</span>]{.lab}
+
+::: {.en}
+The results indicate spatial heterogeneity tied to engineered drainage, local
+clustering that measured geography does not explain, and short-range space–time
+association.
+:::
+::: {.zh}
+结果表明:存在与人工排水相关的空间异质性、已测得的地理条件无法解释的局部聚集,
+以及短程的时空关联。
+:::
+:::
+
+## <span class="en">Study area and data</span><span class="zh">研究区与数据</span> {#study-area}
+
+::: {.eyebrow}
+<span class="en">01 · STUDY AREA AND DATA</span><span class="zh">01 · 研究区与数据</span>
+:::
+
+::: {.columns}
+::: {.column width="54%"}
+```{r}
+#| label: slide-context
+#| fig-width: 6.4
+#| fig-height: 7.6
+
+kal_prov <- readRDS(file.path(DER, "kal_prov.rds"))
+kal_fire <- readRDS(file.path(DER, "kal_fires_context.rds"))
+
+ggplot() +
+  geom_sf(data = kal_prov, fill = "#f5f5f4", colour = "white", linewidth = 0.3) +
+  geom_sf(data = kal_fire, colour = PAL$fire_l, size = 0.22, alpha = 0.35) +
+  geom_sf(data = bnd, fill = NA, colour = PAL$fire, linewidth = 1.1) +
+  annotate("label", x = st_coordinates(st_centroid(bnd))[1],
+           y = st_bbox(bnd)["ymin"] - 70000, label = "Pulang Pisau",
+           size = 4.6, fontface = "bold", colour = "#1c1917",
+           label.size = 0, fill = "white", alpha = 0.85) +
+  labs(title = "Kalimantan, 4–11 Sep 2026",
+       subtitle = paste0(n_fmt(nrow(kal_fire)), " VIIRS S-NPP detections")) +
+  theme_slide_map(15)
+```
+:::
+::: {.column width="46%"}
+
+::: {.kpi-row}
+::: {.kpi}
+[`r n_fmt(N_DET)`]{.kpi-val}
+[<span class="en">VIIRS 375 m active-fire detections</span><span class="zh">VIIRS 375 m 活跃火点探测</span>]{.kpi-lab}
+:::
+::: {.kpi}
+[`r N_DAYS`[&nbsp;days]{.kpi-unit}]{.kpi-val}
+[<span class="en">4–11 September 2026</span><span class="zh">2026 年 9 月 4–11 日</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card .t-xs}
+[<span class="en">Why this regency</span><span class="zh">为什么选这个县</span>]{.lab}
+
+::: {.en}
+Pulang Pisau is peatland in Central Kalimantan carrying the drainage canals
+left by the Mega Rice Project. The window is the **administrative unit that
+owns the response**, not a hull drawn around the data.
+:::
+::: {.zh}
+Pulang Pisau 位于中加里曼丹泥炭地区,境内分布着百万公顷稻米工程遗留的排水渠网。
+研究窗口取**承担应对责任的行政单元**,而不是围绕数据画出的凸包。
+:::
+:::
+
+::: {.card .card-quiet .t-xs}
+[<span class="en">Window</span><span class="zh">研究窗口</span>]{.lab}
+
+::: {.en}
+`r n_fmt(AREA_KM2)` km², EPSG:32749 (UTM 49S). The period is the full extent of
+the open FIRMS archive at the time of access.
+:::
+::: {.zh}
+`r n_fmt(AREA_KM2)` km²,EPSG:32749(UTM 49S)。时段为取数时 FIRMS 开放档案的
+全部范围。
+:::
+:::
+:::
+:::
+
+## <span class="en">A detection is not a fire</span><span class="zh">一次探测不是一场火</span> {#observation}
+
+::: {.eyebrow}
+<span class="en">02 · DATA PREPARATION</span><span class="zh">02 · 数据处理</span>
+:::
+
+::: {.kpi-row}
+::: {.kpi}
+[`r n_fmt(N_DET)`]{.kpi-val}
+[<span class="en">Detections</span><span class="zh">探测次数</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r n_fmt(N_PX)`]{.kpi-val}
+[<span class="en">Pixel-days &#183; primary unit</span><span class="zh">像元-日 &#183; 主分析单位</span>]{.kpi-lab}
+:::
+::: {.kpi}
+[`r n_fmt(N_EV)`]{.kpi-val}
+[<span class="en">Merged events &#183; sensitivity</span><span class="zh">合并事件 &#183; 敏感性分析</span>]{.kpi-lab}
+:::
+::: {.kpi}
+[`r sprintf("%.1f%%", 100*mean(agree$np == 3))`]{.kpi-val}
+[<span class="en">Pixel-days seen by all three VIIRS sensors</span><span class="zh">三个 VIIRS 传感器共同检出的像元-日</span>]{.kpi-lab}
+:::
+:::
+
+{{< include _include/dg-observation-slides.qmd >}}
+
+::: {.takeaway .takeaway-warn}
+[<span class="en">What this rules out</span><span class="zh">这排除了什么</span>]{.lab}
+
+::: {.en}
+Daily counts are driven by overpass timing and cloud as much as by fire, so
+**no trend claim is made** and every intensity is a **lower bound**.
+:::
+::: {.zh}
+逐日计数受过境时间与云层的影响不亚于受火情影响,因此**全篇不作趋势论断**,
+而每一个强度都只是**下界**。
+:::
+:::
+
+## <span class="en">How the analysis is built</span><span class="zh">分析是怎么搭起来的</span> {#methods}
+
+::: {.eyebrow}
+<span class="en">03 · METHODS</span><span class="zh">03 · 分析方法</span>
+:::
+
+{{< include _include/dg-pipeline-slides.qmd >}}
+
+::: {.takeaway}
+[<span class="en">First order asks where; second order asks whether events interact</span><span class="zh">一阶问「在哪里」,二阶问「事件之间是否交互」</span>]{.lab}
+
+::: {.en}
+In a single realisation the two are confounded. Every second-order statement
+below is therefore made **relative to an explicit null model**, never to a
+picture.
+:::
+::: {.zh}
+在单次实现中,这两者是混淆的。因此下文每一项二阶论断,都是**相对一个显式的零模型**
+作出的,不是相对一幅图。
+:::
+:::
+
+## <span class="en">Canals, not water</span><span class="zh">是运河,不是靠水</span> {#canals}
+
+::: {.eyebrow}
+<span class="en">04 · FIRST-ORDER RESULTS</span><span class="zh">04 · 一阶分析结果</span>
+:::
+
+```{r}
+#| label: slide-canal
+#| fig-width: 15.5
+#| fig-height: 5.4
+
+lbl <- c(d_canal = "Distance to canal", d_river = "Distance to river",
+         d_road = "Distance to road", d_settle = "Distance to settlement")
+
+m <- ggplot() +
+  geom_raster(data = im_df(FO_K$dens[[k_main]], "lam", scale = 1e6),
+              aes(x, y, fill = lam), alpha = 0.95) +
+  geom_sf(data = osm$canal, colour = "#0e7490", linewidth = 0.13, alpha = 0.55) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.45) +
+  scale_fill_fire(name = "per km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "Intensity, with canals",
+       subtitle = "σ = 2 km · blue: OSM canal/drain") +
+  theme_slide_map(14)
+
+ec <- bind_rows(lapply(c("d_canal", "d_river"), function(nm) {
+  bind_rows(
+    tibble(covariate = nm, km = FO_C$cov_at_pts[, nm]/1000, where = "At detections"),
+    tibble(covariate = nm,
+           km = as.vector(covars[[nm]][win, drop = TRUE])/1000,
+           where = "Across window"))
+})) |>
+  ggplot(aes(km, colour = where)) +
+  stat_ecdf(linewidth = 1.1, pad = FALSE) +
+  facet_wrap(~covariate, scales = "free_x",
+             labeller = labeller(covariate = lbl)) +
+  scale_colour_manual(NULL, values = c(`At detections` = PAL$fire,
+                                       `Across window` = PAL$grey)) +
+  scale_y_continuous(labels = label_percent()) +
+  labs(title = "Red LEFT of grey = closer than chance",
+       subtitle = "Canals: closer. Rivers: further. Opposite directions.",
+       x = "Distance (km)", y = NULL) +
+  theme_slide(14)
+
+cf <- VA$eff |>
+  mutate(term = recode(term, !!!lbl),
+         term = fct_reorder(term, per_km_multiplier)) |>
+  ggplot(aes(per_km_multiplier, term)) +
+  geom_vline(xintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_errorbarh(aes(xmin = ci_lo, xmax = ci_hi), height = 0.18,
+                 colour = PAL$grey) +
+  geom_point(aes(colour = per_km_multiplier < 1), size = 4.4) +
+  geom_text(aes(label = sprintf("×%.3f", per_km_multiplier)),
+            vjust = -1.15, size = 3.9, colour = PAL$grey) +
+  scale_colour_manual(values = c(`TRUE` = PAL$fire, `FALSE` = PAL$water),
+                      guide = "none") +
+  labs(title = "Multivariate model (ppm M1)",
+       subtitle = "Intensity multiplier per additional km — others held constant",
+       x = "× per km", y = NULL) +
+  theme_slide(14) + theme(panel.grid.major.y = element_blank())
+
+(m | ec | cf) + plot_layout(widths = c(0.9, 1.25, 1.15))
+```
+
+::: {.columns .t-xs}
+::: {.column width="50%"}
+::: {.kpi-row}
+::: {.kpi}
+[`r n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"])`[&nbsp;m]{.kpi-unit}]{.kpi-val}
+[<span class="en">Median distance to a canal, at detections</span><span class="zh">火点至运河的中位距离</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"])`[&nbsp;m]{.kpi-unit}]{.kpi-val}
+[<span class="en">Same, at random locations</span><span class="zh">随机位置的同一距离</span>]{.kpi-lab}
+:::
+:::
+:::
+::: {.column width="50%"}
+::: {.card}
+[<span class="en">After multivariate adjustment</span><span class="zh">多变量调整之后</span>]{.lab}
+
+::: {.en}
+Intensity falls **×`r sprintf("%.3f", e_can$per_km_multiplier)` per km** of
+distance from a canal and rises
+**×`r sprintf("%.3f", e_riv$per_km_multiplier)` per km** from a river. The two
+run in opposite directions. That is what separates a *drainage* mechanism
+from simple proximity to water.
+:::
+::: {.zh}
+每远离运河 1 km,强度变为原来的
+**`r sprintf("%.3f", e_can$per_km_multiplier)` 倍**;每远离河流 1 km,强度变为
+**`r sprintf("%.3f", e_riv$per_km_multiplier)` 倍**。两者方向相反,正是这一点把
+**排水机制**与泛泛的「靠水」区分开。
+:::
+:::
+:::
+:::
+
+## <span class="en">The bandwidth is the decision</span><span class="zh">带宽才是那个决策</span> {#bandwidth}
+
+::: {.eyebrow}
+<span class="en">05 · SENSITIVITY ANALYSIS</span><span class="zh">05 · 敏感性分析</span>
+:::
+
+```{r}
+#| label: slide-linhom
+#| fig-width: 15.5
+#| fig-height: 5.0
+
+pl <- lapply(SO$linhom_ladder, function(x) {
+  s <- env_summary(x$env)
+  plot_env_centred(x$env,
+    title = bquote(sigma[lambda] == .(n_fmt(x$sigma)) ~ "m"),
+    subtitle = sprintf("p %s · %s", pv(x$test$p.value),
+                       ifelse(is.na(s$r_first), "inside envelope",
+                              sprintf("outside %.1f–%.1f km", s$r_first, s$r_last)))) +
+    theme_slide(13) + theme(legend.position = "none")
+})
+
+A_KM2 <- area(win) / 1e6
+pw <- tibble(
+  cells = c(A_KM2 / (pi * (SO$sig_ladder / 1000)^2), VA$n_par_M1),
+  p = c(vapply(SO$linhom_ladder, function(x) x$test$p.value, 0),
+        VA$gof_M1_test$p.value),
+  label = c(sprintf("σ_λ = %s m", n_fmt(SO$sig_ladder)), "covariate model (N4)"),
+  kind = c(rep("kernel", 4), "parametric"))
+
+pwp <- ggplot(pw, aes(cells, p)) +
+  annotate("rect", xmin = 1, xmax = Inf, ymin = 0.05, ymax = Inf,
+           fill = PAL$grey_l, alpha = 0.4) +
+  annotate("text", x = 3, y = 0.45, label = "cannot reject", hjust = 0,
+           size = 4, colour = PAL$grey) +
+  geom_hline(yintercept = 0.05, linetype = "22", colour = PAL$theo) +
+  geom_vline(xintercept = N_PX, linetype = "33", colour = PAL$water) +
+  annotate("text", x = N_PX, y = 0.0016, label = "n = points", size = 3.5,
+           colour = PAL$water, vjust = 1.1, hjust = 0.5) +
+  geom_line(data = ~dplyr::filter(.x, kind == "kernel"), colour = PAL$fire,
+            linewidth = 0.9) +
+  geom_point(aes(colour = kind), size = 4) +
+  ggrepel::geom_text_repel(aes(label = label), size = 3.6, colour = PAL$grey,
+                           seed = 5, box.padding = 0.55,
+                           min.segment.length = 0.2) +
+  scale_x_log10(labels = label_comma()) +
+  scale_y_log10(labels = label_number(accuracy = 0.0001)) +
+  scale_colour_manual(values = c(kernel = PAL$fire, parametric = PAL$water),
+                      guide = "none") +
+  labs(title = "Same data, same statistic, same 199 simulations",
+       subtitle = "Only the null's flexibility changes — and it decides the answer",
+       x = "Resolution cells / parameters in the null (log)",
+       y = "DCLF p (log)") +
+  theme_slide(14)
+
+(wrap_plots(pl, nrow = 2) | pwp) + plot_layout(widths = c(1.3, 1))
+```
+
+::: {.card-grid .cols-2 .t-xs}
+::: {.card .card-water}
+[<span class="en">Narrower bandwidth</span><span class="zh">较小带宽</span>]{.lab}
+
+::: {.en}
+The estimated intensity keeps local variation, so the null already reproduces
+the clumping. Any further clustering then becomes **harder to detect**.
+:::
+::: {.zh}
+估计强度保留了局部变化,零模型本身就能再现成团,因此额外的聚集**更难被检出**。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Wider bandwidth</span><span class="zh">较大带宽</span>]{.lab}
+
+::: {.en}
+The estimated intensity is smoother, and for **the same data** the $p$-value
+falls:
+`r paste(sprintf("%.3f", vapply(SO$linhom_ladder, function(x) x$test$p.value, 0)), collapse = " → ")`.
+:::
+::: {.zh}
+估计强度更平滑,而在**同一份数据**下 $p$ 值随之下降:
+`r paste(sprintf("%.3f", vapply(SO$linhom_ladder, function(x) x$test$p.value, 0)), collapse = " → ")`。
+:::
+:::
+:::
+
+::: {.takeaway .takeaway-warn}
+[<span class="en">Why this matters</span><span class="zh">这为什么重要</span>]{.lab}
+
+::: {.en}
+The verdict here tracks the null model, not the data. A non-significant
+result therefore **cannot** be read as evidence of no clustering. What the
+next slide changes is the *family* of null model, not its flexibility.
+:::
+::: {.zh}
+由于判定追踪的是零模型而不是数据,这里的「不显著」**不能**读作「没有聚集」的证据。
+下文换掉的是零模型的**族**,而不是它的灵活度,问题由此得到解决。
+:::
+:::
+
+## <span class="en">A null model that can be falsified</span><span class="zh">一个可以被伪证的零模型</span> {#models}
+
+::: {.eyebrow}
+<span class="en">06 · MODEL COMPARISON</span><span class="zh">06 · 模型比较</span>
+:::
+
+```{r}
+#| label: slide-va
+#| fig-width: 15.5
+#| fig-height: 4.9
+
+v1 <- ggplot() +
+  geom_raster(data = im_df(VA$trend_M1, "lam", scale = 1e6),
+              aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.4) +
+  scale_fill_fire(name = "per km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "Fitted from geography alone",
+       subtitle = "ppm M1 · 4 distance covariates") +
+  theme_slide_map(13)
+
+v2 <- ggplot() +
+  geom_raster(data = im_df(VA$res_sm, "res"), aes(x, y, fill = res)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.4) +
+  scale_fill_gradient2(name = "resid", low = "#0e7490", mid = "#f5f5f4",
+                       high = "#b91c1c", midpoint = 0, na.value = NA) +
+  labs(title = "Where it fails",
+       subtitle = "red: more fire than predicted") +
+  theme_slide_map(13)
+
+v3 <- plot_env_centred(VA$gof_M1, title = "N4: is a covariate-driven Poisson enough?",
+  subtitle = sprintf("DCLF p %s → no. And this null needs NO scale-separation assumption.",
+                     pv(VA$gof_M1_test$p.value)),
+  ref_lab = "Fitted ppm") + theme_slide(14) +
+  theme(legend.position = "none")
+
+(v1 | v2 | v3) + plot_layout(widths = c(0.85, 0.85, 1.5))
+```
+
+::: {.model-details}
+
+| <span class="en">Model</span><span class="zh">模型</span> | <span class="en">Test</span><span class="zh">检验</span> | <span class="en">Reading</span><span class="zh">解释</span> |
+|---|---|---|
+| <span class="en">Homogeneous Poisson</span><span class="zh">齐次泊松</span> | <span class="en">rejected</span><span class="zh">拒绝</span> | <span class="en">Departs from homogeneous randomness</span><span class="zh">不符合全域均匀随机</span> |
+| <span class="en">Covariate Poisson</span><span class="zh">协变量泊松</span> | $p =$ `r sprintf("%.3f", VA$gof_M1_test$p.value)` | <span class="en">Covariates do not explain all clustering</span><span class="zh">协变量不足以解释全部聚集</span> |
+| <span class="en">Thomas cluster process</span><span class="zh">Thomas 聚集过程</span> | $p =$ `r sprintf("%.2f", VA$gof_M3_test$p.value)` | <span class="en">Not rejected by the available test</span><span class="zh">现有检验未拒绝</span> |
+
+::: {.kpi-row}
+::: {.kpi .kpi-water}
+[`r sprintf("%.1f", cp[["scale"]]/1000)`[&nbsp;km]{.kpi-unit}]{.kpi-val}
+[<span class="en">Estimated cluster scale</span><span class="zh">估计聚集尺度</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card .card-quiet .t-xs}
+[<span class="en">What the scale is, and is not</span><span class="zh">这个尺度是什么、不是什么</span>]{.lab}
+
+::: {.en}
+It describes the **spatial scale of clustering**. It is not a distance of fire
+spread, and the fitted parent count is the model's accounting rather than a
+count of fires.
+:::
+::: {.zh}
+它描述的是**聚集的空间尺度**,不是火势蔓延距离;拟合出的母点数量是模型的记账
+方式,而不是火的计数。
+:::
+:::
+:::
+
+## <span class="en">Where and when are dependent</span><span class="zh">「哪里」与「何时」相互依赖</span> {#space-time}
+
+::: {.eyebrow}
+<span class="en">07 · SPACE–TIME RESULTS</span><span class="zh">07 · 时空分析结果</span>
+:::
+
+::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| label: slide-knox
+#| fig-width: 8.8
+#| fig-height: 5.5
+
+p1 <- SO$knox_res |>
+  mutate(space = paste0(space_m/1000, " km"),
+         time = factor(paste0("≤ ", time_d, "d"))) |>
+  ggplot(aes(time, ratio, fill = space)) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_col(position = position_dodge(0.8), width = 0.72) +
+  geom_text(aes(label = sprintf("%.2f", ratio)),
+            position = position_dodge(0.8), vjust = -0.3, size = 3.6,
+            colour = PAL$grey) +
+  scale_fill_manual("Spatial", values = c(`1 km` = PAL$fire,
+                                          `2 km` = PAL$fire_l,
+                                          `5 km` = PAL$grey_l)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.16))) +
+  labs(title = "Observed / permuted space-time-close pairs",
+       x = "Temporal threshold", y = "Ratio") +
+  theme_slide(14)
+
+p2 <- bind_rows(SO$st_by_lag_1km |> mutate(radius = "within 1 km"),
+                SO$st_by_lag |> mutate(radius = "within 5 km")) |>
+  ggplot(aes(lag_days, ratio, colour = radius)) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_line(linewidth = 1.1) + geom_point(size = 2.8) +
+  scale_colour_manual(NULL, values = c(`within 1 km` = PAL$fire,
+                                       `within 5 km` = PAL$water)) +
+  scale_x_continuous(breaks = 0:5) +
+  labs(title = "The excess decays over days", x = "Temporal lag (days)",
+       y = "Observed / expected") +
+  theme_slide(14)
+
+p1 / p2
+```
+:::
+::: {.column width="42%"}
+
+::: {.kpi-row}
+::: {.kpi .kpi-fire}
+[`r sprintf("%.2f", k00$ratio)`×]{.kpi-val}
+[<span class="en">Same day, within 1 km &#183; observed / expected</span><span class="zh">同日、1 km 内 &#183; 观测/期望</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card .t-xs}
+[<span class="en">The null used here</span><span class="zh">这里用的零模型</span>]{.lab}
+
+::: {.en}
+`r SO$nsim` random permutations of the **date labels**, holding both marginals
+fixed. It uses **no bandwidth and no covariates**, which is why it escapes the
+problem on the previous slide. The null is rejected at all nine space–time
+thresholds.
+:::
+::: {.zh}
+对**日期标签**做 `r SO$nsim` 次随机置换,同时固定两个边缘分布。它**不用带宽、
+也不用协变量**,这正是它能绕开上一页那个问题的原因。九组时空阈值下,零模型都被拒绝。
+:::
+:::
+
+::: {.card .card-quiet .t-xs}
+[<span class="en">Caveat</span><span class="zh">保留</span>]{.lab}
+
+::: {.en}
+The association may reflect an advancing fire front and multi-day smouldering,
+not contagion between separate ignitions.
+:::
+::: {.zh}
+这一关联可能反映火线推进与多日阴燃,而非彼此独立的点火之间的传染。
+:::
+:::
+:::
+:::
+
+## <span class="en">Implications for public-safety management</span><span class="zh">对公共安全管理的启示</span> {#implications}
+
+::: {.eyebrow}
+<span class="en">08 · DISCUSSION</span><span class="zh">08 · 讨论</span>
+:::
+
+| <span class="en">Finding</span><span class="zh">研究结果</span> | <span class="en">Management implication</span><span class="zh">管理建议</span> | <span class="en">What would have to be established first</span><span class="zh">仍需先行确认的内容</span> |
+|---|---|---|
+| <span class="en">Concentration near engineered canals</span><span class="zh">火点集中于人工运河附近</span> | <span class="en">Prioritise survey and patrol along the drainage network</span><span class="zh">优先沿渠网开展调查与巡查</span> | <span class="en">Groundwater level and canal condition</span><span class="zh">地下水位与渠道状况</span> |
+| <span class="en">Clustering at a few-kilometre scale</span><span class="zh">数公里尺度的空间聚集</span> | <span class="en">Plan surveillance at local rather than regency scale</span><span class="zh">按局地尺度而非全县尺度安排监测</span> | <span class="en">Whether the scale transfers to other regencies</span><span class="zh">该尺度能否推广到其他县</span> |
+| <span class="en">Association at short distance and short lag</span><span class="zh">短距离、短时间间隔上的关联</span> | <span class="en">Concentrate short-term monitoring near recent detections</span><span class="zh">在近期火点附近集中短期监测</span> | <span class="en">Separating persistence from new ignition</span><span class="zh">区分持续阴燃与新增点火</span> |
+
+::: {.takeaway .takeaway-warn}
+[<span class="en">The boundary of this evidence</span><span class="zh">这份证据的边界</span>]{.lab}
+
+::: {.en}
+These are **associations within one eight-day window**, not causal effects. A
+full fire season, plus hydrological, land-cover and canal-condition data, would
+be required before any of the right-hand column could be settled.
+:::
+::: {.zh}
+以上是**单一八天窗口内的关联**,不是因果效应。要确定右栏中的任何一项,都需要覆盖
+完整火季,并纳入水文、土地覆盖与渠道状况数据。
+:::
+:::
+
+## <span class="en">Conclusions</span><span class="zh">结论</span> {#conclusions}
+
+::: {.eyebrow}
+<span class="en">CONCLUSIONS</span><span class="zh">研究结论</span>
+:::
+
+::: {.card-grid .cols-3}
+::: {.card}
+[<span class="en">What the analysis shows</span><span class="zh">分析显示了什么</span>]{.lab}
+
+::: {.en}
+Detection intensity varies about `r sprintf("%.0f", RANGE_FOLD)`-fold across
+the regency, concentrating near engineered drainage and away from natural
+rivers.
+:::
+::: {.zh}
+探测强度在全县范围内变化约 `r sprintf("%.0f", RANGE_FOLD)` 倍,集中于人工排水
+附近,并相对远离天然河流。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">What survives the null models</span><span class="zh">哪些结论经得起零模型检验</span>]{.lab}
+
+::: {.en}
+Clustering at roughly `r sprintf("%.1f", cp[["scale"]]/1000)` km is **not
+explained** by the measured geography, and space and time are **dependent** at
+short range.
+:::
+::: {.zh}
+约 `r sprintf("%.1f", cp[["scale"]]/1000)` km 尺度的聚集**无法**由已测得的地理
+条件解释,而空间与时间在短程上是**相互依赖**的。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">What it cannot bear</span><span class="zh">它承担不了什么</span>]{.lab}
+
+::: {.en}
+No trend claim, no causal claim, and no count of distinct fires. The window is
+eight days and the detections are an observation process, not the fire field.
+:::
+::: {.zh}
+不作趋势论断、不作因果论断,也不给出不同火场的计数。窗口只有八天,而探测记录是
+一个**观测过程**,不是火场本身。
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">For planning</span><span class="zh">对规划而言</span>]{.lab}
+
+::: {.en}
+The evidence supports **where to look and how often**, at local scale, along
+the drainage network. It does not support attributing cause, and it does not
+support forecasting beyond the observed window.
+:::
+::: {.zh}
+这份证据支持在局地尺度上、沿渠网决定**去哪里看、多久看一次**;它明确**不**支持
+归因,也不支持把预测外推到观测窗口之外。
+:::
+:::

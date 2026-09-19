@@ -1,0 +1,264 @@
+# <span class="en">Analytical assumptions and methodological decisions</span><span class="zh">分析假设与方法学决策</span> {#sec-assumptions}
+
+::: {.en}
+The objective of this section is not to claim that the assumptions hold. Most of
+them do not hold exactly, and one of them (complete observation) fails badly
+and demonstrably. The objective is to state each assumption, say whether it is
+reasonable here, and say what its failure does to the conclusion that rests
+on it.
+:::
+
+::: {.zh}
+这一节**不是**要声称这些假设都成立。其中大多数并不严格成立,而有一条(完整
+观测)明显且可证地失效了。它要做的是陈述每一条假设、说明它在此处是否合理,
+并说明它失效会对依赖它的结论造成什么影响。
+:::
+
+## <span class="en">The foundational assumption, and how it fails</span><span class="zh">最基础的那个假设,以及它如何失效</span>
+
+::: {.en}
+Every method below treats the data as a realisation of a point process
+$X$ on the window $W$, observed completely. Three parts of that need scrutiny.
+
+**Events are points.** They are not; they are 375 m pixels, represented by their
+centres. The approximation is harmless for questions posed at kilometre scales
+and invalid below about 500 m (@sec-prep). Every interpretation below respects
+that floor.
+
+**The window is fixed and independent of the data.** Satisfied: the regency
+boundary was fixed before the points were seen. This is why a convex or concave
+hull of the detections was rejected as a window in @sec-window.
+
+**Observation is complete.** *This fails.* @sec-crosssensor showed that only
+`r sprintf("%.1f%%", 100*mean({a <- fire_all |> sf::st_drop_geometry() |> dplyr::filter(grepl("VIIRS", firms_source)) |> distinct(pixel_id, date_local, firms_source) |> count(pixel_id, date_local, name = "np"); a$np} == 3))`
+of fire-affected pixel-days were seen by all three VIIRS satellites, and
+@sec-fo-temporal shows one day in the series with no daytime detections at all.
+Formally, what is observed is a *thinned* version of the fire process, with
+retention probability $p(u, t)$ that depends on cloud, overpass geometry and
+fire size.
+:::
+
+::: {.zh}
+下文所有方法都把数据视为窗口 $W$ 上某个点过程 $X$ 的一次**完整观测**的实现。
+其中有三个部分需要审视。
+
+**事件是点。** 它们不是;它们是 375 m 像元,用其中心代表。这一近似对公里尺度的
+问题无害,但在约 500 m 以下无效(@sec-prep)。下文每一处解读都遵守这一下界。
+
+**窗口是固定的,且独立于数据。** 满足:县界在看到点之前就已固定。这正是
+@sec-window 中把探测点的凸包/凹包排除在窗口候选之外的原因。
+
+**观测是完整的。** *这一条失效。* @sec-crosssensor 表明,过火像元-日中只有
+`r sprintf("%.1f%%", 100*mean({a <- fire_all |> sf::st_drop_geometry() |> dplyr::filter(grepl("VIIRS", firms_source)) |> distinct(pixel_id, date_local, firms_source) |> count(pixel_id, date_local, name = "np"); a$np} == 3))`
+被三颗 VIIRS 卫星全部看到,而 @sec-fo-temporal 显示序列中有一天完全没有白天探测。
+形式化地说,我们观测到的是火灾过程的一个**抽稀(thinned)**版本,其保留概率
+$p(u, t)$ 取决于云、过境几何与火的规模。
+:::
+
+::: {.callout-important .en}
+## What thinning does (and does not) do to the conclusions
+Independent random thinning leaves the *inhomogeneous* second-order structure
+unchanged: if $X$ has pair correlation $g(r)$, a thinned version has the same
+$g(r)$ [@baddeley2015, ch. 7]. That is a genuinely useful robustness property,
+and it is why the second-order conclusions in @sec-so survive an incomplete
+observation process.
+
+Thinning is *not* independent here, though. Cloud is spatially and temporally
+autocorrelated over tens of kilometres and whole days. Two specific
+consequences follow, and both are carried into the interpretation:
+
+1. **First-order intensities are lower bounds**, and the ratio between high and
+   low intensity areas is biased if cloud frequency differs between them.
+2. **Day-to-day count variation is not fire-activity variation**, which is why
+   @sec-fo-temporal reports the temporal analysis as being about the
+   *observation-fire compound* rather than about fire.
+:::
+
+::: {.callout-important .zh}
+## 抽稀会、以及不会对结论造成什么影响
+
+**独立随机**抽稀不改变*非齐次*二阶结构:若 $X$ 的对相关函数为 $g(r)$,其抽稀版本
+具有相同的 $g(r)$ [@baddeley2015, ch. 7]。这是一条确实有用的稳健性性质,也正是
+@sec-so 中二阶结论能在不完整观测下依然成立的原因。
+
+然而此处的抽稀**并非独立**。云在数十公里、整天的尺度上具有空间与时间自相关。
+由此有两个具体后果,二者都被带入了解读:
+
+1. **一阶强度只是下界**,而且如果高强度区与低强度区的云频率不同,两者之间的强度
+   **比值**也会有偏。
+2. **逐日计数变化不等于火灾活动变化**。这正是 @sec-fo-temporal 把时间分析表述为
+   关于*观测, 火复合体*而不是关于火本身的原因。
+:::
+
+## <span class="en">Assumptions by method</span><span class="zh">各方法所需的假设</span>
+
+```{r}
+#| label: tbl-assumptions
+#| tbl-cap: "<span class='en'>Assumptions required by each method, an assessment for this study, and the consequence if the assumption fails.</span><span class='zh'>各方法所需的假设、针对本研究的评估,以及该假设失效后的后果。(下表为英文原表)</span>"
+
+tibble::tribble(
+  ~Method, ~Assumption, ~Holds, ~`Consequence and mitigation`,
+
+  "Quadrat $\\chi^2$ test", "Homogeneous Poisson process (constant intensity, independent points)",
+  "**No**",
+  "Rejection is uninformative: it cannot distinguish intensity variation from interaction. Reported only to demonstrate that fact, across four quadrat sizes.",
+
+  "Fixed-bandwidth KDE", "A single bandwidth is appropriate everywhere; kernel is isotropic",
+  "**Partly**",
+  "Intensity spans two orders of magnitude, so one bandwidth must oversmooth peaks or undersmooth sparse areas. Mitigated with a bandwidth ladder and an adaptive-bandwidth estimate.",
+
+  "KDE edge correction", "The process continues beyond $W$ in the same way",
+  "**Partly**",
+  "True on land borders, false on the southern coast, where there is no process beyond the boundary. Coastal intensities are therefore over-corrected upward.",
+
+  "$G$, $F$, $J$ functions", "Stationarity and isotropy",
+  "**No**",
+  "Under strong inhomogeneity these functions confound intensity variation with interaction. Used descriptively; no interaction claim rests on them.",
+
+  "Ripley's $K$ vs CSR", "Stationarity and isotropy",
+  "**No**",
+  "Guaranteed rejection. Included as an explicit demonstration of why an inhomogeneous null is required.",
+
+  "$K_{inhom}$, $g_{inhom}$", "**Scale separation**: intensity varies only at scales $\\ge \\sigma_\\lambda$; interaction operates below it",
+  "*Unverifiable*",
+  "The central assumption of this report. Cannot be checked from one realisation, so results are reported across $\\sigma_\\lambda \\in \\{1, 2, 5, 10\\}$ km and the conclusion is stated as a function of it (@sec-so-kinhom).",
+
+  "$K_{inhom}$ intensity estimate", "$\\hat\\lambda$ is not contaminated by the pattern it describes",
+  "**Partly**",
+  "Leave-one-out kernel estimation and `normpower = 2` reduce, but do not remove, the bias. Direction of bias is towards the null, so a positive finding is conservative.",
+
+  "Isotropy of interaction", "Interaction depends on distance, not direction",
+  "**Doubtful**",
+  "Canals form an oriented grid, so fire may spread preferentially along them. An isotropic $g(r)$ would then understate the true along-canal correlation. Flagged as a limitation, not resolved.",
+
+  "Knox space-time test", "Under the null, dates are exchangeable across locations",
+  "**Yes, by construction**",
+  "This is the strength of the test: it requires no model for either the spatial or the temporal marginal pattern. The cost is that 'interaction' here includes first-order space-time inseparability (a moving fire front), not only contagion.",
+
+  "`ppm` (Poisson pseudolikelihood)", "Conditional independence of points given the trend",
+  "**No**",
+  "Point estimates of the trend remain consistent, but standard errors are **understated**, possibly severely. Coefficients are therefore interpreted for sign and magnitude, and the clustering is modelled explicitly in `kppm`.",
+
+  "Thomas cluster process", "Parents are a homogeneous Poisson process; offspring are isotropic Gaussian scatter",
+  "**Approximately**",
+  "Anisotropic, canal-aligned spread violates the isotropic-offspring assumption, so the fitted `scale` should be read as an effective cluster radius rather than a physical one."
+) |>
+  gt::gt() |>
+  gt::fmt_markdown(columns = c(Assumption, Holds, `Consequence and mitigation`)) |>
+  gt::cols_width(Method ~ gt::pct(16), Assumption ~ gt::pct(25),
+                 Holds ~ gt::pct(9), `Consequence and mitigation` ~ gt::pct(50)) |>
+  gt::tab_options(table.font.size = gt::pct(78), data_row.padding = gt::px(6))
+```
+
+## <span class="en">Null models</span><span class="zh">零模型</span> {#sec-nullmodels}
+
+::: {.en}
+A second-order result means nothing without the reference it is measured
+against. Five null models are used, each answering a different question.
+:::
+
+::: {.zh}
+二阶结果若没有被测量所依据的参照,就毫无意义。分析共使用五个零模型,各自回答
+一个不同的问题。
+:::
+
+```{r}
+#| label: tbl-nulls
+#| tbl-cap: "<span class='en'>The five reference models used in this report, what each holds fixed, and what rejecting it licenses.</span><span class='zh'>本报告使用的五个参照模型、各自固定了什么,以及拒绝它能够支持何种论断。(下表为英文原表)</span>"
+
+tibble::tribble(
+  ~Null, ~`Simulation mechanism`, ~`Holds fixed`, ~`Rejection licenses the claim that...`,
+  "**N1** Complete spatial randomness",
+  "`runifpoint(n, W)`", "$n$, $W$",
+  "...the pattern is not uniform-random. Almost vacuous here.",
+
+  "**N2** Inhomogeneous Poisson",
+  "`rpoispp(lambda_hat)`", "$W$, the kernel intensity surface at $\\sigma_\\lambda$",
+  "...clustering exists **beyond** intensity variation at scales above $\\sigma_\\lambda$. The substantive test.",
+
+  "**N3** Random date labelling",
+  "`sample(dates)` over fixed locations", "All locations, all dates, both marginals",
+  "...where and when are dependent, genuine space-time interaction.",
+
+  "**N4** Fitted inhomogeneous Poisson (`ppm`)",
+  "`simulate(M1)`", "$W$, the covariate-driven trend",
+  "...measured drainage/access geography does not account for the clustering.",
+
+  "**N5** Fitted Thomas cluster process (`kppm`)",
+  "`simulate(M3)`", "$W$, trend, and a clustering mechanism",
+  "...even a trend-plus-clustering model is inadequate."
+) |>
+  gt::gt() |> gt::fmt_markdown(columns = everything()) |>
+  gt::cols_width(Null ~ gt::pct(19), `Simulation mechanism` ~ gt::pct(20),
+                 `Holds fixed` ~ gt::pct(24),
+                 `Rejection licenses the claim that...` ~ gt::pct(37)) |>
+  gt::tab_options(table.font.size = gt::pct(80), data_row.padding = gt::px(6))
+```
+
+## <span class="en">Methodological decisions</span><span class="zh">方法学决策</span> {#sec-decisions}
+
+```{r}
+#| label: tbl-decisions
+#| tbl-cap: "<span class='en'>Every parameter that could materially change a result, its value, and why.</span><span class='zh'>所有可能实质性改变结果的参数、取值及理由。(下表为英文原表)</span>"
+
+tibble::tribble(
+  ~Decision, ~Value, ~Justification,
+  "Coordinate reference system", "EPSG:32749 (WGS 84 / UTM 49S)",
+  "Metre units, conformal, 0.26% area error over this window (@sec-crs).",
+
+  "Point-event definition", "Unique 375 m pixel x local day",
+  "Removes instrumental repeat-overpass duplication, retains genuine day-to-day persistence (@sec-event-def). All second-order results repeated on two alternative definitions.",
+
+  "Temporal aggregation", "Local calendar day (WIB, UTC+07)",
+  "Finer aggregation would describe the satellite orbit; two overpasses per day is the sampling limit (@sec-timezone).",
+
+  "KDE bandwidth (headline)", "$\\sigma$ = 2,000 m",
+  "Above the ~375-500 m sensor resolution floor, below the ~20 km kecamatan scale. Automatic selectors returned 337 m to 13,688 m; see @sec-fo-bandwidth for why two of them are rejected.",
+
+  "KDE bandwidth (reported range)", "500, 1,000, 2,000, 5,000, 10,000 m",
+  "Sensitivity ladder shown in full, so the reader can see which conclusions depend on the choice.",
+
+  "Adaptive KDE", "Abramson rule, $h_0$ = 2,000 m",
+  "Allows the bandwidth to shrink where data are dense, which a fixed bandwidth cannot [@abramson1982].",
+
+  "Covariate raster resolution", "250 m",
+  "Finer than the 375 m sensor pixel, so the covariate is never the coarser layer; coarse enough to refit models repeatedly.",
+
+  "$r_{max}$ for $K$, $K_{inhom}$", "15 km",
+  paste0("Below one quarter of the window's shorter dimension (~",
+         sprintf("%.0f", diff(win$xrange)/1000), " km), the conventional ceiling for reliable estimation."),
+
+  "$r_{max}$ for $G$, $F$", "3 km",
+  "Nearest-neighbour distances are almost all far below this; larger $r$ adds only edge-corrected noise.",
+
+  "$r_{max}$ for $g_{inhom}$", "8 km",
+  "Interaction is expected to vanish well within this range, and $g$ is noisier than $K$.",
+
+  "Edge correction, $K$ / $g$", "Ohser-Stoyan translation",
+  paste0("Unbiased, and ~20x faster than the isotropic correction on this ",
+         n_fmt(nrow(sf::st_coordinates(bnd))),
+         "-vertex polygon, which is decisive at 199 simulations x 4 bandwidths."),
+
+  "Edge correction, $G$ / $F$ / $J$", "Kaplan-Meier",
+  "The recommended correction for distance distributions in an irregular window [@baddeley2015].",
+
+  "Intensity normalisation in $K_{inhom}$", "`normpower = 2`",
+  "Reduces sensitivity to error in $\\hat\\lambda$ [@baddeley2000]; the spatstat default changed in version 3.8-1, so it is set explicitly for reproducibility.",
+
+  "Envelope type", "**Global**, 199 simulations",
+  "Pointwise envelopes have no valid overall significance level because they are read at ~200 values of $r$ simultaneously [@baddeley2014envelope]. Global envelopes give an exact level of 2/(199+1) = 1%.",
+
+  "Formal test statistics", "DCLF (integrated deviation) and MAD",
+  "One $p$-value per hypothesis rather than a curve that invites selective reading [@myllymaki2017].",
+
+  "Monte Carlo replicates", "999 (quadrat, Knox), 199 (envelopes), 499 (lag test)",
+  "Set by the smallest $p$-value each test needs to resolve, balanced against runtime.",
+
+  "Random seed", "`set.seed(1234)`",
+  "Every Monte-Carlo result in this report is exactly reproducible."
+) |>
+  gt::gt() |> gt::fmt_markdown(columns = c(Value, Justification)) |>
+  gt::cols_width(Decision ~ gt::pct(21), Value ~ gt::pct(20),
+                 Justification ~ gt::pct(59)) |>
+  gt::tab_options(table.font.size = gt::pct(79), data_row.padding = gt::px(6))
+```

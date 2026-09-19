@@ -1,0 +1,146 @@
+# <span class="en">Public-safety planning and management</span><span class="zh">公共安全规划与管理</span> {#sec-implications}
+
+::: {.callout-note .en}
+## Scope of this section
+The discussion below is under 500 words and is written to separate three things
+that are routinely conflated: what the analysis **establishes**, what it
+**suggests** but cannot establish, and what would require **additional data**.
+No causal claim is made from these data.
+:::
+
+::: {.callout-note .zh}
+## 本节范围
+
+以下讨论(英文版)控制在 500 词以内,写法上刻意区分三件常被混为一谈的事:分析
+**确立**了什么、分析**提示**但无法确立什么,以及哪些结论需要**额外数据**才能得出。
+本报告不从这些数据中提出任何因果论断。
+:::
+
+```{r}
+#| label: impl-numbers
+#| echo: false
+cp <- VA$clustpar
+k00 <- SO$knox_res |> dplyr::filter(space_m == 1000, time_d == 0)
+top_rate <- kec |> sf::st_drop_geometry() |> dplyr::slice_max(rate_per_1000km2, n = 1)
+top_share <- kec |> sf::st_drop_geometry() |> dplyr::slice_max(share_pct, n = 1)
+```
+
+::: {.en}
+**What the analysis establishes.** Detection intensity in Pulang Pisau is
+extremely uneven (roughly
+`r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[which(FO_K$sigma_ladder == FO_K$sigma_main)])`-fold
+variation around the mean) and concentrated in a band present on all
+`r N_DAYS` days. The median detection lies
+`r n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"])` m
+from a mapped canal against
+`r n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"])` m
+for a random location, while being
+`r sprintf("%.0f%%", 100*(FO_C$cov_compare$ratio[FO_C$cov_compare$covariate=="d_river"]-1))`
+*further* from natural rivers than chance, a dissociation that survives
+multivariate adjustment. That measured geography does **not** reproduce the
+observed spatial structure; a model adding compact clusters of about
+`r sprintf("%.1f", cp[["scale"]]/1000)` km does. And detections close in space
+are also close in time.
+:::
+
+::: {.zh}
+**分析确立了什么。** Pulang Pisau 的探测强度极不均匀(围绕均值约
+`r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[which(FO_K$sigma_ladder == FO_K$sigma_main)])`
+倍的变化幅度)并集中在一条在全部 `r N_DAYS` 天都存在的条带内。探测点到已制图运河的
+中位距为
+`r n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"])` m,
+而随机位置为
+`r n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"])` m;
+同时探测点比随机位置**更远离**天然河流
+`r sprintf("%.0f%%", 100*(FO_C$cov_compare$ratio[FO_C$cov_compare$covariate=="d_river"]-1))`
+。这一分离在多变量调整后依然成立。已测得的地理条件**无法**再现观测到的空间结构;
+而在其上加入约 `r sprintf("%.1f", cp[["scale"]]/1000)` km 的紧凑簇群后可以。并且,
+空间上靠近的探测点在时间上也靠近。
+:::
+
+::: {.en}
+**Where this points, operationally.** Four implications follow directly.
+
+*Targeting is two questions, not one.* **`r top_rate$adm3_name`** has the
+highest rate per unit area
+(`r sprintf("%.0f", top_rate$rate_per_1000km2)` per 1,000 km², about
+`r sprintf("%.0f×", top_rate$rate_per_1000km2 / (sum(kec$n_pxday)/sum(kec$area_km2)*1000))`
+the regency average) and is small enough for saturation coverage.
+**`r top_share$adm3_name`** carries
+`r sprintf("%.0f%%", top_share$share_pct)` of all detections over a far larger
+area, and needs mobile rather than fixed capacity. Rate and share should not be
+collapsed into one ranking (@sec-fo-kecamatan).
+
+*Match the intervention to the estimated scale.* The fitted cluster scale is
+about `r sprintf("%.1f", cp[["scale"]]/1000)` km, with ~95% of a cluster's
+detections within `r sprintf("%.1f", 2*cp[["scale"]]/1000)` km. Interventions
+with that footprint (canal blocking, village-level fire-free agreements, small
+mobile crews) are dimensionally appropriate; regency-wide measures are not.
+
+*Allocate dynamically, not only spatially.* Space–time dependence means
+location alone is an incomplete rule. Same-day detections within 1 km occur
+`r sprintf("%.2f×", k00$ratio)` as often as chance, and the excess decays over
+a few days (@sec-so-knox). This supports escalating coverage around a confirmed
+detection for a defined window, rather than allocating on last season's map
+alone.
+
+*Hydrology is the candidate lever.* The canal–river dissociation discriminates
+between mechanisms: generic proximity to water does not predict fire, proximity
+to *engineered drainage* does. That is consistent with the peat-hydrology
+literature and with canal blocking as mitigation [@ritzema2014; @sloan2022].
+:::
+
+::: {.zh}
+**这在操作上指向什么。** 直接得出四点启示。
+
+*瞄准是两个问题,不是一个。* **`r top_rate$adm3_name`** 单位面积发生率最高
+(`r sprintf("%.0f", top_rate$rate_per_1000km2)` 个/千 km²,约为全县均值的
+`r sprintf("%.0f×", top_rate$rate_per_1000km2 / (sum(kec$n_pxday)/sum(kec$area_km2)*1000))`),
+且面积小到足以做饱和覆盖。**`r top_share$adm3_name`** 则在大得多的面积上承载了全部
+探测的 `r sprintf("%.0f%%", top_share$share_pct)`,需要的是**机动**而非固定力量。
+发生率与占比不应被压缩成同一个排名(@sec-fo-kecamatan)。
+
+*让干预措施匹配估计出的尺度。* 拟合的簇群尺度约
+`r sprintf("%.1f", cp[["scale"]]/1000)` km,一个簇约 95% 的探测落在
+`r sprintf("%.1f", 2*cp[["scale"]]/1000)` km 以内。具有该作用范围的措施(运河
+封堵、村级无火协议、小型机动队)在尺度上是匹配的;全县一刀切的措施则不是。
+
+*要动态配置,而不只是空间配置。* 时空依赖意味着仅凭位置是不完整的规则。1 km 内
+同日的探测出现频率是随机情形的 `r sprintf("%.2f×", k00$ratio)`,且这一超额在数天内
+衰减(@sec-so-knox)。这支持在一次确认探测周围于**限定时间窗内**升级覆盖,而不是
+只按上一季的地图配置。
+
+*水文是候选的抓手。* 运河, 河流的分离能够区分机制:泛泛的「靠水」并不预测火,
+靠近*人工排水*才预测火。这与泥炭水文文献一致,也与把运河封堵作为缓解手段的思路
+一致 [@ritzema2014; @sloan2022]。
+:::
+
+::: {.en}
+**What the analysis suggests but cannot establish.** That canals *cause* the
+concentration, and that the clusters represent fire *spreading*. The association
+is cross-sectional over eight days; drainage, accessibility, tenure and degraded
+land cover all co-vary, and an unmeasured covariate varying at a few kilometres
+would reproduce the cluster signature exactly. Neighbouring **Maliku** shares
+the Mega Rice Project history and had only
+`r kec$n_pxday[kec$adm3_name=="Maliku"]` pixel-days, a contrast this analysis
+cannot explain, and which should temper any simple canal-to-fire reading.
+
+**What additional data would be needed.** Peat depth and water-table
+monitoring; canal condition, including which channels are already blocked; land
+cover and tenure; and a multi-season archive. Evaluating whether blocking
+reduces fire requires a before–after or controlled comparison, which these data
+cannot provide.
+:::
+
+::: {.zh}
+**分析提示但无法确立什么。** 运河*导致*了这种集中,以及这些簇群代表火在*蔓延*。
+该关联是八天的横断面关联;排水、可达性、土地权属与退化的土地覆盖全都共变,而任何
+一个在数公里尺度上变化的**未测协变量**都会精确复现出同样的簇群特征。相邻的
+**Maliku** 区有同样的百万公顷稻米工程历史,却只有
+`r kec$n_pxday[kec$adm3_name=="Maliku"]` 个像元-日。这一反差本分析无法解释,
+也应当让任何「运河直接导致火」的简单读法有所收敛。
+
+**还需要哪些额外数据。** 泥炭深度与地下水位监测;运河状况,包括哪些渠道已被封堵;
+土地覆盖与权属;以及跨季档案。要评估封堵是否真的减少火灾,需要前后对照或有对照组的
+比较,而这些数据无法提供。
+:::

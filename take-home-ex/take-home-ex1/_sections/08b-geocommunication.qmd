@@ -1,0 +1,153 @@
+# <span class="en">Geovisualisation and geocommunication</span><span class="zh">地理可视化与地理传达</span> {#sec-geocomm}
+
+::: {.en}
+The interpretation of each individual figure appears beside that figure, in the
+section where its analysis is carried out. This section states the decisions
+that are shared across all of them, what each family of graphic is for, how
+quantities are encoded, and what the encoding cannot be asked to do. The
+reasoning is set out once here instead of being repeated twenty-one times.
+:::
+
+::: {.zh}
+每一幅图的具体解读,都紧贴该图放在它所属的分析章节里。这里陈述的是**跨越所有图形
+的共同决策**,每一类图形各自承担什么任务、数量如何被编码,以及这套编码**不能**
+被要求做到什么。把这些理由集中写在这里,好过重复二十一次。
+:::
+
+## <span class="en">Four families of graphic, four jobs</span><span class="zh">四类图形,四项任务</span>
+
+::: {.en}
+The report uses a deliberately small vocabulary. Every graphic belongs to one of
+four families, and each family answers one kind of question.
+
+**Maps** answer *where*. They carry the intensity surface (@fig-kde-main), the
+district aggregation (@fig-kecamatan), the study window and its context
+(@fig-studyarea), and the model residuals (@fig-parres). All are drawn in
+EPSG:32749, the projection in which the analysis itself is done, so that a
+distance read off a map is the distance the statistics used, the projected area
+error is `r sprintf("%.2f%%", CRS_ERR_PCT)`, reported in @sec-crs.
+
+**Envelope plots** answer *compared with what*. Every second-order figure
+(@fig-lcsr, @fig-linhom, @fig-pcf, @fig-gof) plots an observed curve against a
+simulated envelope, never against a theoretical line alone, because the
+report's central claim is about reference models, not about statistics. The
+curves are centred on the null expectation so that the deviation (not the
+absolute value) is what the reader's eye measures.
+
+**Covariate curves** answer *along what gradient*. @fig-rhohat and @fig-covecdf
+express intensity as a function of distance instead of as a colour on a map,
+because a monotone decline is legible in a line and invisible in a fill.
+
+**Small multiples** answer *how much does this depend on my choice*. The
+bandwidth ladder (@fig-bwladder), the null-model ladder (@fig-linhom) and the
+Knox threshold grid (@fig-knox) each show the same estimate repeated across the
+parameter that was chosen, so that sensitivity is shown, not asserted.
+:::
+
+::: {.zh}
+图形词汇是刻意压缩过的。每一幅图都属于以下四类之一,而每一类回答一种
+问题。
+
+**地图**回答**在哪里**。它们承载强度面(@fig-kde-main)、按区聚合
+(@fig-kecamatan)、研究窗口及其背景(@fig-studyarea),以及模型残差
+(@fig-parres)。全部绘制于 EPSG:32749(也就是分析本身所用的投影)因此从地图上量
+得的距离,就是统计量所使用的距离;投影面积误差为
+`r sprintf("%.2f%%", CRS_ERR_PCT)`,详见 @sec-crs。
+
+**包络图**回答**与什么相比**。每一幅二阶图形(@fig-lcsr、@fig-linhom、@fig-pcf、
+@fig-gof)都是把观测曲线与**模拟包络**对照,而不是仅仅对照一条理论线,因为本报告的
+核心论断是关于**参照模型**的,不是关于统计量的。曲线以零模型期望为中心,使读者的
+眼睛度量的是**偏离**,而不是绝对值。
+
+**协变量曲线**回答**沿着什么梯度**。@fig-rhohat 与 @fig-covecdf 把强度表达为距离
+的函数,而不是地图上的一种颜色,因为单调下降在折线中一目了然,在色块填充中则不可见。
+
+**小倍数图**回答**这有多依赖我的选择**。带宽阶梯(@fig-bwladder)、零模型阶梯
+(@fig-linhom)与 Knox 阈值网格(@fig-knox),都是把同一个估计沿着**被选定的那个
+参数**重复呈现,从而把敏感性**展示**出来,而不是仅仅断言。
+:::
+
+## <span class="en">What the colours mean</span><span class="zh">颜色的含义</span>
+
+::: {.en}
+Colour carries meaning in this report, and it carries only one.
+
+Warm hues are reserved for quantities that actually represent fire. The
+sequential ramp used for every density surface runs through seven stops from
+`#fffbf5` to `#6b0d05`, and its lightness decreases monotonically along that
+sequence. Two consequences follow, and both were the reason for building the
+ramp by hand instead of accepting a default: the order of the classes survives
+greyscale printing, and it survives the common forms of colour-vision
+deficiency, because the reader is decoding lightness rather than hue.
+
+Teal (`#0e7490`) is the cool counterweight and is used only for quantities that
+are deliberately *not* fire, rivers, and the "distance to natural water"
+covariate whose effect runs opposite to the canal effect. Structure (windows,
+boundaries, gridlines, envelopes) stays in neutral greys, so that the page
+furniture never competes with the data for attention. No figure in the report
+encodes a variable in red against green.
+
+Categorical encodings are always declared explicitly, never left to the
+default palette, which is why `scale_*_manual` appears throughout the analysis
+chunks: a category's colour is part of the argument and should not change when a
+factor level is added.
+:::
+
+::: {.zh}
+颜色在本报告中承载意义,而且**只承载一种**意义。
+
+暖色专门保留给**真正代表火的量**。所有密度面所用的顺序色带,由 `#fffbf5` 到
+`#6b0d05` 共七级,其**亮度沿序列单调下降**。由此得到两个后果,而这两点正是手工构造
+这条色带、而非沿用默认值的原因:类别的**顺序**在灰度打印下依然成立,在常见的**色觉
+缺陷**下也依然成立,因为读者解码的是亮度,而不是色相。
+
+青色(`#0e7490`)是冷色的对位,只用于那些刻意**不是火**的量(河流,以及「到天然
+水体的距离」这一效应方向与运河相反的协变量。结构性元素)窗口、边界、网格线、
+包络,一律保持中性灰,使页面构件永远不与数据争夺注意力。报告中**没有任何一幅图**
+用红对绿来编码变量。
+
+分类型编码一律显式声明,而不交给默认调色板。这也是分析代码块中处处出现
+`scale_*_manual` 的原因:一个类别的颜色是论证的一部分,不应在新增一个因子水平时
+发生改变。
+:::
+
+## <span class="en">What the figures cannot be asked to do</span><span class="zh">这些图形不能被要求做到什么</span>
+
+::: {.en}
+Three limits are worth stating, because each of them is a place where a reader
+could over-read a picture.
+
+A density surface is a **smoothed** quantity, and the smoothing bandwidth is an
+analytical choice, not a property of the fire. @fig-kde-main is drawn at
+$\sigma = 2$ km; @fig-bwladder exists precisely so that the reader can see how
+much of the apparent structure belongs to the kernel and not to the field. No
+conclusion in this report rests on a feature visible at only one bandwidth.
+
+A map of detections is a map of the **observation process** multiplied by the
+fire field, as @sec-assumptions sets out. Bright areas on any intensity map are
+places where fire was *detected* often, which is not the same as places where
+fire burned most. Cloud cover and overpass geometry are part of what the colour
+is showing.
+
+Figure text is **not** switched by the EN / 中文 control. Titles, subtitles and
+axis labels are drawn into the image by R at render time and cannot be
+translated in the browser, so they remain in English in both language modes.
+Every hand-written element around the figures (captions, interpretations, and
+the alternative text that screen readers receive) is bilingual.
+:::
+
+::: {.zh}
+有三条限度值得明确写出,因为每一条都是读者**可能过度解读一幅图**的地方。
+
+密度面是一个**经过平滑**的量,而平滑带宽是一项**分析选择**,不是火本身的属性。
+@fig-kde-main 绘制于 $\sigma = 2$ km;@fig-bwladder 的存在正是为了让读者看清:表观
+结构中有多少来自核函数,而非来自火场。本报告**没有任何结论**建立在只在单一带宽下
+才可见的特征上。
+
+一幅探测点地图,是**观测过程**与火场相乘的结果,如 @sec-assumptions 所述。任何强度
+图上的明亮区域,是火被**探测到**得更频繁的地方,这与火烧得最多的地方**并不相同**;
+云覆盖与过境几何也是那种颜色所呈现内容的一部分。
+
+**图形内部的文字不随 EN / 中文 切换。** 标题、副标题与坐标轴标签由 R 在渲染时画入
+图像,无法在浏览器端翻译,因此在两种语言模式下都保持英文。图形周围一切手写元素(题注、解读,以及屏幕阅读器读到的替代文本)都是双语的。
+:::

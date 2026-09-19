@@ -1,0 +1,632 @@
+# <span class="en">Value-added analysis: fitting explicit point-process models</span><span class="zh">增值分析:拟合显式点过程模型</span> {#sec-va}
+
+*Addresses RQ6.*
+
+## <span class="en">Why this is worth doing</span><span class="zh">为什么值得做这一步</span>
+
+::: {.en}
+@sec-so reached a genuine impasse. Tested against a *kernel-based*
+inhomogeneous Poisson null, the pattern is not distinguishable from that null at
+$\sigma_\lambda$ = 1–2 km but is decisively distinguishable at 10 km, and the
+$p$-value tracks the null's flexibility monotonically rather than tracking
+anything about the data. The obstacle is not the statistic or the number of
+simulations; it is that a kernel intensity estimate at the clustering scale is
+an almost-saturated model, so the test has almost no power.
+
+**The way out is a null with few parameters.** Fitting explicit point-process
+models supplies exactly that, and in doing so converts an unanswerable question
+into an answerable one. Three things are gained that the core methods cannot
+provide.
+
+1. **A multivariate answer on covariates.** `rhohat` (@sec-fo-covariates) gives
+   *marginal* curves, and the four distance covariates are mutually correlated
+ , canals are dug where land is accessible. A marginal canal effect could
+   therefore be an accessibility effect in disguise. `ppm` holds the others
+   constant.
+2. **A test with power.** Simulating from a fitted `ppm` gives null model
+   **N4**: an inhomogeneous Poisson process whose intensity is driven by
+   *measured* geography rather than by a kernel smooth of the data itself. It
+   has `r VA$n_par_M1` parameters rather than the ~800 resolution cells
+   a 2 km kernel consumes, so it **cannot** absorb small-scale clustering. This
+   escapes the scale-separation problem instead of assuming it away.
+3. **A generative model with parameters a planner can use.** How many distinct
+   clusters, how large each is in metres, how many detections each contains,
+   and how likely two nearby detections are to belong to the same cluster. No
+   summary function yields these.
+:::
+
+::: {.zh}
+@sec-so 遇到了一个真正的僵局。以*基于核*的非齐次泊松零模型检验时,该模式在
+$\sigma_\lambda$ = 1–2 km 下与该零模型**无法区分**,而在 10 km 下则被决定性地
+区分开,并且 $p$ 值单调地追踪**零模型的灵活度**,而不是追踪关于数据的任何信息。
+障碍不在统计量、也不在模拟次数;而在于:在聚集尺度上的核强度估计是一个近乎饱和的
+模型,因此检验几乎没有检验力。
+
+**出路是使用参数很少的零模型。** 拟合显式点过程模型恰好提供了这一点,并由此把一个
+无法回答的问题转化为可以回答的问题。相对核心方法,这一步带来三样它们无法提供的
+东西。
+
+1. **关于协变量的多变量答案。** `rhohat`(@sec-fo-covariates)给出的是*边际*曲线,
+   而四个距离协变量彼此相关,运河是在土地可达的地方开挖的。因此一个边际的运河效应
+   有可能只是可达性效应的伪装。`ppm` 能固定其余变量。
+2. **一个有检验力的检验。** 从已拟合的 `ppm` 模拟给出零模型 **N4**:一个非齐次
+   泊松过程,其强度由*已测得*的地理条件驱动,而不是由数据自身的核平滑驱动。它只有
+   `r VA$n_par_M1` 个参数,而不是 2 km 核所消耗的约 800 个分辨单元,
+   因此它**不可能**吸收小尺度聚集。这是**绕开**了尺度分离问题,而不是把它假设掉。
+3. **一个参数可供规划者使用的生成模型。** 有多少个不同的簇群、每个有多大(以米计)、
+   每个包含多少探测,以及两个邻近探测属于同一簇群的可能性有多大。这些是任何汇总
+   函数都给不出的。
+:::
+
+## <span class="en">Model specification and comparison</span><span class="zh">模型设定与比较</span>
+
+::: {.en}
+Models are fitted by maximum pseudolikelihood on a quadrature scheme
+[@baddeley2015]. Covariates are rescaled from metres to kilometres so that every
+coefficient reads as a *per-kilometre* effect.
+:::
+
+::: {.zh}
+模型以最大伪似然在一套求积方案上拟合 [@baddeley2015]。协变量由米重标定为公里,
+使每个系数都读作「每公里」效应。
+:::
+
+```{r}
+#| label: va-spec
+#| eval: false
+
+Z <- lapply(covars, function(im) eval.im(im / 1000))   # metres -> km
+
+M0  <- ppm(ppp_px ~ 1,        nd = 256)                       # no trend
+M1c <- ppm(ppp_px ~ d_canal,  covariates = Z, nd = 256)       # canals only
+M1r <- ppm(ppp_px ~ d_river,  covariates = Z, nd = 256)       # rivers only
+M1  <- ppm(ppp_px ~ d_canal + d_river + d_road + d_settle,
+           covariates = Z, nd = 256)                          # all four
+M2  <- ppm(ppp_px ~ polynom(d_canal, 2) + polynom(d_river, 2) +
+                    polynom(d_road, 2) + polynom(d_settle, 2),
+           covariates = Z, nd = 256)                          # flexible
+```
+
+::: {.en}
+`nd = 256` refines the default quadrature scheme. This matters here: the
+covariates vary over 250 m while the window is
+`r sprintf("%.0f", diff(win$yrange)/1000)` km long, so a coarse scheme would
+alias the canal signal away.
+:::
+
+::: {.zh}
+`nd = 256` 细化了默认求积方案。这一点在此很关键:协变量在 250 m 尺度上变化,
+而窗口长达 `r sprintf("%.0f", diff(win$yrange)/1000)` km,过粗的方案会把运河信号
+混叠掉。
+:::
+
+```{r}
+#| label: tbl-aic
+#| tbl-cap: "<span class='en'>Poisson trend models compared by AIC. Each single-covariate model is included to show how much of the total improvement each covariate carries on its own.</span><span class='zh'>各泊松趋势模型的 AIC 比较。纳入单协变量模型是为了显示每个协变量单独能贡献多少改进。(下表为英文原表)</span>"
+VA$aic_tab |>
+  transmute(Model = model, `Parameters` = df, AIC = AIC,
+            `ΔAIC vs M0` = dAIC_vs_M0, `ΔAIC vs best` = dAIC_vs_best) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(AIC, `ΔAIC vs M0`, `ΔAIC vs best`), decimals = 0) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+Both distance covariates improve enormously on a constant intensity, the full
+log-linear model improves further, and allowing curvature improves it again, so
+on fit alone M2 wins. **M1 is nonetheless carried forward as the interpretive
+model**, for two reasons. Its coefficients have a single clean reading that a
+quadratic does not; and M2's quadratic terms extrapolate pathologically in the
+tails, giving a fitted intensity range of
+`r sprintf("%.0f", max(VA$trend_M2)/min(VA$trend_M2))`:1 against M1's
+`r sprintf("%.0f", max(VA$trend_M1)/min(VA$trend_M1))`:1, a warning that the
+extra flexibility is being spent on sparsely-populated covariate values rather
+than on the central relationship. Both are tested in @sec-va-n4, and they give
+the same verdict.
+:::
+
+::: {.zh}
+两个距离协变量相对常数强度都带来巨大改进,完整的对数线性模型进一步改进,而允许
+曲率又再次改进(因此**仅论拟合**,M2 胜出。**但仍以 M1 作为解释性模型**,理由有
+两点。其系数有一个干净单一的读法,而二次式没有;并且 M2 的二次项在尾部外推得很
+病态,拟合强度范围达
+`r sprintf("%.0f", max(VA$trend_M2)/min(VA$trend_M2))`:1,而 M1 为
+`r sprintf("%.0f", max(VA$trend_M1)/min(VA$trend_M1))`:1)这警示额外的灵活度被
+花在了协变量取值稀疏的区域,而不是核心关系上。两者都在 @sec-va-n4 中受检,且给出
+相同的判定。
+:::
+
+## <span class="en">What the coefficients say</span><span class="zh">系数说明了什么</span>
+
+```{r}
+#| label: tbl-coefs
+#| tbl-cap: "<span class='en'>M1 coefficients, expressed as the multiplicative change in intensity per additional kilometre of distance. A multiplier below 1 means intensity falls with distance, i.e. fire is concentrated near the feature.</span><span class='zh'>M1 的系数,表示为「每增加 1 km 距离,强度的乘性变化」。乘数小于 1 意味着强度随距离下降,即火集中在该地物附近。(下表为英文原表)</span>"
+VA$eff |>
+  mutate(term = recode(term,
+                       d_canal = "Distance to canal / drain",
+                       d_river = "Distance to natural river",
+                       d_road = "Distance to road",
+                       d_settle = "Distance to settlement")) |>
+  transmute(Covariate = term,
+            `log-intensity coefficient` = estimate,
+            `× per km` = per_km_multiplier,
+            `95% CI` = sprintf("%.3f – %.3f", ci_lo, ci_hi),
+            `z` = z,
+            Reading = dplyr::case_when(
+              per_km_multiplier < 1 ~ sprintf("halves every %.1f km further away",
+                                              halving_distance_km),
+              TRUE ~ sprintf("doubles every %.1f km further away",
+                             abs(halving_distance_km)))) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(`log-intensity coefficient`, `× per km`),
+                 decimals = 3) |>
+  gt::fmt_number(columns = z, decimals = 1) |>
+  gt::tab_options(table.font.size = gt::pct(83), data_row.padding = gt::px(5))
+```
+
+```{r}
+#| label: va-numbers
+#| echo: false
+e_can <- VA$eff |> dplyr::filter(term == "d_canal")
+e_riv <- VA$eff |> dplyr::filter(term == "d_river")
+e_rd  <- VA$eff |> dplyr::filter(term == "d_road")
+e_set <- VA$eff |> dplyr::filter(term == "d_settle")
+```
+
+::: {.en}
+The multivariate fit **confirms and sharpens** the marginal result of
+@sec-fo-covariates.
+
+- **Canals.** Intensity is multiplied by
+  `r sprintf("%.3f", e_can$per_km_multiplier)` per additional kilometre from a
+  canal (halving roughly every
+  `r sprintf("%.1f", e_can$halving_distance_km)` km) with the other three
+  covariates held constant. The canal effect is therefore *not* an
+  accessibility effect in disguise.
+- **Rivers.** The effect runs the *other* way, and strongly: intensity
+  *increases* by a factor of
+  `r sprintf("%.3f", e_riv$per_km_multiplier)` per kilometre away from a natural
+  river ($z =$ `r sprintf("%.0f", e_riv$z)`, the largest in the model). This is
+  the report's clearest mechanistic discrimination: generic proximity to water
+  does not predict fire, and the *interior* peat away from natural drainage is
+  where fire concentrates.
+- **Roads** retain a modest "closer" effect
+  (× `r sprintf("%.3f", e_rd$per_km_multiplier)` per km), consistent with human
+  access.
+- **Settlements** show a weak effect in the multivariate model
+  (× `r sprintf("%.3f", e_set$per_km_multiplier)` per km,
+  $z =$ `r sprintf("%.1f", e_set$z)`), notably weaker than the marginal
+  comparison suggested, which is exactly the kind of correction a multivariate
+  model is for.
+:::
+
+::: {.zh}
+多变量拟合**印证并锐化**了 @sec-fo-covariates 的边际结果。
+
+- **运河。** 在固定其余三个协变量的条件下,距运河每多 1 km,强度乘以
+  `r sprintf("%.3f", e_can$per_km_multiplier)`,大约每
+  `r sprintf("%.1f", e_can$halving_distance_km)` km 减半。因此运河效应*不是*
+  可达性效应的伪装。
+- **河流。** 效应方向*相反*,而且很强:距天然河流每远 1 km,强度**上升**
+  `r sprintf("%.3f", e_riv$per_km_multiplier)` 倍($z =$
+  `r sprintf("%.0f", e_riv$z)`,为模型中最大)。这是全篇最清晰的机制区分:
+  泛泛的「靠水」并不预测火,而远离天然排水的**内部**泥炭才是火集中的地方。
+- **道路**保留了一个不大的「更近」效应(每公里 ×
+  `r sprintf("%.3f", e_rd$per_km_multiplier)`),与人为可达性一致。
+- **居民点**在多变量模型中效应很弱(每公里 ×
+  `r sprintf("%.3f", e_set$per_km_multiplier)`,$z =$
+  `r sprintf("%.1f", e_set$z)`),明显弱于边际比较所暗示的程度,而这正是多变量
+  模型存在的意义所在。
+:::
+
+::: {.callout-warning .en}
+## These standard errors are too small
+`ppm` fits by Poisson pseudolikelihood, which assumes conditional independence
+of points given the trend. The points are demonstrably *not* independent, 
+that is exactly what @sec-va-n4 below establishes. The point estimates remain consistent, but the standard errors and
+the $z$ values above are **understated**, possibly severely, because the
+effective sample size is far below `r n_fmt(N_PX)`. The coefficients should be
+read for **sign and magnitude**, not as calibrated significance tests. The
+confidence intervals are shown because they convey precision *relative to one
+another*, not because their nominal coverage is credible.
+:::
+
+::: {.callout-warning .zh}
+## 这些标准误偏小
+
+`ppm` 以泊松伪似然拟合,该方法假定在给定趋势的条件下点之间相互独立。而这些点可证地
+**并不**独立。这恰恰是下文 @sec-va-n4 所确立的。点估计仍然是一致的,但上表中的
+标准误与 $z$ 值被**低估**,可能低估得很严重,因为有效样本量远低于
+`r n_fmt(N_PX)`。因此系数应按**符号与量级**解读,而不应当作校准过的显著性检验。
+展示置信区间是因为它们传达了**彼此之间**的相对精度,而不是因为其名义覆盖率可信。
+:::
+
+```{r}
+#| label: fig-trend
+#| fig-cap: "<span class='en'>Left: intensity predicted by the covariate model M1. Centre: the kernel estimate from Section 5, for comparison. Right: smoothed Pearson residuals of M1, showing where the covariate model is wrong.</span><span class='zh'>左:协变量模型 M1 预测的强度。中:第 5 节的核估计,供对比。右:M1 的平滑 Pearson 残差,显示该协变量模型在哪里出错。</span>"
+#| fig-alt: "Left: intensity predicted by the covariate model M1. Centre: the kernel estimate from Section 5, for comparison. Right: smoothed Pearson residuals of M1, showing where the covariate model is wrong."
+#| fig-width: 11
+#| fig-height: 7.4
+
+k_main <- which(FO_K$sigma_ladder == FO_K$sigma_main)
+
+g1 <- ggplot() +
+  geom_raster(data = im_df(VA$trend_M1, "lam", scale = 1e6),
+              aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.4) +
+  scale_fill_fire(name = "per km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "M1: fitted from geography alone",
+       subtitle = "Four distance covariates, no reference to where points actually are") +
+  theme_map(10)
+
+g2 <- ggplot() +
+  geom_raster(data = im_df(FO_K$dens[[k_main]], "lam", scale = 1e6),
+              aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.4) +
+  scale_fill_fire(name = "per km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "Kernel estimate, for comparison",
+       subtitle = paste0("σ = ", n_fmt(FO_K$sigma_main), " m (Section 5)")) +
+  theme_map(10)
+
+rs <- im_df(VA$res_sm, "res")
+g3 <- ggplot() +
+  geom_raster(data = rs, aes(x, y, fill = res)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.4) +
+  scale_fill_gradient2(name = "Pearson\nresidual", low = "#0e7490",
+                       mid = "#f5f5f4", high = "#b91c1c", midpoint = 0,
+                       na.value = NA) +
+  labs(title = "Where M1 is wrong",
+       subtitle = "Red: more fire than geography predicts. Blue: less.") +
+  theme_map(10)
+
+g1 + g2 + g3 + patchwork::plot_layout(nrow = 1)
+```
+
+::: {.interp .en}
+**Where the model fails.** The covariate model reproduces the broad
+central–southern concentration seen in the kernel estimate, using no
+information about where the points are, a genuine out-of-sample-flavoured check
+on the geography story. Its dynamic range is
+`r sprintf("%.0f:1", max(VA$trend_M1)/min(VA$trend_M1))`, comparable to the
+kernel estimate's. But the residual map shows systematic failure: the model
+**under-predicts** in a focused core (red) and **over-predicts** across broad
+areas where canals exist but fire did not occur (blue). **Evidence:** residuals
+are spatially structured, not noise, precisely the diagnostic that a Poisson
+trend model is incomplete [@baddeley2005residual]. **Implication:** drainage
+proximity identifies *where fire is possible*, not where it happens; something
+concentrates activity within that envelope. *One limit:* the omitted variables
+(land cover, peat depth, tenure) are the obvious candidates, so this residual
+structure is not proof of interaction.
+:::
+
+::: {.interp .zh}
+**模型在哪里失效。** 协变量模型在完全不使用「点在哪里」的信息的情况下,再现了核
+估计中那片宽阔的中南部集中带(这是对「地理条件解释」这一说法的一次带有样本外
+意味的真实检验。其动态范围为
+`r sprintf("%.0f:1", max(VA$trend_M1)/min(VA$trend_M1))`,与核估计相当。但残差图
+显示出系统性失效:模型在一个集中的核心区**低估**(红),而在大片有运河却没有过火
+的区域**高估**(蓝)。**证据:** 残差在空间上有结构,而不是噪声)这正是「泊松趋势
+模型不完备」的诊断特征 [@baddeley2005residual]。**含义:** 运河邻近度识别的是
+*火在哪里可能发生*,而不是它实际在哪里发生;在这个包络之内,还有别的东西在使活动
+集中。*一点限度:* 遗漏变量(土地覆盖、泥炭深度、土地权属)是显而易见的候选,因此这一
+残差结构**不是**交互作用的证明。
+:::
+
+## <span class="en">N4: does measured geography explain the clustering?</span><span class="zh">N4:已测得的地理条件能解释聚集吗?</span> {#sec-va-n4}
+
+::: {.rq .en}
+**Question tested.** *Is the observed pattern consistent with an inhomogeneous
+Poisson process whose intensity is driven by measured drainage and access
+geography?*
+**Null model N4:** simulate from the fitted `ppm`. Unlike N2, the trend here
+has only four smooth covariates and **cannot** absorb small-scale clustering,
+so this test is free of the scale-separation assumption.
+:::
+
+::: {.rq .zh}
+**所检验的问题。** *观测到的模式,是否与一个强度由已测得的排水与可达性地理条件
+驱动的非齐次泊松过程相容?*
+**零模型 N4:** 从已拟合的 `ppm` 模拟。与 N2 不同,此处的趋势只有四个平滑协变量,
+**不可能**吸收小尺度聚集,因此本检验不受尺度分离假设的约束。
+:::
+
+```{r}
+#| label: fig-gof
+#| fig-cap: "<span class='en'>Goodness of fit of three models, as L(r) minus the model's own simulated mean. A curve inside the band means the model reproduces the observed second-order structure.</span><span class='zh'>三个模型的拟合优度,以 L(r) 减去该模型自身模拟均值表示。曲线落在带内意味着该模型再现了观测到的二阶结构。</span>"
+#| fig-alt: "Goodness of fit of three models, as L(r) minus the model's own simulated mean. A curve inside the band means the model reproduces the observed second-order structure."
+#| fig-width: 11
+#| fig-height: 3.9
+
+gp <- function(e, tst, ttl, sub) {
+  s <- env_summary(e)
+  plot_env_centred(e, title = ttl,
+    subtitle = sprintf("%s · DCLF p %s", sub, pv(tst$p.value)),
+    ref_lab = "Fitted model") +
+    theme_th(10) + theme(legend.position = "none")
+}
+
+gp(VA$gof_M1, VA$gof_M1_test, "N4: M1 log-linear trend",
+   "Inhomogeneous Poisson, 4 covariates") +
+gp(VA$gof_M2, VA$gof_M2_test, "N4b: M2 flexible trend",
+   "Inhomogeneous Poisson, quadratic") +
+gp(VA$gof_M3, VA$gof_M3_test, "N5: M3 Thomas cluster process",
+   "Trend + explicit clustering") +
+  patchwork::plot_layout(nrow = 1)
+```
+
+```{r}
+#| label: tbl-gof
+#| tbl-cap: "<span class='en'>Formal goodness-of-fit tests against each fitted model, 199 simulations each.</span><span class='zh'>针对每个已拟合模型的正式拟合优度检验,各 199 次模拟。(下表为英文原表)</span>"
+bind_rows(
+  tibble(Model = "M1  inhomogeneous Poisson, log-linear trend",
+         Null = "N4", s = list(env_summary(VA$gof_M1)),
+         p = VA$gof_M1_test$p.value),
+  tibble(Model = "M2  inhomogeneous Poisson, flexible trend",
+         Null = "N4b", s = list(env_summary(VA$gof_M2)),
+         p = VA$gof_M2_test$p.value),
+  tibble(Model = "M3  Thomas cluster process with M1 trend",
+         Null = "N5", s = list(env_summary(VA$gof_M3)),
+         p = VA$gof_M3_test$p.value)) |>
+  mutate(`% of r range outside envelope` = vapply(s, function(x) x$pct_out, 0),
+         `Outside from (km)` = vapply(s, function(x) x$r_first, 0),
+         `to (km)` = vapply(s, function(x) x$r_last, 0),
+         Direction = vapply(s, function(x) x$direction, "")) |>
+  select(-s) |>
+  relocate(p, .after = Null) |>
+  gt::gt() |>
+  gt::fmt_number(columns = p, decimals = 3) |>
+  gt::fmt_number(columns = c(`% of r range outside envelope`,
+                             `Outside from (km)`, `to (km)`), decimals = 1) |>
+  gt::tab_options(table.font.size = gt::pct(81), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+Both Poisson trend models are rejected decisively, and **M3 is not**
+($p =$ `r sprintf("%.2f", VA$gof_M3_test$p.value)`). That contrast is the
+substantive resolution of @sec-so's impasse:
+
+- A smooth, geography-driven intensity **cannot** reproduce the observed
+  second-order structure.
+- The *same* trend plus a two-parameter clustering mechanism **can**.
+
+So the structure at a few kilometres is real, is not explained by mapped
+drainage and access, and is well described as clustering. Note what made this
+possible: not better data or more simulations, but a null model parsimonious
+enough to be falsifiable. @fig-power placed these models at the far-left,
+high-power end of the same axis on which the kernel nulls of @sec-so sit.
+:::
+
+::: {.zh}
+两个泊松趋势模型都被决定性地拒绝,而 **M3 没有被拒绝**($p =$
+`r sprintf("%.2f", VA$gof_M3_test$p.value)`)。这一反差正是对 @sec-so 那个僵局的
+实质性破解:
+
+- 一个平滑的、由地理条件驱动的强度**无法**再现观测到的二阶结构。
+- 而*同一个*趋势再加上一个两参数的聚集机制**可以**。
+
+因此,数公里尺度上的结构是真实的、无法由已制图的排水与可达性解释,并且用「聚集」
+来描述是恰当的。请注意促成这一点的并不是更好的数据或更多的模拟,而是一个**简约到
+足以被伪证**的零模型。@fig-power 把这些模型放在了与 @sec-so 的核零模型同一条轴上,
+位于最左侧、检验力最高的一端。
+:::
+
+## <span class="en">M3: a generative model of the clustering</span><span class="zh">M3:聚集的生成模型</span>
+
+::: {.en}
+A Thomas cluster process supposes unobserved "parent" locations at intensity
+$\kappa$, each producing a random number of "offspring" scattered isotropically
+about it with standard deviation `scale`. Read substantively on this landscape,
+parents are **ignition foci**, offspring are the detections they generate, and
+`scale` is the **effective physical size of a burning patch**. The trend is
+taken from M1, so the model says: *fire opportunity is set by drainage and
+access geography; within that, fire arrives in clusters.*
+:::
+
+::: {.zh}
+Thomas 聚集过程假设存在强度为 $\kappa$ 的、未被观测到的「母点」位置,每个母点
+产生随机数量的「子点」,以标准差 `scale` 各向同性地散布在其周围。在本景观上按实质
+含义解读:母点是**点火焦点**,子点是它们所产生的探测,而 `scale` 是**一片燃烧斑块
+的有效物理尺寸**。趋势取自 M1,因此该模型表述的是:*火的机会由排水与可达性地理
+条件决定;在此之内,火以簇群形式出现。*
+:::
+
+```{r}
+#| label: tbl-thomas
+#| tbl-cap: "<span class='en'>Fitted Thomas process parameters, with their substantive reading.</span><span class='zh'>拟合出的 Thomas 过程参数及其实质含义。(下表为英文原表)</span>"
+VA$clust_tab |>
+  gt::gt() |>
+  gt::cols_label(quantity = "Parameter", value = "Fitted value") |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+```{r}
+#| label: thomas-numbers
+#| echo: false
+cp <- VA$clustpar
+n_clusters <- cp[["kappa"]] * area(win)
+psib_hat <- VA$psib
+```
+
+::: {.en}
+The parameters give a quantitative picture that none of the summary functions
+produced:
+
+- **Roughly `r sprintf("%.0f", n_clusters)` distinct clusters** across
+  `r n_fmt(AREA_KM2)` km², i.e. about
+  `r sprintf("%.1f", cp[["kappa"]] * 1e9)` per 1,000 km².
+- **A cluster scale of `r n_fmt(round(cp[["scale"]], -1))` m**, so about 68% of
+  the detections belonging to a cluster lie within
+  `r sprintf("%.1f", cp[["scale"]]/1000)` km of its centre and 95% within
+  `r sprintf("%.1f", 2*cp[["scale"]]/1000)` km.
+- **About `r sprintf("%.0f", VA$mu)` detections per cluster** on average.
+- **A sibling probability of `r sprintf("%.2f", psib_hat)`**: given two
+  detections close together, that is the probability they belong to the same
+  cluster rather than being independent neighbours. At
+  `r sprintf("%.0f%%", 100*psib_hat)`, nearby detections are overwhelmingly the
+  same event.
+
+::: {.callout-warning appearance="simple"}
+## Not all four numbers are equally well determined
+
+Minimum-contrast fitting matches the model's pair correlation function to the
+observed one over the fitted range of $r$. That range constrains the **scale**
+tightly (it is essentially the distance at which the observed excess pairing
+dies away), but it constrains $\kappa$ and $\mu$ only through their product,
+which is the point intensity the trend has already fixed. The two therefore
+trade off against each other: a fit with more, smaller clusters and one with
+fewer, larger ones produce nearly the same pair correlation function. At a
+sibling probability of `r sprintf("%.2f", psib_hat)` the fit sits deep in that
+regime.
+
+The consequence for reading the table: `r sprintf("%.1f", cp[["scale"]]/1000)` km
+is a finding. **"About `r sprintf("%.0f", n_clusters)` clusters" is the model's
+accounting, not a count of fires**. It is the parent intensity that this
+particular parameterisation needs in order to reproduce the observed clumping at
+that scale, and it should not be quoted as an estimate of how many distinct fires
+burned. The same reservation applies to the $\Delta$AIC values in
+@tbl-aic: they are computed from a Poisson likelihood and inherit exactly the
+independence assumption that this section has just rejected, so they rank the
+trend models sensibly but overstate how decisive the differences are.
+:::
+
+**The N5 test does not reject this model** ($p =$
+`r sprintf("%.2f", VA$gof_M3_test$p.value)`): a Thomas process with a
+geography-driven trend reproduces the observed $L(r)$ across the whole 0–15 km
+range. Two caveats keep this in proportion. A non-rejection is not proof of
+mechanism, other cluster processes would fit comparably, and the "parents" are
+a mathematical device, not observed ignition points. And the fitted `scale` is
+close to the 2 km kernel bandwidth at which the N2 test lost power, which is
+exactly what one would expect if the same structure is being described twice in
+different languages.
+:::
+
+::: {.zh}
+这些参数给出了任何汇总函数都未能给出的定量图景:
+
+- 在 `r n_fmt(AREA_KM2)` km² 范围内**约有
+  `r sprintf("%.0f", n_clusters)` 个不同的簇群**,即每千 km² 约
+  `r sprintf("%.1f", cp[["kappa"]] * 1e9)` 个。
+- **簇群尺度为 `r n_fmt(round(cp[["scale"]], -1))` m**,因此属于某簇群的探测约有
+  68% 落在其中心 `r sprintf("%.1f", cp[["scale"]]/1000)` km 以内,95% 落在
+  `r sprintf("%.1f", 2*cp[["scale"]]/1000)` km 以内。
+- 平均**每个簇群约 `r sprintf("%.0f", VA$mu)` 个探测**。
+- **同胞概率为 `r sprintf("%.2f", psib_hat)`**:给定两个彼此靠近的探测,这是它们
+  属于同一簇群(而非各自独立的邻居)的概率。在
+  `r sprintf("%.0f%%", 100*psib_hat)` 的水平上,邻近探测绝大多数是**同一个事件**。
+
+::: {.callout-warning appearance="simple"}
+## 这四个数字的确定程度并不相同
+
+最小对比拟合是在拟合所用的 $r$ 区间上,让模型的配对相关函数去匹配观测到的那一条。
+该区间把 **scale** 约束得很紧(它本质上就是观测到的超额成对消失的那个距离)但它
+对 $\kappa$ 与 $\mu$ 的约束,只通过两者的**乘积**,而乘积正是趋势项已经定下的点
+强度。因此二者会相互权衡:「更多更小的簇」与「更少更大的簇」两种拟合,会给出几乎
+相同的配对相关函数。在兄弟概率为 `r sprintf("%.2f", psib_hat)` 时,本拟合正处在这个
+区间的深处。
+
+由此得出读表的方式:`r sprintf("%.1f", cp[["scale"]]/1000)` km **是一项发现**;
+而**「约 `r sprintf("%.0f", n_clusters)` 个簇群」是模型的记账方式,不是火的计数**
+。它只是这一特定参数化为了在该尺度上再现观测到的成团所需要的母点强度,不应被当作
+「烧了多少场不同的火」的估计来引用。同样的保留适用于 @tbl-aic 中的 $\Delta$AIC:
+它们由泊松似然算出,继承的正是上文刚刚拒绝掉的独立性假设,因此它们对趋势模型的**排序**
+是合理的,但会**夸大**这些差异的决定性。
+:::
+
+**N5 检验不拒绝该模型**($p =$
+`r sprintf("%.2f", VA$gof_M3_test$p.value)`):一个带有地理驱动趋势的 Thomas 过程
+在整个 0–15 km 范围上再现了观测到的 $L(r)$。有两点告示让这一结论保持在应有的分量
+上。不拒绝**不是**机制的证明,其他聚集过程也会拟合得差不多好,而「母点」是一个
+数学装置,不是被观测到的点火位置。并且拟合出的 `scale` 接近 N2 检验丧失检验力时的
+2 km 核带宽,而如果同一个结构正被用两种语言描述两次,这恰恰是我们应当预期的结果。
+:::
+
+```{r}
+#| label: fig-parres
+#| fig-cap: "<span class='en'>Partial residuals for each covariate in M1: the non-parametric shape of the effect after the other three are accounted for (solid), against the fitted log-linear form (dashed).</span><span class='zh'>M1 中各协变量的偏残差:在扣除其余三个协变量后该效应的非参数形状(实线),与实际拟合的对数线性形式(虚线)对比。</span>"
+#| fig-alt: "Partial residuals for each covariate in M1: the non-parametric shape of the effect after the other three are accounted for (solid), against the fitted log-linear form (dashed)."
+#| fig-width: 10.5
+#| fig-height: 3.4
+
+prd <- VA$parres[!vapply(VA$parres, is.null, logical(1))]
+if (length(prd)) {
+  pl <- bind_rows(lapply(names(prd), function(nm) {
+    d <- as.data.frame(prd[[nm]])
+    tibble(covariate = nm, x = d[[1]], h = d$h, fit = d$fit,
+           lo = d$lo, hi = d$hi)
+  }))
+  lbl2 <- c(d_canal = "Distance to canal (km)",
+            d_river = "Distance to river (km)",
+            d_road  = "Distance to road (km)",
+            d_settle = "Distance to settlement (km)")
+  ggplot(pl, aes(x)) +
+    geom_ribbon(aes(ymin = lo, ymax = hi), fill = PAL$fire_xl, alpha = 0.7) +
+    geom_line(aes(y = fit), linetype = "22", colour = PAL$theo,
+              linewidth = 0.5) +
+    geom_line(aes(y = h), colour = PAL$fire, linewidth = 0.8) +
+    facet_wrap(~covariate, scales = "free", nrow = 1,
+               labeller = labeller(covariate = lbl2)) +
+    labs(title = "Is a straight line on the log scale good enough?",
+         subtitle = "Solid: partial residual fit. Dashed: the log-linear term actually fitted.",
+         x = NULL, y = "Partial residual (log intensity)") +
+    theme_th(10)
+} else {
+  cat("Partial residuals unavailable.")
+}
+```
+
+::: {.interp .en}
+**Checking the functional form.** Where the solid curve tracks the dashed line, the
+log-linear form is adequate; where it departs, the effect is really curved. The
+canal effect is close to log-linear over the range containing most of the
+window, which is what licenses the "halves every
+`r sprintf("%.1f", e_can$halving_distance_km)` km" reading in the coefficient
+table. The departures are largest at the far tails, where few locations exist
+and the bands are wide. **Evidence:** this is consistent with M2's better AIC
+arising from tail behaviour rather than from the central relationship being
+misspecified. *A caveat:* partial residuals inherit the Poisson independence
+assumption, so the bands are again too narrow.
+:::
+
+::: {.interp .zh}
+**检验函数形式。** 实线跟随虚线的地方,说明对数线性形式是够用的;偏离的地方,
+说明该效应确实是弯曲的。运河效应在覆盖窗口大部分取值的范围内接近对数线性,这正是
+系数表中「每 `r sprintf("%.1f", e_can$halving_distance_km)` km 减半」这一读法得以
+成立的依据。偏离最大的地方在远端尾部,那里位置样本很少、置信带很宽。**证据:**
+这与「M2 更优的 AIC 来自尾部行为、而非核心关系被错误设定」相一致。*一点保留:* 偏残差
+继承了泊松独立性假设,因此这些置信带同样偏窄。
+:::
+
+## <span class="en">What this analysis added</span><span class="zh">这一步分析增加了什么</span>
+
+```{r}
+#| label: tbl-va-summary
+#| tbl-cap: "<span class='en'>Summary of what the parametric stage contributed beyond the core methods.</span><span class='zh'>参数化阶段相对核心方法额外贡献了什么。(下表为英文原表)</span>"
+tibble::tribble(
+  ~Question, ~`What the core analysis could say`, ~`What the models add`,
+  "Is the canal association real, or an accessibility effect?",
+  "Only that the marginal association exists (rhohat, Berman).",
+  sprintf("Canals retain a × %.3f per-km effect with road, river and settlement distance held constant.",
+          e_can$per_km_multiplier),
+
+  "Does geography explain the clustering?",
+  "Could not answer: the kernel null (N2) has too little power at small σ_λ and its verdict flips with bandwidth.",
+  sprintf("N4 rejects a covariate-driven Poisson (p %s); N5 shows a Thomas process with the same trend fits (p %s).",
+          pv(VA$gof_M1_test$p.value), sprintf("%.2f", VA$gof_M3_test$p.value)),
+
+  "How big is a cluster, and how many are there?",
+  "A distance at which g(r) re-enters its envelope.",
+  sprintf("~%.0f clusters, scale %s m, ~%.0f detections each, sibling probability %.2f.",
+          n_clusters, n_fmt(round(cp[["scale"]], -1)), VA$mu, psib_hat),
+
+  "Where does the explanation fail?",
+  "Nowhere localised, a single p-value.",
+  "A residual map identifying a specific under-predicted core and broad over-predicted areas."
+) |>
+  gt::gt() |>
+  gt::cols_width(Question ~ gt::pct(26),
+                 `What the core analysis could say` ~ gt::pct(33),
+                 `What the models add` ~ gt::pct(41)) |>
+  gt::tab_options(table.font.size = gt::pct(81), data_row.padding = gt::px(6))
+```

@@ -1,0 +1,162 @@
+/*-- scss:defaults --*/
+
+// Palette: a restrained fire/peat palette. Warm accents are reserved for
+// quantities that actually represent fire; structure stays neutral so that
+// the maps -- not the page furniture -- carry the colour information.
+$primary:        #7c2d12;   // burnt sienna
+$secondary:      #57534e;   // warm grey
+$body-color:     #1c1917;
+$body-bg:        #ffffff;
+$link-color:     #9a3412;
+$code-color:     #164e63;
+$font-size-root: 16.5px;
+
+$font-family-sans-serif: "Source Sans Pro", -apple-system, BlinkMacSystemFont,
+  "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular",
+  Menlo, Consolas, monospace;
+
+$toc-font-size: 0.83rem;
+
+/*-- scss:rules --*/
+
+h1, h2, h3, h4 {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  border-bottom: 2px solid rgba(124, 45, 18, 0.18);
+  padding-bottom: 0.25rem;
+  margin-top: 2.4rem;
+}
+
+h3 { margin-top: 1.9rem; }
+
+// Callouts are used heavily in this report to separate the four recurring
+// kinds of commentary, so each gets a distinguishable but quiet treatment.
+div.callout { border-radius: 4px; }
+
+div.callout-note   { border-left-color: #0e7490 !important; }
+div.callout-tip    { border-left-color: #15803d !important; }
+div.callout-warning{ border-left-color: #b45309 !important; }
+div.callout-important { border-left-color: #9a3412 !important; }
+
+// A compact style for the many parameter/decision tables.
+table {
+  font-size: 0.9rem;
+}
+.table > :not(caption) > * > * { padding: 0.35rem 0.5rem; }
+
+caption, .figure-caption, .table-caption {
+  font-size: 0.85rem;
+  color: $secondary;
+}
+
+// Interpretation blocks (Task 5 requires <=150 words per geovisualisation).
+.interp {
+  border-left: 3px solid #7c2d12;
+  background: #fefaf6;
+  padding: 0.7rem 1rem;
+  margin: 0.9rem 0 1.6rem 0;
+  font-size: 0.94rem;
+}
+.interp > p:first-child { margin-top: 0; }
+.interp > p:last-child  { margin-bottom: 0; }
+.interp strong:first-child { color: #7c2d12; }
+
+// Research-question banners in the second-order section.
+.rq {
+  background: #f5f5f4;
+  border: 1px solid #e7e5e4;
+  border-radius: 4px;
+  padding: 0.65rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+.rq em { color: #7c2d12; font-style: normal; font-weight: 650; }
+
+code {
+  font-size: 0.86em;
+}
+
+// Keep wide spatstat printouts from breaking the layout.
+pre code { white-space: pre; }
+
+.quarto-title-block .quarto-title-banner { background: $primary; }
+
+// ---------------------------------------------------------------------------
+// Bilingual display (EN / 中文)
+//
+// The .en / .zh display rules, the Chinese font stack and the switch itself
+// are site-wide chrome and now live in styles.css, which every page loads.
+// Keeping a second copy here is what let the report and the rest of the site
+// drift apart. Only the report-specific Chinese typography stays.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Bilingual display and the EN / 中文 switch
+//
+// These rules also exist in the site-wide styles.css. They are repeated here
+// on purpose: `project.render` in _quarto.yml excludes take-home-ex, and a
+// document outside the project renders without the site shell, so it never
+// loads styles.css. Without a local copy the report showed both languages at
+// once and the switch had no styling.
+// ---------------------------------------------------------------------------
+
+:root[data-lang="en"] .zh,
+:root[data-lang="zh"] .en { display: none !important; }
+:root:not([data-lang="zh"]) .zh { display: none !important; }
+
+.zh {
+  font-family: "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
+}
+.zh em { font-style: normal; font-weight: 600; }
+
+// No navbar on a standalone render, so the switch stays pinned to the corner.
+// When the report is rendered inside the site the toggle script moves it into
+// the navbar and `.in-navbar` takes over.
+.lang-switch {
+  position: fixed;
+  top: 0.6rem;
+  right: 0.8rem;
+  z-index: 2000;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #e0dcf5;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f6f4ff;
+  box-shadow: 0 1px 6px rgba(74, 68, 140, 0.12);
+  font-size: 0.74rem;
+  line-height: 1;
+
+  button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #6f6e93;
+    padding: 0.34rem 0.74rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover { background: #ebe6ff; color: #6c5ce7; }
+    &.active { background: #6c5ce7; color: #fff; }
+    &:focus-visible { outline: 2px solid #6c5ce7; outline-offset: -2px; }
+  }
+
+  &.in-navbar {
+    position: static;
+    box-shadow: none;
+    margin-left: 0.6rem;
+  }
+}
+
+@media print { .lang-switch { display: none; } }
+
+:root[data-lang="zh"] {
+  p, li, td, th, .interp, .rq, .callout-body { line-height: 1.75; }
+}

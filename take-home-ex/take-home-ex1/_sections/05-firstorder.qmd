@@ -1,0 +1,887 @@
+# <span class="en">First-order analysis: how intensity varies</span><span class="zh">一阶分析:强度如何变化</span> {#sec-fo}
+
+::: {.en}
+First-order analysis estimates the intensity function $\lambda(u)$ (expected
+events per unit area) and asks how it varies. Across the whole window the mean
+intensity of the pixel-day pattern is
+$\bar\lambda = `r sprintf("%.3f", LAM_BAR)`$ per km², one fire-affected
+pixel-day per `r sprintf("%.1f", 1/LAM_BAR)` km² over `r N_DAYS` days. The
+interesting question is how far the local intensity departs from that.
+:::
+
+::: {.zh}
+一阶分析估计强度函数 $\lambda(u)$(单位面积的期望事件数)并追问它如何变化。
+在整个窗口上,像元-日模式的平均强度为
+$\bar\lambda = `r sprintf("%.3f", LAM_BAR)`$ 个/km²,即 `r N_DAYS` 天内每
+`r sprintf("%.1f", 1/LAM_BAR)` km² 一个过火像元-日。有意思的问题是:**局部**强度
+偏离这个均值有多远。
+:::
+
+## <span class="en">Temporal intensity, and how much of it is the satellite</span><span class="zh">时间强度,以及其中有多少来自卫星</span> {#sec-fo-temporal}
+
+::: {.en}
+*Addresses RQ2.*
+:::
+
+::: {.zh}
+*对应 RQ2。*
+:::
+
+```{r}
+#| label: fig-daily
+#| fig-cap: "<span class='en'>Daily detection counts. Upper panel: pixel-days split by overpass, with first detections of new events overlaid. Lower panel: the same counts from all four products. The two panels together show why the upper one cannot be read as fire activity.</span><span class='zh'>逐日探测计数。上图:按过境类型拆分的像元-日,并叠加新事件的首次探测。下图:四种产品各自的同期计数。两图合起来说明为何上图不能被读作火灾活动。</span>"
+#| fig-alt: "Daily detection counts. Upper panel: pixel-days split by overpass, with first detections of new events overlaid. Lower panel: the same counts from all four products. The two panels together show why the upper one cannot be read as fire..."
+#| fig-width: 9.6
+#| fig-height: 5.8
+
+daily <- FO_T$daily
+
+p_a <- daily |>
+  select(date_local, Day = n_Day, Night = n_Night) |>
+  tidyr::pivot_longer(-date_local, names_to = "overpass", values_to = "n") |>
+  ggplot(aes(date_local, n)) +
+  geom_col(aes(fill = overpass), width = 0.72) +
+  geom_line(data = daily, aes(y = n_new_events * 4), colour = "#1c1917",
+            linewidth = 0.55, linetype = "22") +
+  geom_point(data = daily, aes(y = n_new_events * 4), colour = "#1c1917",
+             size = 1.4) +
+  scale_fill_manual(NULL, values = c(Day = PAL$fire_l, Night = PAL$water)) +
+  scale_y_continuous(
+    name = "Detections",
+    sec.axis = sec_axis(~ . / 4, name = "First detections of new events")) +
+  scale_x_date(date_breaks = "1 day", date_labels = "%d %b") +
+  labs(title = "Daily detection counts, split by overpass",
+       subtitle = paste0("Bars: S-NPP detections. Dashed: first detections of ",
+                         "new events (right axis).\n4 Sep has no night overpass; ",
+                         "7 Sep has no day overpass."),
+       x = NULL) +
+  theme_th(11)
+
+p_b <- FO_T$daily_sensor |>
+  tidyr::pivot_longer(-date_local, names_to = "product", values_to = "n") |>
+  mutate(product = factor(stringr::str_replace(product, "_NRT", ""),
+                          levels = c("VIIRS_SNPP", "VIIRS_NOAA20",
+                                     "VIIRS_NOAA21", "MODIS"))) |>
+  ggplot(aes(date_local, n, fill = product)) +
+  geom_col(position = "dodge", width = 0.78) +
+  scale_fill_manual(NULL, values = c(VIIRS_SNPP = PAL$fire,
+                                     VIIRS_NOAA20 = PAL$fire_l,
+                                     VIIRS_NOAA21 = PAL$water,
+                                     MODIS = PAL$grey)) +
+  scale_x_date(date_breaks = "1 day", date_labels = "%d %b") +
+  labs(title = "The same eight days, seen by four products",
+       subtitle = "Peaks and troughs do not coincide between near-identical sensors",
+       x = NULL, y = "Detections in window") +
+  theme_th(11)
+
+p_a / p_b
+```
+
+::: {.interp .en}
+**The daily series.** Counts swing from
+`r n_fmt(min(daily$n_pxday))` to `r n_fmt(max(daily$n_pxday))` pixel-days,
+an index of dispersion of `r sprintf("%.0f", FO_T$disp)` against 1 for a
+constant-rate Poisson process ($\chi^2_{`r nrow(daily)-1`} =
+`r sprintf("%.0f", FO_T$pois_chi2)`$, $p$ `r pv(FO_T$pois_p)`). **But the
+variation is not attributable to fire.** 4 September contributes no night
+detections and 7 September none by day (missing overpasses or cloud) and
+7 September's low total is exactly the day with only one overpass. The lower
+panel is decisive: on 8 September NOAA-20 saw
+`r FO_T$daily_sensor$VIIRS_NOAA20_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+detections and NOAA-21 saw
+`r FO_T$daily_sensor$VIIRS_NOAA21_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`,
+over the same ground. **Conclusion:** over eight days the temporal signal is
+dominated by sampling, so no claim about fire *trend* is made. *But note:* a real
+upward movement may nevertheless be present, the 11 September peak is the
+highest for three of four products.
+:::
+
+::: {.interp .zh}
+**逐日序列。** 计数在 `r n_fmt(min(daily$n_pxday))` 与
+`r n_fmt(max(daily$n_pxday))` 个像元-日之间摆动,离散指数为
+`r sprintf("%.0f", FO_T$disp)`,而常速率泊松过程应为 1
+($\chi^2_{`r nrow(daily)-1`} = `r sprintf("%.0f", FO_T$pois_chi2)`$,
+$p$ `r pv(FO_T$pois_p)`)。**但这种变化不能归因于火。** 9 月 4 日没有夜间探测,
+9 月 7 日没有白天探测(过境缺失或云遮挡)而 9 月 7 日的低总量恰恰就是那个只有一次
+过境的日子。下图是决定性的:9 月 8 日,NOAA-20 记录了
+`r FO_T$daily_sensor$VIIRS_NOAA20_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+条探测,NOAA-21 在同一片地面上记录了
+`r FO_T$daily_sensor$VIIRS_NOAA21_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+条。**结论:** 在这八天里,时间信号由采样主导,因此不对火灾*趋势*作任何论断。
+*但请注意:* 真实的上升趋势仍有可能存在,9 月 11 日的峰值在四种产品中有三种都是最高。
+:::
+
+::: {.callout-warning .en}
+## What this means for the rest of the report
+Because daily counts are observation-limited, the spatio-temporal analysis
+below does **not** ask whether fire activity rose or fell. It asks two
+questions that survive incomplete observation: *where* was intensity
+concentrated on each day (@sec-fo-stkde), and *were nearby detections close in
+time* (@sec-so-knox). The second is robust to thinning by construction, because
+it conditions on the observed locations and dates.
+:::
+
+::: {.callout-warning .zh}
+## 这对报告余下部分意味着什么
+
+由于逐日计数受观测所限,下文的时空分析**不**追问火灾活动是上升还是下降。它追问的是
+两个能在不完整观测下存活的问题:每一天强度*集中在哪里*(@sec-fo-stkde),以及
+*邻近的探测在时间上是否靠近*(@sec-so-knox)。后者在构造上对抽稀稳健,因为它以
+观测到的位置与日期为条件。
+:::
+
+## <span class="en">A coarse first look: quadrat counts</span><span class="zh">粗略的第一眼:样方计数</span> {#sec-fo-quadrat}
+
+::: {.en}
+The simplest description of spatial intensity variation divides the window into
+quadrats and compares counts.
+:::
+
+::: {.zh}
+对空间强度变化最简单的描述,是把窗口划分为样方并比较各方的计数。
+:::
+
+```{r}
+#| label: fig-quadrat
+#| fig-cap: "<span class='en'>Quadrat counts on an 8 × 20 grid, and the variance-to-mean ratio across four grid resolutions. Both panels reject a constant intensity, but neither can tell us why.</span><span class='zh'>8 × 20 格网的样方计数,以及四种格网分辨率下的方差-均值比。两图都拒绝常数强度,但都无法告诉我们原因。</span>"
+#| fig-alt: "Quadrat counts on an 8 × 20 grid, and the variance-to-mean ratio across four grid resolutions. Both panels reject a constant intensity, but neither can tell us why."
+#| fig-width: 9.8
+#| fig-height: 5.6
+
+# The quadrat grid is rebuilt with sf rather than reshaped out of spatstat's
+# table object: `quadrat.test` partitions the window's bounding box into nx x ny
+# cells, and st_make_grid over that same bounding box reproduces the partition
+# exactly while giving geometries that can be mapped and counted transparently.
+grid_poly <- sf::st_make_grid(sf::st_as_sfc(sf::st_bbox(bnd)),
+                              n = c(8, 20)) |>
+  sf::st_as_sf() |>
+  rename(geometry = x) |>
+  mutate(cell = dplyr::row_number())
+
+# st_join assigns each point to ONE cell (the first match), so a point lying
+# exactly on a cell boundary cannot be double-counted.
+cell_of <- sf::st_join(fire_px["pixel_id"], grid_poly, join = sf::st_intersects) |>
+  sf::st_drop_geometry() |>
+  dplyr::distinct(pixel_id, .keep_all = TRUE)
+counts <- as.data.frame(table(cell = cell_of$cell), stringsAsFactors = FALSE)
+grid_poly$n <- counts$Freq[match(grid_poly$cell, as.integer(counts$cell))]
+grid_poly$n[is.na(grid_poly$n)] <- 0L
+grid_poly <- grid_poly[lengths(sf::st_intersects(grid_poly, bnd)) > 0, ]
+
+p_q1 <- ggplot() +
+  geom_sf(data = grid_poly, aes(fill = n), colour = "white", linewidth = 0.12) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.5) +
+  scale_fill_fire(name = "Pixel-days", trans = "sqrt") +
+  labs(title = "Quadrat counts, 8 × 20 grid",
+       subtitle = paste0("Mean ", sprintf("%.1f", FO_Q$mean_count[3]),
+                         ", variance ", n_fmt(FO_Q$var_count[3]),
+                         " per occupied quadrat")) +
+  theme_map(11)
+
+p_q2 <- FO_Q |>
+  mutate(lab = paste0(nx, "×", ny),
+         cell_km = sqrt((diff(win$xrange)/nx) * (diff(win$yrange)/ny)) / 1000) |>
+  ggplot(aes(cell_km, vmr)) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_line(colour = PAL$fire, linewidth = 0.7) +
+  geom_point(colour = PAL$fire, size = 2.4) +
+  ggrepel::geom_text_repel(aes(label = lab), size = 3, colour = PAL$grey,
+                           seed = 3) +
+  annotate("text", x = Inf, y = 1, label = "constant-intensity Poisson",
+           hjust = 1.05, vjust = -0.6, size = 2.9, colour = PAL$theo) +
+  scale_y_log10(labels = label_number(accuracy = 1)) +
+  labs(title = "Variance-to-mean ratio against quadrat size",
+       subtitle = "All four resolutions are far above 1, and the value itself depends on the grid",
+       x = "Nominal quadrat side (km)", y = "Variance / mean (log scale)") +
+  theme_th(11)
+
+p_q1 + p_q2 + patchwork::plot_layout(widths = c(0.44, 0.56))
+```
+
+```{r}
+#| label: tbl-quadrat
+#| tbl-cap: "<span class='en'>Monte-Carlo quadrat tests of complete spatial randomness at four grid resolutions (999 simulations each).</span><span class='zh'>四种格网分辨率下针对完全空间随机性的蒙特卡洛样方检验(各 999 次模拟)。(下表为英文原表)</span>"
+FO_Q |>
+  transmute(Grid = paste0(nx, " × ", ny), `Quadrats used` = n_quadrats_used,
+            `Mean count` = mean_count, `Variance` = var_count,
+            `Var/mean` = vmr, `χ²` = statistic, `p (Monte Carlo)` = p_value) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(`Mean count`, `Var/mean`), decimals = 1) |>
+  gt::fmt_number(columns = c(Variance, `χ²`), decimals = 0) |>
+  gt::fmt_number(columns = `p (Monte Carlo)`, decimals = 3) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+The test rejects CSR at every resolution ($p =$ 0.002 throughout, the smallest
+value resolvable with 999 simulations). This is expected and, on its own,
+almost uninformative, for two reasons that are worth stating because they
+motivate everything that follows.
+
+First, the **variance-to-mean ratio is not a property of the pattern but of the
+grid**: it falls from `r sprintf("%.0f", FO_Q$vmr[1])` at the coarsest
+resolution to `r sprintf("%.0f", FO_Q$vmr[3])` at 8 × 20. Any single number
+quoted from this method is an artefact of an arbitrary choice.
+
+Second, and more fundamentally, **the test cannot distinguish intensity
+variation from interaction**. Its null hypothesis bundles "constant intensity"
+and "independent points" together, so rejection identifies neither. This is
+precisely the confounding described in @sec-nullmodels, and it is why
+@sec-so builds an inhomogeneous reference model instead.
+:::
+
+::: {.zh}
+该检验在每一种分辨率下都拒绝 CSR($p$ 一律为 0.002,即 999 次模拟所能分辨的最小
+值)。这既是预料之中的,单独看也几乎**没有信息量**,原因有两条,值得写出来,因为
+它们构成了后文全部工作的动机。
+
+第一,**方差-均值比不是模式的性质,而是格网的性质**:它从最粗分辨率下的
+`r sprintf("%.0f", FO_Q$vmr[1])` 降到 8 × 20 时的
+`r sprintf("%.0f", FO_Q$vmr[3])`。任何从这个方法里引用的单一数字都是某个任意选择的
+产物。
+
+第二,也更根本:**该检验无法区分强度变化与交互作用**。它的原假设把「常数强度」与
+「点相互独立」捆在一起,因此拒绝并不能识别出是哪一个。这正是 @sec-nullmodels 中
+描述的混淆,也是 @sec-so 转而构建一个非齐次参照模型的原因。
+:::
+
+## <span class="en">Kernel intensity estimation, and the bandwidth decision</span><span class="zh">核强度估计,以及带宽这个决策</span> {#sec-fo-bandwidth}
+
+::: {.en}
+*Addresses RQ1.*
+:::
+
+::: {.zh}
+*对应 RQ1。*
+:::
+
+::: {.en}
+Kernel density estimation replaces arbitrary quadrats with a smooth estimate
+$$
+\hat\lambda(u) \;=\; \frac{1}{e(u)}\sum_{i=1}^{n} \kappa_\sigma(u - x_i),
+$$
+where $\kappa_\sigma$ is an isotropic Gaussian kernel of standard deviation
+$\sigma$ and $e(u)$ is Diggle's edge correction, the fraction of the kernel mass
+falling inside the window [@diggle1985]. Everything then depends on $\sigma$.
+:::
+
+::: {.zh}
+核密度估计用一个平滑估计取代任意划定的样方
+$$
+\hat\lambda(u) \;=\; \frac{1}{e(u)}\sum_{i=1}^{n} \kappa_\sigma(u - x_i),
+$$
+其中 $\kappa_\sigma$ 是标准差为 $\sigma$ 的各向同性高斯核,$e(u)$ 是 Diggle 的
+边界校正项,即核质量落在窗口内的比例 [@diggle1985]。于是一切都取决于 $\sigma$。
+:::
+
+```{r}
+#| label: tbl-bw
+#| tbl-cap: "<span class='en'>Automatic bandwidth selectors applied to the pixel-day pattern, with the sensor resolution floor for comparison.</span><span class='zh'>应用于像元-日模式的自动带宽选择器,并以传感器分辨率下界作对比。(下表为英文原表)</span>"
+FO_K$bw_tab |>
+  mutate(`vs 375 m pixel` = dplyr::case_when(
+    sigma_m < 375 ~ "**below** sensor resolution",
+    sigma_m < 750 ~ "below 2 pixels",
+    TRUE ~ "above resolution floor")) |>
+  transmute(Selector = selector, `σ (m)` = sigma_m, Criterion = criterion,
+            `Verdict` = `vs 375 m pixel`) |>
+  gt::gt() |> gt::fmt_number(columns = `σ (m)`, decimals = 0) |>
+  gt::fmt_markdown(columns = Verdict) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+The selectors disagree by a factor of **forty**, and two of them fail a basic
+admissibility check.
+:::
+
+::: {.zh}
+这些选择器之间相差达**四十倍**,而且其中两个通不过一项基本的可接受性检查。
+:::
+
+::: {.callout-important .en}
+## Why `bw.diggle` and `bw.ppl` are rejected here
+`bw.diggle` returns $\sigma =$ `r sprintf("%.0f", FO_K$bw_tab$sigma_m[1])` m and
+`bw.ppl` returns `r sprintf("%.0f", FO_K$bw_tab$sigma_m[2])` m. Both are at or
+below the **375 m nominal pixel size** of the data. A density surface smoothed
+at that scale would resolve features smaller than a single observation, so its
+apparent detail would describe the VIIRS detection grid rather than the fire
+field, the precision trap identified in @sec-prep.
+
+This is not a failure of the selectors. `bw.diggle` minimises mean squared
+error for a Cox process and `bw.ppl` maximises a likelihood cross-validation
+criterion [@loader1999]; both are answering the question "what bandwidth best
+recovers *this* point pattern", and the answer is legitimately small because
+the pattern is tightly clustered. The mismatch is that our question is about
+fire, and the pattern's fine structure is not about fire.
+
+At the other extreme, `bw.CvL` returns
+`r n_fmt(FO_K$bw_tab$sigma_m[3])` m [@cronie2018] and `bw.scott` returns
+`r n_fmt(FO_K$bw_tab$sigma_m[4])` × `r n_fmt(FO_K$bw_tab$sigma_m[5])` m.
+At 13 km any surface is smoother than the kecamatan the planner acts on, which
+erases exactly the structure of interest. The `bw.scott` result is also
+informative in its own right: its two components differ by a factor of
+`r sprintf("%.1f", FO_K$bw_tab$sigma_m[5]/FO_K$bw_tab$sigma_m[4])`, a direct
+measure of how badly a *single isotropic* bandwidth suits this elongated window.
+:::
+
+::: {.callout-important .zh}
+## 为什么在此处否决 `bw.diggle` 与 `bw.ppl`
+
+`bw.diggle` 给出 $\sigma =$ `r sprintf("%.0f", FO_K$bw_tab$sigma_m[1])` m,
+`bw.ppl` 给出 `r sprintf("%.0f", FO_K$bw_tab$sigma_m[2])` m。两者都**等于或低于**
+数据本身的 **375 m 标称像元尺寸**。在该尺度上平滑出的密度面会分辨出比单个观测更小的
+特征,因此它表面上的细节描述的是 VIIRS 探测格网,而不是火场,也就是 @sec-prep
+中指出的那个精度陷阱。
+
+这**不是**选择器的失败。`bw.diggle` 最小化 Cox 过程下的均方误差,`bw.ppl` 最大化
+似然交叉验证准则 [@loader1999];两者回答的都是「什么带宽最能还原*这个*点模式」,
+而由于该模式高度聚集,答案理应很小。错配之处在于:**我们的问题是关于火的**,
+而该模式的细部结构并不关于火。
+
+在另一个极端,`bw.CvL` 给出 `r n_fmt(FO_K$bw_tab$sigma_m[3])` m [@cronie2018],
+`bw.scott` 给出 `r n_fmt(FO_K$bw_tab$sigma_m[4])` × `r n_fmt(FO_K$bw_tab$sigma_m[5])` m。
+在 13 km 上,任何面都比规划者实际操作的区(kecamatan)更平滑,而这恰恰抹掉了我们
+关心的结构。`bw.scott` 的结果本身也很有信息量:它的两个分量相差
+`r sprintf("%.1f", FO_K$bw_tab$sigma_m[5]/FO_K$bw_tab$sigma_m[4])` 倍,这直接度量了
+**单一各向同性**带宽对这个狭长窗口有多不适配。
+:::
+
+::: {.en}
+The bandwidth is therefore chosen on substantive grounds, and the full
+sensitivity ladder is shown so that the reader can judge the choice rather than
+accept it.
+:::
+
+::: {.zh}
+因此带宽是基于**实质性理由**选定的,并且完整展示整个敏感性阶梯,以便读者能够
+**评判**这一选择,而不是被动接受它。
+:::
+
+```{r}
+#| label: fig-bwladder
+#| fig-cap: "<span class='en'>The same 2,715 points at five bandwidths. Each panel has its own colour scale, because the point is the change in spatial structure, not the change in peak value.</span><span class='zh'>同样的 2,715 个点在五种带宽下的结果。各图各自配色标尺,因为要看的是空间结构的变化,而不是峰值大小的变化。</span>"
+#| fig-alt: "The same 2,715 points at five bandwidths. Each panel has its own colour scale, because the point is the change in spatial structure, not the change in peak value."
+#| fig-width: 11
+#| fig-height: 7.2
+
+bw_panels <- lapply(seq_along(FO_K$sigma_ladder), function(k) {
+  s  <- FO_K$sigma_ladder[k]
+  d  <- im_df(FO_K$dens[[k]], "lam", scale = 1e6)
+  ttl <- bquote(sigma == .(n_fmt(s)) ~ "m")
+  ggplot() +
+    geom_raster(data = d, aes(x, y, fill = lam)) +
+    geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.35) +
+    scale_fill_fire(name = NULL, trans = "sqrt",
+                    labels = label_number(accuracy = 0.1)) +
+    labs(title = ttl,
+         subtitle = sprintf("peak %.1f/km²  (%.0f× mean)",
+                            FO_K$int_check$max_per_km2[k],
+                            FO_K$int_check$ratio_max_to_mean[k])) +
+    theme_map(10) +
+    theme(legend.key.height = unit(0.75, "cm"),
+          plot.subtitle = element_text(size = rel(0.8)))
+})
+
+pts_panel <- ggplot() +
+  geom_sf(data = bnd, fill = "#fafaf9", colour = "#1c1917", linewidth = 0.35) +
+  geom_sf(data = fire_px, colour = PAL$fire, size = 0.16, alpha = 0.45) +
+  labs(title = "The points themselves",
+       subtitle = paste0(n_fmt(N_PX), " pixel-days")) +
+  theme_map(10) +
+  theme(plot.subtitle = element_text(size = rel(0.8)))
+
+patchwork::wrap_plots(c(list(pts_panel), bw_panels), nrow = 1)
+```
+
+::: {.interp .en}
+**What the bandwidth decides.** At $\sigma =$ 500 m the surface is a near-replica of
+the point locations: the peak is
+`r sprintf("%.0f×", FO_K$int_check$ratio_max_to_mean[1])` the mean and the
+"structure" is individual pixel clumps. At 10 km the peak is only
+`r sprintf("%.1f×", FO_K$int_check$ratio_max_to_mean[5])` the mean and the
+central concentration has been smeared across half the regency. The middle
+panels show a stable feature that survives both extremes: a
+high-intensity band in the **central-southern** regency, with the north
+almost empty. **Evidence for the choice of $\sigma = 2{,}000$ m:** it preserves
+that band, exceeds the resolution floor by a factor of five, and sits well
+below the ~20 km scale of a kecamatan. *One qualification:* every panel integrates to
+within `r sprintf("%.1f%%", max(abs(FO_K$int_check$pct_error[1:4])))` of the
+point count except $\sigma =$ 10 km, which overshoots by
+`r sprintf("%.1f%%", FO_K$int_check$pct_error[5])`, edge correction becomes
+unreliable when the bandwidth approaches the window's width.
+:::
+
+::: {.interp .zh}
+**带宽决定了什么。** 在 $\sigma =$ 500 m 时,该面几乎是点位置的复制品:峰值为均值的
+`r sprintf("%.0f×", FO_K$int_check$ratio_max_to_mean[1])`,而所谓「结构」只是一个个
+像元团块。在 10 km 时,峰值仅为均值的
+`r sprintf("%.1f×", FO_K$int_check$ratio_max_to_mean[5])`,中部的集中被抹开到了半个
+县。中间几幅显示出一个在两个极端下都存活的稳定特征:**中南部**的一条高强度带,
+北部几乎空白。**选择 $\sigma = 2{,}000$ m 的依据:** 它保留了这条带、比分辨率下界
+高出五倍,并且远低于一个区约 20 km 的尺度。*一项限定:* 除 $\sigma =$ 10 km 之外,
+每幅的积分都与点数相差在
+`r sprintf("%.1f%%", max(abs(FO_K$int_check$pct_error[1:4])))` 以内;而 10 km 那幅
+高出 `r sprintf("%.1f%%", FO_K$int_check$pct_error[5])`,当带宽接近窗口宽度时,
+边界校正就变得不可靠了。
+:::
+
+```{r}
+#| label: fig-kde-main
+#| fig-cap: "<span class='en'>Headline intensity surface at σ = 2,000 m, against the canal network and the kecamatan boundaries.</span><span class='zh'>σ = 2,000 m 的主强度面,叠加运河网络与区(kecamatan)界。</span>"
+#| fig-alt: "Headline intensity surface at σ = 2,000 m, against the canal network and the kecamatan boundaries."
+#| fig-width: 10.5
+#| fig-height: 7.6
+
+k_main <- which(FO_K$sigma_ladder == FO_K$sigma_main)
+d_main <- im_df(FO_K$dens[[k_main]], "lam", scale = 1e6)
+
+m1 <- ggplot() +
+  geom_raster(data = d_main, aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.45) +
+  geom_sf(data = kec, fill = NA, colour = "white", linewidth = 0.22,
+          linetype = "22") +
+  scale_fill_fire(name = "Pixel-days\nper km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  ggspatial::annotation_scale(location = "br", height = unit(0.12, "cm"),
+                              text_cex = 0.5, line_width = 0.4) +
+  labs(title = "Detection intensity",
+       subtitle = paste0("σ = ", n_fmt(FO_K$sigma_main),
+                         " m, Diggle edge correction")) +
+  theme_map(10)
+
+m2 <- ggplot() +
+  geom_raster(data = d_main, aes(x, y, fill = lam), alpha = 0.92) +
+  geom_sf(data = osm$canal, colour = "#0e7490", linewidth = 0.10,
+          alpha = 0.55) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.45) +
+  scale_fill_fire(name = NULL, trans = "sqrt", guide = "none") +
+  labs(title = "The same surface with canals overlaid",
+       subtitle = "Blue: OSM canal / drain / ditch") +
+  theme_map(10)
+
+m3 <- ggplot() +
+  geom_raster(data = im_df(FO_K$dens_adapt, "lam", scale = 1e6),
+              aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.45) +
+  scale_fill_fire(name = "Pixel-days\nper km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "Adaptive bandwidth",
+       subtitle = paste0("Abramson rule, h₀ = ", n_fmt(FO_K$sigma_main), " m")) +
+  theme_map(10)
+
+m1 + m2 + m3 + patchwork::plot_layout(nrow = 1)
+```
+
+::: {.interp .en}
+**The surface at 2 km.** Intensity ranges from effectively zero to
+`r sprintf("%.1f", FO_K$int_check$max_per_km2[k_main])` pixel-days per km² (a `r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[k_main])`-fold range
+around the mean) and is organised as one broad concentration across the
+central-southern regency plus a secondary southern focus, with the northern
+third nearly empty. The centre panel shows this concentration coinciding with
+the dense canal grid, and the empty north coinciding with its absence.
+**Evidence:** the association is quantified formally in @sec-fo-covariates;
+here it is only visual. The adaptive estimate (right) sharpens the peaks
+without changing their location, confirming the structure is not an artefact of
+the fixed bandwidth. *Read with care:* the southern boundary is a coast, where edge
+correction assumes a process that does not exist offshore, so coastal
+intensities are biased upward.
+:::
+
+::: {.interp .zh}
+**2 km 下的强度面。** 强度从实际为零一直到
+`r sprintf("%.1f", FO_K$int_check$max_per_km2[k_main])` 个像元-日/km²(围绕均值约
+`r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[k_main])` 倍的幅度)其组织形态
+是横跨中南部的一片宽阔集中区,加上南部一个次级中心,而北部三分之一几乎空白。中间
+一幅显示这片集中区与密集的运河格网重合,而空白的北部与运河的缺失重合。**证据:**
+该关联在 @sec-fo-covariates 中被正式量化;此处只是视觉上的。自适应估计(右)在不
+改变峰值位置的情况下使其更锐利,印证了该结构并非固定带宽造成的假象。*阅读时请留意:* 南界
+为海岸,边界校正在那里假定了一个离岸并不存在的过程,因此沿海强度被高估。
+:::
+
+## <span class="en">The unit that planners act on</span><span class="zh">规划者实际操作的单元</span> {#sec-fo-kecamatan}
+
+::: {.en}
+A continuous surface is the right object for statistical analysis, but budgets,
+patrols and permits are administered by kecamatan.
+:::
+
+::: {.zh}
+连续面是统计分析的正确对象,但预算、巡护与许可都是按区(kecamatan)管理的。
+:::
+
+```{r}
+#| label: fig-kecamatan
+#| fig-cap: "<span class='en'>Detections aggregated to the eight kecamatan. Rate per 1,000 km² identifies where fire is concentrated relative to area; share of total identifies where most of it actually is.</span><span class='zh'>聚合到八个区的探测。每千 km² 发生率识别的是「相对面积而言火集中在哪」;占总量比例识别的是「火的大部分实际在哪」。</span>"
+#| fig-alt: "Detections aggregated to the eight kecamatan. Rate per 1,000 km² identifies where fire is concentrated relative to area; share of total identifies where most of it actually is."
+#| fig-width: 10.5
+#| fig-height: 6.4
+
+kd <- kec |> sf::st_drop_geometry() |>
+  select(adm3_name, area_km2, n_pxday, rate_per_1000km2, share_pct)
+
+m_kec <- ggplot() +
+  geom_sf(data = kec, aes(fill = rate_per_1000km2), colour = "white",
+          linewidth = 0.35) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.45) +
+  ggrepel::geom_text_repel(
+    data = sf::st_point_on_surface(kec),
+    aes(geometry = geometry,
+        label = paste0(adm3_name, "\n", round(rate_per_1000km2))),
+    stat = "sf_coordinates", size = 2.35, lineheight = 0.92,
+    colour = "#1c1917", bg.color = "white", bg.r = 0.13, seed = 11,
+    min.segment.length = 0.3, segment.size = 0.25) +
+  scale_fill_fire(name = "Pixel-days per\n1,000 km²", trans = "sqrt",
+                  labels = label_number(accuracy = 1)) +
+  labs(title = "Rate per unit area") +
+  theme_map(10)
+
+p_kec <- kd |>
+  mutate(adm3_name = forcats::fct_reorder(adm3_name, share_pct)) |>
+  tidyr::pivot_longer(c(rate_per_1000km2, share_pct)) |>
+  mutate(name = recode(name,
+                       rate_per_1000km2 = "Pixel-days per 1,000 km²",
+                       share_pct = "Share of all pixel-days (%)")) |>
+  ggplot(aes(value, adm3_name)) +
+  geom_col(fill = PAL$fire_l, width = 0.68) +
+  geom_text(aes(label = round(value, 1)), hjust = -0.15, size = 2.8,
+            colour = PAL$grey) +
+  facet_wrap(~name, scales = "free_x") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
+  labs(title = "Two different questions, two different answers",
+       x = NULL, y = NULL) +
+  theme_th(10) + theme(panel.grid.major.y = element_blank())
+
+m_kec + p_kec + patchwork::plot_layout(widths = c(0.42, 0.58))
+```
+
+::: {.interp .en}
+**Rate against count.** The two panels rank the districts differently, and the
+difference matters operationally. **Pandih Batu** has the highest *rate* (`r sprintf("%.0f", kd$rate_per_1000km2[kd$adm3_name == "Pandih Batu"])`
+pixel-days per 1,000 km², about
+`r sprintf("%.0f×", kd$rate_per_1000km2[kd$adm3_name=="Pandih Batu"]/ (sum(kd$n_pxday)/sum(kd$area_km2)*1000))`
+the regency average), but holds only
+`r sprintf("%.0f%%", kd$share_pct[kd$adm3_name == "Pandih Batu"])` of all
+detections because it is small. **Sebangau Kuala** has a middling rate but
+`r sprintf("%.0f%%", kd$share_pct[kd$adm3_name == "Sebangau Kuala"])` of the
+total, because it is `r sprintf("%.1f×", kd$area_km2[kd$adm3_name=="Sebangau Kuala"]/mean(kd$area_km2))`
+the average district in size. **Maliku is the striking outlier**, with
+`r kd$n_pxday[kd$adm3_name == "Maliku"]` pixel-days despite adjoining the
+worst-affected district, a contrast worth investigating, since both were
+Mega Rice Project transmigration areas. *One limit:* both measures inherit the
+modifiable areal unit problem; the continuous surface above is the better basis
+for inference, and this figure is for targeting, not for testing.
+:::
+
+::: {.interp .zh}
+**速率与计数之别。** 两幅图对各区的排序不同,而这个差异在操作上很要紧。
+**Pandih Batu** 的*发生率*最高(`r sprintf("%.0f", kd$rate_per_1000km2[kd$adm3_name == "Pandih Batu"])` 个像元-日/
+千 km²,约为全县均值的
+`r sprintf("%.0f×", kd$rate_per_1000km2[kd$adm3_name=="Pandih Batu"]/ (sum(kd$n_pxday)/sum(kd$area_km2)*1000))`)但因面积小,只占全部探测的
+`r sprintf("%.0f%%", kd$share_pct[kd$adm3_name == "Pandih Batu"])`。
+**Sebangau Kuala** 发生率中等,却占了总量的
+`r sprintf("%.0f%%", kd$share_pct[kd$adm3_name == "Sebangau Kuala"])`,因为它的面积
+是平均区的 `r sprintf("%.1f×", kd$area_km2[kd$adm3_name=="Sebangau Kuala"]/mean(kd$area_km2))`。
+**Maliku 是显眼的异常**:它紧邻受灾最重的区,却只有
+`r kd$n_pxday[kd$adm3_name == "Maliku"]` 个像元-日。这一反差值得追查,因为两者都是
+百万公顷稻米工程的移民安置区。*一点限度:* 两个指标都继承了**可变面元问题**;上文的连续
+面才是更好的推断基础,本图用于**瞄准**,不用于检验。
+:::
+
+## <span class="en">Intensity as a function of covariates</span><span class="zh">强度作为协变量的函数</span> {#sec-fo-covariates}
+
+::: {.en}
+*Addresses RQ3.*
+:::
+
+::: {.zh}
+*对应 RQ3。*
+:::
+
+::: {.en}
+Mapping intensity says *where*; relating it to covariates begins to say *why*.
+Two complementary approaches are used, one that makes no functional assumption
+and one that makes no smoothing assumption.
+:::
+
+::: {.zh}
+绘制强度回答的是*在哪里*;把它与协变量联系起来,才开始回答*为什么*。此处使用两种
+互补的方法:一种不作任何函数形式假设,另一种不作任何平滑假设。
+:::
+
+### <span class="en">The distribution-free comparison</span><span class="zh">免分布假设的比较</span>
+
+::: {.en}
+If intensity were unrelated to a covariate $Z$, the distribution of $Z$ at the
+detections would match its distribution across the window. Comparing those two
+distributions requires no smoothing and no model.
+:::
+
+::: {.zh}
+如果强度与某个协变量 $Z$ 无关,那么 $Z$ 在探测点上的分布应与它在整个窗口上的分布
+一致。比较这两个分布既不需要平滑,也不需要模型。
+:::
+
+```{r}
+#| label: fig-covecdf
+#| fig-cap: "<span class='en'>For each covariate, the cumulative distribution of its value at the detections (red) against its distribution across the whole window (grey). Separation between the curves is evidence that intensity depends on the covariate; the direction of separation gives the sign.</span><span class='zh'>对每个协变量,红线为其在探测点上的取值累积分布,灰线为其在整个窗口上的分布。两条曲线分离即为「强度依赖于该协变量」的证据,分离方向给出效应符号。</span>"
+#| fig-alt: "For each covariate, the cumulative distribution of its value at the detections (red) against its distribution across the whole window (grey). Separation between the curves is evidence that intensity depends on the covariate; the..."
+#| fig-width: 10
+#| fig-height: 5.2
+
+cov_long <- bind_rows(lapply(names(covars), function(nm) {
+  at_pts <- FO_C$cov_at_pts[, nm]
+  in_win <- as.vector(covars[[nm]][win, drop = TRUE])
+  bind_rows(
+    tibble(covariate = nm, km = at_pts / 1000, where = "At detections"),
+    tibble(covariate = nm, km = in_win / 1000, where = "Across the window"))
+}))
+
+lbl <- c(d_canal = "Distance to canal / drain",
+         d_river = "Distance to natural river",
+         d_road  = "Distance to road",
+         d_settle = "Distance to settlement")
+
+ggplot(cov_long, aes(km, colour = where)) +
+  stat_ecdf(linewidth = 0.75, pad = FALSE) +
+  facet_wrap(~covariate, scales = "free_x", nrow = 1,
+             labeller = labeller(covariate = lbl)) +
+  scale_colour_manual(NULL, values = c(`At detections` = PAL$fire,
+                                       `Across the window` = PAL$grey)) +
+  scale_y_continuous(labels = label_percent()) +
+  labs(title = "Detections are closer to canals, and further from rivers, than chance",
+       subtitle = "Empirical cumulative distributions; a red curve to the LEFT of grey means 'closer than expected'",
+       x = "Distance (km)", y = "Cumulative proportion") +
+  theme_th(11)
+```
+
+```{r}
+#| label: tbl-covtests
+#| tbl-cap: "<span class='en'>Covariate values at detections against the window, with formal tests. Both tests assume independent points, which is false here, so the p-values are anti-conservative and are reported for direction and rough strength only.</span><span class='zh'>探测点处与整个窗口的协变量取值对比,并附正式检验。两项检验都假定点独立,而此处不成立,因此 p 值是反保守的,仅用于判断方向与大致强度。(下表为英文原表)</span>"
+FO_C$cov_compare |>
+  left_join(FO_C$cov_tests, by = "covariate") |>
+  transmute(Covariate = lbl[covariate],
+            `Median at detections (m)` = median_at_detections,
+            `Median in window (m)` = median_in_window,
+            Ratio = ratio,
+            `KS D` = ks_D, `Berman Z₁` = Z1,
+            Direction = direction) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(`KS D`), decimals = 3) |>
+  gt::fmt_number(columns = `Berman Z₁`, decimals = 1) |>
+  gt::fmt_number(columns = Ratio, decimals = 2) |>
+  gt::data_color(columns = Ratio,
+                 fn = scales::col_numeric(c("#b91c1c", "#f5f5f4", "#0e7490"),
+                                          domain = c(0.4, 1.5))) |>
+  gt::tab_options(table.font.size = gt::pct(82), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+The signal is clear and, in one respect, counter-intuitive.
+
+- **Canals.** The median detection is
+  `r n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"])` m
+  from a canal, against
+  `r n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"])` m
+  for a random location in the window, **half the distance**. This is the
+  strongest effect of the four ($Z_1 =$
+  `r sprintf("%.1f", FO_C$cov_tests$Z1[FO_C$cov_tests$covariate=="d_canal"])`).
+- **Natural rivers.** The direction *reverses*: detections are
+  `r sprintf("%.0f%%", 100*(FO_C$cov_compare$ratio[FO_C$cov_compare$covariate=="d_river"]-1))`
+  **further** from rivers than chance. Proximity to water per se is not the
+  driver; proximity to *engineered drainage* is. This is exactly the
+  dissociation the covariate pair was designed to test, and it is the single
+  most useful result in this section, because it distinguishes a hydrological
+  mechanism from a generic "near water" association.
+- **Roads and settlements** show weaker effects in the "closer" direction,
+  consistent with human ignition but much less pronounced than canals.
+:::
+
+::: {.zh}
+信号很清晰,而且在一个方面是反直觉的。
+
+- **运河。** 探测点到运河的中位距为
+  `r n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"])` m,
+  而窗口内随机位置为
+  `r n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"])` m
+ ,**只有一半的距离**。这是四者中最强的效应($Z_1 =$
+  `r sprintf("%.1f", FO_C$cov_tests$Z1[FO_C$cov_tests$covariate=="d_canal"])`)。
+- **天然河流。** 方向**反转**:探测点比随机情形**更远离**河流
+  `r sprintf("%.0f%%", 100*(FO_C$cov_compare$ratio[FO_C$cov_compare$covariate=="d_river"]-1))`。
+  驱动因素**不是**「靠水」本身,而是靠近*人工排水*。这恰恰是设置这一对协变量所要
+  检验的分离,也是这一节最有用的单项结果,因为它把一个**水文机制**与泛泛的「靠水」
+  关联区分开了。
+- **道路与居民点**在「更近」方向上显示出较弱的效应,与人为点火一致,但远不如运河
+  明显。
+:::
+
+```{r}
+#| label: fig-rhohat
+#| fig-cap: "<span class='en'>Non-parametric intensity as a function of each covariate, with 95% confidence bands. The horizontal line is the window-wide mean intensity.</span><span class='zh'>强度作为各协变量函数的非参数估计,并附 95% 置信带。水平线为全窗口平均强度。</span>"
+#| fig-alt: "Non-parametric intensity as a function of each covariate, with 95% confidence bands. The horizontal line is the window-wide mean intensity."
+#| fig-width: 10
+#| fig-height: 5.4
+
+# Small helpers: read the rhohat curve at a covariate value, and find the first
+# covariate value at which the curve drops below a reference intensity. Written
+# as explicit lookups rather than approx() on the response, because rho(Z) is
+# not monotone and inverse interpolation on a non-monotone curve is undefined.
+rho_at <- function(r, z) {
+  d <- as.data.frame(r)
+  approx(d$X, d$rho * 1e6, xout = z, rule = 2)$y
+}
+rho_crosses_mean <- function(r, mean_int) {
+  d <- as.data.frame(r)
+  below <- which(d$rho * 1e6 < mean_int)
+  if (!length(below)) return(NA_real_)
+  d$X[min(below)]
+}
+
+rho_long <- bind_rows(lapply(names(FO_R), function(nm) {
+  d <- as.data.frame(FO_R[[nm]])
+  tibble(covariate = nm, km = d$X / 1000,
+         rho = d$rho * 1e6, lo = d$lo * 1e6, hi = d$hi * 1e6,
+         ave = d$ave * 1e6)
+}))
+
+ggplot(rho_long, aes(km)) +
+  geom_ribbon(aes(ymin = pmax(lo, 0), ymax = hi), fill = PAL$fire_xl,
+              alpha = 0.75) +
+  geom_line(aes(y = rho), colour = PAL$fire, linewidth = 0.8) +
+  geom_hline(aes(yintercept = ave), linetype = "22", colour = PAL$theo,
+             linewidth = 0.4) +
+  facet_wrap(~covariate, scales = "free", nrow = 1,
+             labeller = labeller(covariate = lbl)) +
+  labs(title = expression(paste("Estimated ", rho(Z),
+                                ": intensity as a function of each covariate")),
+       subtitle = "Dashed line: window-wide mean intensity. Shaded: 95% pointwise band.",
+       x = "Distance (km)", y = expression(paste("Pixel-days per ", km^2))) +
+  theme_th(11)
+```
+
+::: {.interp .en}
+**Along each covariate.** Distance to canal shows a clean monotone decline:
+intensity is roughly
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 0))`
+per km² adjacent to a canal,
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 5000))` at 5 km, and
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 10000))` at 10 km, crossing below the
+window-wide mean at about
+`r sprintf("%.1f km", rho_crosses_mean(FO_R$d_canal, LAM_BAR)/1000)`. Distance to river runs the other way, rising
+with distance. Road and settlement curves peak a few kilometres out rather than
+at zero, plausibly because the immediate surroundings of roads and villages are
+cleared or actively defended, while the accessible hinterland burns.
+**Evidence:** the confidence bands are narrow over the range where most of the
+window lies; they widen at large distances where few locations exist.
+*A caveat:* these are marginal relationships. The covariates are mutually
+correlated, and a bivariate curve cannot separate them, which is the
+motivation for the multivariate model in @sec-va. Bands also assume independent
+points, so they are too narrow.
+:::
+
+::: {.interp .zh}
+**沿各协变量看。** 到运河的距离呈现干净的单调下降:紧邻运河处强度约
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 0))` 个/km²,5 km 处为
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 5000))`,10 km 处为
+`r sprintf("%.2f", rho_at(FO_R$d_canal, 10000))`(大约在
+`r sprintf("%.1f km", rho_crosses_mean(FO_R$d_canal, LAM_BAR)/1000)` 处降到全窗口
+均值以下。到河流的距离则方向相反,随距离上升。道路与居民点的曲线峰值出现在数公里
+之外而不是零处)可能是因为道路与村庄的紧邻区域已被清理或受到主动防护,而可达的
+腹地在烧。**证据:** 在窗口大部分取值所在的范围内置信带很窄;在位置样本很少的大
+距离处置信带变宽。*一点保留:* 这些都是**边际**关系。各协变量彼此相关,二元曲线无法把
+它们分开。这正是 @sec-va 中建立多变量模型的动因。另外置信带同样假定点独立,因此
+偏窄。
+:::
+
+## <span class="en">Spatio-temporal intensity</span><span class="zh">时空强度</span> {#sec-fo-stkde}
+
+::: {.en}
+Finally, intensity is allowed to vary in space *and* time. Two estimates are
+presented for the same data, because they answer slightly different questions.
+:::
+
+::: {.zh}
+最后,允许强度同时在空间**和**时间上变化。对同一批数据给出两种估计,因为它们回答
+的问题略有不同。
+:::
+
+```{r}
+#| label: fig-stkde
+#| fig-cap: "<span class='en'>Spatio-temporal intensity. Top: one independent kernel surface per local day, shared colour scale, units of pixel-days per km² per day. Bottom: separable spatio-temporal KDE with a one-day temporal bandwidth, shown as the spatial density conditional on the day.</span><span class='zh'>时空强度。上排:每个当地日一个独立的核估计面,共用配色标尺,单位为「每 km² 每日的像元-日」。下排:时间带宽为一天的可分离时空 KDE,以「给定该日的空间密度」形式呈现。</span>"
+#| fig-alt: "Spatio-temporal intensity. Top: one independent kernel surface per local day, shared colour scale, units of pixel-days per km² per day. Bottom: separable spatio-temporal KDE with a one-day temporal bandwidth, shown as the spatial..."
+#| fig-width: 12
+#| fig-height: 7.6
+
+days <- FO_ST$days
+
+# Shared scale limits make the daily panels comparable with one another.
+dd <- bind_rows(lapply(seq_along(days), function(k)
+  im_df(FO_ST$dens_daily[[k]], "lam", scale = 1e6) |>
+    mutate(day = format(days[k], "%d %b"))))
+dd$day <- factor(dd$day, levels = format(days, "%d %b"))
+
+n_by_day <- as.integer(table(factor(fire_px$date_local, levels = days)))
+lab_day  <- setNames(sprintf("%s  (n = %s)", format(days, "%d %b"),
+                             n_fmt(n_by_day)), format(days, "%d %b"))
+
+p_top <- ggplot() +
+  geom_raster(data = dd, aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.25) +
+  facet_wrap(~day, nrow = 1, labeller = labeller(day = lab_day)) +
+  scale_fill_fire(name = "per km²\nper day", trans = "sqrt",
+                  labels = label_number(accuracy = 0.1)) +
+  labs(title = "Independent daily kernel surfaces",
+       subtitle = paste0("σ = ", n_fmt(FO_ST$sigma),
+                         " m; no temporal smoothing, so each panel is that day's evidence alone")) +
+  theme_map(9) +
+  theme(strip.text = element_text(size = rel(0.78)),
+        legend.key.height = unit(0.6, "cm"))
+
+# The conditional surfaces are probability densities over ~9.8e9 m2, so raw
+# values are ~1e-10 and would print as "0.0" in any legend. Rescaling to
+# "per 1,000 km2" makes them readable without altering the surface.
+dc <- bind_rows(lapply(seq_along(FO_ST$stkde$z.cond), function(k)
+  im_df(FO_ST$stkde$z.cond[[k]], "lam", scale = 1e9) |>
+    mutate(day = format(days[k], "%d %b"))))
+dc$day <- factor(dc$day, levels = format(days, "%d %b"))
+
+p_bot <- ggplot() +
+  geom_raster(data = dc, aes(x, y, fill = lam)) +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.25) +
+  facet_wrap(~day, nrow = 1) +
+  scale_fill_fire(name = "share of the day\nper 1,000 km²", trans = "sqrt",
+                  labels = label_number(accuracy = 0.01)) +
+  labs(title = "Separable spatio-temporal KDE, conditional on day",
+       subtitle = paste0("h = ", n_fmt(FO_ST$sigma), " m, λ = ",
+                         FO_ST$lambda_t,
+                         " day; each panel integrates to 1, so it shows *where*, not *how much*")) +
+  theme_map(9) +
+  theme(strip.text = element_text(size = rel(0.78)),
+        legend.key.height = unit(0.6, "cm"))
+
+p_top / p_bot
+```
+
+::: {.interp .en}
+**Sorting signal from sampling.** The top row is dominated by count differences already
+shown to be observational: 7 Sep (n = `r n_by_day[4]`, one overpass) is almost
+blank. Conditioning on the day removes that, and the bottom row reveals what the
+top row obscures, the concentration sits in the **same central-southern band on
+every one of the eight days**, with a modest late southward extension.
+**Evidence:** the conditional surfaces peak in the same place throughout, and the
+fully-covered days (5, 6, 10, 11 Sep) agree. **Implication:** the spatial pattern
+is stable at this time scale, so a surface estimated over the whole window is a
+fair summary rather than an average of shifting states. *Worth noting:* with λ = 1 day
+adjacent panels share information by construction, so some apparent persistence
+is imposed by the smoother; the unsmoothed top row is the check.
+:::
+
+::: {.interp .zh}
+**把信号与采样分开。** 上排由已被证明属于观测性的计数差异所主导:9 月 7 日
+(n = `r n_by_day[4]`,只有一次过境)几乎空白。以「给定该日」作条件后,下排揭示出
+上排所掩盖的内容,集中区在**全部八天里都位于同一条中南部条带**内,后期略向南延伸。
+**证据:** 各条件面在整个时段都在同一位置出现峰值,而覆盖完整的那几天(9 月 5、6、
+10、11 日)与之一致。**含义:** 在这个时间尺度上空间格局是稳定的,因此在整个窗口上
+估计的强度面是一个**公允的汇总**,而不是若干不断变化状态的平均。*需注意:* 由于
+λ = 1 天,相邻各幅在构造上共享信息,因此部分表面上的持续性是平滑器强加的;未作时间
+平滑的上排就是对此的检查。
+:::

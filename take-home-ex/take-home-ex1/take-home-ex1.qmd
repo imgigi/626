@@ -1,0 +1,256 @@
+---
+# The title block is the one part of the page Quarto composes itself, so the
+# .en / .zh spans have to be written into the metadata rather than into the
+# body. Without them the title showed only English and the subtitle showed
+# both languages at once, in every language mode.
+title: '<span class="en">Take-home Exercise 1: Fire on Drained Peat</span><span class="zh">课后作业一：排水泥炭地上的火</span>'
+# `pagetitle` keeps the browser tab and the social-card title as plain text;
+# it is not passed through the .en / .zh markup above.
+pagetitle: "Take-home Exercise 1: Fire on Drained Peat"
+subtitle: '<span class="en">Spatial and spatio-temporal point pattern analysis of satellite active-fire detections in Pulang Pisau Regency, Central Kalimantan, September 2026</span><span class="zh">卫星活跃火点探测的空间与时空点模式分析 · 中加里曼丹 Pulang Pisau 县 · 2026 年 9 月</span>'
+author: "Ji Guofang"
+date: "2026-09-12"
+date-modified: "last-modified"
+toc-title: "Contents"
+
+# These options lived in a project-level _quarto.yml while this exercise was a
+# standalone Quarto project. They are set per-document now that it sits inside
+# the ISSS626-GAA site, so the site's own configuration is left untouched.
+format:
+  html:
+    theme: [cosmo, custom.scss]   # cosmo keeps the site's base; custom.scss adds
+                                  # the report styling and the EN/中文 switch
+    page-layout: article          # a readable measure, rather than the 1400 px
+                                  # dashboard grid used by the home page
+    toc: true
+    toc-depth: 4
+    toc-expand: 2
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    fig-width: 9
+    fig-height: 6
+    fig-dpi: 150
+    fig-align: center
+    tbl-cap-location: bottom
+    link-external-newwindow: true
+    smooth-scroll: true
+    citations-hover: true
+    df-print: paged
+    lightbox: true
+    # The shared site-wide switch. This document overrides the project
+    # format block, so the includes have to be repeated here; the files
+    # themselves live once, at the project root.
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+
+bibliography: references.bib
+csl: apa.csl
+
+# Language-neutral cross-reference prefixes: one render serves both languages,
+# so "Section 2" could not be switched client-side.
+language:
+  crossref-sec-prefix: "§"
+  crossref-fig-prefix: "Fig."
+  crossref-tbl-prefix: "Tbl."
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  # NOTE: freeze is deliberately off. Quarto's freeze cache does not detect
+  # edits inside the files pulled in by {{< include >}}, so with freeze on,
+  # changes to _sections/*.qmd would silently render stale output.
+  freeze: false
+
+knitr:
+  opts_chunk:
+    collapse: false
+    comment: "#>"
+    dev: "png"
+    dpi: 150
+
+editor: source
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# ---- Packages ---------------------------------------------------------------
+# Loaded once here so that the analytical sections below contain only
+# analytical code. Versions are reported in the reproducibility appendix.
+suppressPackageStartupMessages({
+  library(sf)                 # vector geospatial data and CRS handling
+  library(dplyr); library(tidyr); library(purrr); library(stringr)
+  library(lubridate)          # local-time handling
+  library(ggplot2); library(patchwork); library(scales)
+  library(ggspatial); library(ggrepel); library(forcats)
+  library(terra)              # raster covariates
+  library(spatstat.geom)      # ppp / owin / im classes
+  library(spatstat.explore)   # KDE, K, G, F, J, rhohat, envelopes
+  library(spatstat.model)     # ppm, kppm
+  library(spatstat.random)    # rpoispp and other null-model simulators
+  library(sparr)              # spatio-temporal kernel density
+  library(gt)                 # tables
+})
+
+source("R/utils.R")
+
+sf::sf_use_s2(FALSE)   # planar predicates: all analysis happens in EPSG:32749
+set.seed(1234)         # every Monte-Carlo result below is reproducible
+
+# ---- Load the prepared objects ---------------------------------------------
+# Built by scripts/03_prepare.R .. scripts/07_valueadded.R. Each script is
+# reproduced and explained in the corresponding section of this report.
+DER      <- "data/derived"
+P        <- readRDS(file.path(DER, "params.rds"))
+audit    <- readRDS(file.path(DER, "qa_audit.rds"))
+dup_rep  <- readRDS(file.path(DER, "dup_report.rds"))
+persist  <- readRDS(file.path(DER, "persistent_pixels.rds"))
+bnd      <- readRDS(file.path(DER, "bnd_proj.rds"))
+kec      <- readRDS(file.path(DER, "fo_kecamatan.rds"))
+win      <- readRDS(file.path(DER, "win.rds"))
+fire_sf  <- readRDS(file.path(DER, "fire_sf.rds"))
+fire_all <- readRDS(file.path(DER, "fire_all_sf.rds"))
+fire_px  <- readRDS(file.path(DER, "fire_pxday_sf.rds"))
+fire_ev  <- readRDS(file.path(DER, "fire_event.rds"))
+ppp_det  <- readRDS(file.path(DER, "ppp_det.rds"))
+ppp_px   <- readRDS(file.path(DER, "ppp_pxday.rds"))
+ppp_ev   <- readRDS(file.path(DER, "ppp_event.rds"))
+covars   <- readRDS(file.path(DER, "covars.rds"))
+osm      <- readRDS(file.path(DER, "osm_clipped.rds"))
+
+FO_T   <- readRDS(file.path(DER, "fo_temporal.rds"))
+FO_Q   <- readRDS(file.path(DER, "fo_quadrat.rds"))
+FO_K   <- readRDS(file.path(DER, "fo_kde.rds"))
+FO_R   <- readRDS(file.path(DER, "fo_rhohat.rds"))
+FO_C   <- readRDS(file.path(DER, "fo_covsummary.rds"))
+FO_ST  <- readRDS(file.path(DER, "fo_stkde.rds"))
+SO <- tryCatch(readRDS(file.path(DER, "so_results.rds")), error = function(e) NULL)
+VA <- tryCatch(readRDS(file.path(DER, "va_results.rds")), error = function(e) NULL)
+
+# ---- Quantities used repeatedly in the prose -------------------------------
+AREA_KM2 <- area(win) / 1e6
+N_DET    <- npoints(ppp_det)
+N_PX     <- npoints(ppp_px)
+N_EV     <- npoints(ppp_ev)
+DATE_MIN <- min(fire_sf$date_local)
+DATE_MAX <- max(fire_sf$date_local)
+N_DAYS   <- as.integer(DATE_MAX - DATE_MIN) + 1L
+LAM_BAR  <- N_PX / AREA_KM2
+
+# Geodesic (ellipsoidal) area of the study window, used in Section 2 as the
+# reference against which the projected area's distortion is measured. s2 is
+# switched on only for this one calculation, then switched back off, because
+# every other spatial predicate in the report is planar by design.
+sf::sf_use_s2(TRUE)
+AREA_GEOD <- as.numeric(sf::st_area(sf::st_transform(bnd, 4326))) / 1e6
+sf::sf_use_s2(FALSE)
+CRS_ERR_PCT <- 100 * abs(AREA_KM2 - AREA_GEOD) / AREA_GEOD
+```
+
+::: {.callout-tip appearance="simple"}
+::: {.en}
+**This report is bilingual.** Use the **EN / 中文** switch at the top right of
+the page (or press `Alt`+`L`) to change language; the choice is remembered and
+carries over to the executive summary. All hand-written prose, headings, and
+figure and table captions are translated. **Text drawn inside the figures
+themselves (titles, subtitles and axis labels) stays in English**, because it
+is rendered into the image by R and cannot be switched in the browser. Variable
+names, function names and statistical symbols are also left in English.
+:::
+
+::: {.zh}
+**本报告为中英双语。** 使用页面右上角的 **EN / 中文** 切换按钮(或按
+`Alt`+`L`)切换语言;所选语言会被记住,并在执行摘要中保持一致。所有手写正文、
+标题,以及图表题注都已翻译。**图形内部的文字(标题、副标题与坐标轴标签)保持
+英文**,因为它们由 R 在渲染时画入图像,无法在浏览器端切换。变量名、函数名与统计
+符号同样保留英文。
+:::
+:::
+
+## <span class="en">Abstract</span><span class="zh">摘要</span> {#sec-abstract .unnumbered}
+
+::: {.en}
+Pulang Pisau Regency holds much of the drainage network left behind by
+Indonesia's abandoned Mega Rice Project, and it burns in almost every dry
+season. This report treats 3,101 VIIRS 375 m active-fire detections, recorded
+inside the regency between 4 and 11 September 2026, as one realisation of a
+spatial and spatio-temporal point process.
+
+Detection intensity varies about fortyfold across the regency. It rises
+sharply close to engineered canals and falls close to natural rivers. The two
+effects keep opposite signs after multivariate adjustment, and that is what
+separates a drainage mechanism from simple proximity to water.
+
+The second-order analysis is built around a sequence of null models, and its
+main result is methodological. A homogeneous Poisson null is rejected, but the
+rejection carries no information. A kernel-based inhomogeneous Poisson null
+then gives *opposite answers* at different intensity bandwidths. It is not
+rejected at 1–2 km. At 10 km it is rejected decisively. We read this as a
+problem of identifiability and statistical power, not as a finding about fire.
+The p-value falls monotonically as the null becomes less flexible, so the
+verdict is tracking the model and not the data. Replacing the kernel with a
+parsimonious parametric null breaks the impasse. A covariate-driven Poisson
+process is rejected. A Thomas cluster process carrying the same trend is not,
+and it estimates compact clusters of roughly 2.1 km.
+
+A Monte-Carlo Knox test on permuted dates then establishes genuine space-time
+interaction, using no bandwidth and no covariates at all. Throughout, the
+analysis keeps the behaviour of the fire field separate from the behaviour of
+the satellite. That distinction accounts for most of the apparent day-to-day
+variation.
+:::
+
+::: {.zh}
+Pulang Pisau 县境内保留着印尼「百万公顷稻米工程」遗留的大片排水渠网,几乎每个
+旱季都会过火。本报告把 2026 年 9 月 4 日至 11 日该县记录到的 3,101 个
+VIIRS 375 m 活跃火点探测,视为一次空间与时空点过程的实现加以分析。
+
+一阶分析显示,探测强度在全县范围内相差约四十倍。它在**人工运河**附近明显升高,
+在天然河流附近反而降低。两者的方向在多变量调整之后依然相反,正是这一点把
+**排水机制**与泛泛的「靠水」区分开来。
+
+二阶分析围绕一组逐层放宽的零模型展开,其主要结果属于**方法学**层面。齐次泊松
+零模型被拒绝,但这一拒绝不提供任何信息。改用基于核的非齐次泊松零模型之后,不同的
+强度带宽给出了**相反的答案**:在 1–2 km 下不被拒绝,在 10 km 下被决定性地拒绝。
+我们把它判断为**可识别性与检验力**的问题,而不是关于火本身的发现。随着零模型变得
+不那么灵活,p 值单调下降,说明判定追踪的是模型而不是数据。把核估计换成一个简约的
+参数化零模型可以打破僵局。由协变量驱动的泊松过程被拒绝;带有同一趋势项的 Thomas
+聚集过程没有被拒绝,并估计出约 2.1 km 的紧凑簇群。
+
+随后,在置换日期上进行的蒙特卡洛 Knox 检验确立了真实的时空交互,整个过程既不使用
+带宽,也不使用任何协变量。全篇始终把火场的行为与卫星的行为分开来看。这一区分
+解释了逐日表观变化中的大部分。
+:::
+
+{{< include _sections/01-introduction.qmd >}}
+
+{{< include _sections/02-data-design.qmd >}}
+
+{{< include _sections/03-preparation.qmd >}}
+
+{{< include _sections/04-assumptions.qmd >}}
+
+{{< include _sections/05-firstorder.qmd >}}
+
+{{< include _sections/06-secondorder.qmd >}}
+
+{{< include _sections/07-valueadded.qmd >}}
+
+{{< include _sections/08-integration.qmd >}}
+
+{{< include _sections/08b-geocommunication.qmd >}}
+
+{{< include _sections/09-implications.qmd >}}
+
+{{< include _sections/10-limitations.qmd >}}
+
+{{< include _sections/11-reproducibility.qmd >}}
+
+## <span class="en">References</span><span class="zh">参考文献</span> {#sec-references .unnumbered}
+
+::: {#refs}
+:::

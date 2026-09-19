@@ -1,0 +1,178 @@
+<!-- ===========================================================================
+     Logic diagram 3 of 3 - a detection is not a fire
+     Take-home Exercise 1 | ISSS626
+
+     The distinction the whole report is built on: what reaches the analysis is
+     the fire field multiplied by an observation process. Three fires are drawn
+     on the left with deliberately different fates - one seen repeatedly, one
+     seen once, one never seen - because that asymmetry is what makes daily
+     counts observation-driven and intensities lower bounds.
+
+     Canvas 1000 x 430. Shapes once, labels twice (.en / .zh); see the note at
+     the top of dg-pipeline.qmd.
+     =========================================================================== -->
+::: {.diagram}
+<svg viewBox="0 0 1000 430" role="img" aria-label="A detection is not a fire. The true fire field passes through an observation process - two overpasses a day, cloud and smoke, a 375 metre pixel, an algorithm threshold - before it becomes a table of detections. One fire yields four detections, another yields one, and a third under cloud yields none.">
+<defs>
+<marker id="obArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#68736c">
+</path>
+</marker>
+</defs>
+<g>
+<rect x="4" y="46" width="272" height="254" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="4" y="46" width="4" height="254" fill="#ad4d33">
+</rect>
+<path d="M 44 108 C 74 76 154 72 200 100 C 246 128 244 200 206 238 C 168 276 82 272 54 234 C 26 196 22 138 44 108 Z" fill="#eacbb4" fill-opacity="0.45" stroke="#cf875d" stroke-width="1" stroke-dasharray="4 3">
+</path>
+<circle cx="96" cy="128" r="14" fill="#ad4d33">
+</circle>
+<circle cx="184" cy="196" r="10" fill="#cf875d">
+</circle>
+<circle cx="108" cy="238" r="12" fill="#ad4d33">
+</circle>
+<ellipse cx="112" cy="234" rx="46" ry="26" fill="#a9b0a6" fill-opacity="0.72">
+</ellipse>
+<rect x="336" y="46" width="300" height="254" rx="4" fill="#fffefa" stroke="#287a80" stroke-width="1.2" stroke-dasharray="5 4">
+</rect>
+<rect x="352" y="66" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8">
+</rect>
+<rect x="352" y="124" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8">
+</rect>
+<rect x="352" y="182" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8">
+</rect>
+<rect x="352" y="240" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8">
+</rect>
+<rect x="696" y="46" width="300" height="254" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1">
+</rect>
+<rect x="696" y="46" width="4" height="254" fill="#68736c">
+</rect>
+<g stroke="#d7dbd1" stroke-width="0.9" fill="#fffefa">
+<rect x="722" y="76" width="42" height="42">
+</rect>
+<rect x="766" y="76" width="42" height="42">
+</rect>
+<rect x="810" y="76" width="42" height="42">
+</rect>
+<rect x="854" y="76" width="42" height="42">
+</rect>
+<rect x="898" y="76" width="42" height="42">
+</rect>
+<rect x="722" y="120" width="42" height="42">
+</rect>
+<rect x="766" y="120" width="42" height="42">
+</rect>
+<rect x="810" y="120" width="42" height="42">
+</rect>
+<rect x="854" y="120" width="42" height="42">
+</rect>
+<rect x="898" y="120" width="42" height="42">
+</rect>
+<rect x="722" y="164" width="42" height="42">
+</rect>
+<rect x="766" y="164" width="42" height="42">
+</rect>
+<rect x="810" y="164" width="42" height="42">
+</rect>
+<rect x="854" y="164" width="42" height="42">
+</rect>
+<rect x="898" y="164" width="42" height="42">
+</rect>
+<rect x="722" y="208" width="42" height="42">
+</rect>
+<rect x="766" y="208" width="42" height="42">
+</rect>
+<rect x="810" y="208" width="42" height="42">
+</rect>
+<rect x="854" y="208" width="42" height="42">
+</rect>
+<rect x="898" y="208" width="42" height="42">
+</rect>
+</g>
+<rect x="766" y="76" width="42" height="42" fill="#ad4d33" stroke="#ad4d33">
+</rect>
+<rect x="810" y="76" width="42" height="42" fill="#ad4d33" stroke="#ad4d33">
+</rect>
+<rect x="766" y="120" width="42" height="42" fill="#ad4d33" stroke="#ad4d33">
+</rect>
+<rect x="810" y="120" width="42" height="42" fill="#ad4d33" stroke="#ad4d33">
+</rect>
+<rect x="854" y="208" width="42" height="42" fill="#cf875d" stroke="#cf875d">
+</rect>
+<line x1="282" y1="173" x2="330" y2="173" stroke="#68736c" stroke-width="1.8" marker-end="url(#obArrow)">
+</line>
+<line x1="642" y1="173" x2="690" y2="173" stroke="#68736c" stroke-width="1.8" marker-end="url(#obArrow)">
+</line>
+<circle cx="12" cy="352" r="7" fill="#ad4d33">
+</circle>
+<circle cx="356" cy="352" r="7" fill="#cf875d">
+</circle>
+<circle cx="654" cy="352" r="7" fill="#a9b0a6">
+</circle>
+</g>
+<g class="en">
+<text class="dg-step" x="20" y="30">01 · THE FIRE FIELD</text>
+<text class="dg-node-s" x="20" y="322">what is actually burning</text>
+<text class="dg-node-t" x="96" y="134" fill="#f4ebe0" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">A</text>
+<text class="dg-node-t" x="184" y="201" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">B</text>
+<text class="dg-node-t" x="108" y="244" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">C</text>
+<text class="dg-step" x="352" y="30">02 · THE OBSERVATION PROCESS</text>
+<text class="dg-node-t" x="366" y="88">Two overpasses a day</text>
+<text class="dg-node-s" x="366" y="107">not a continuous watch</text>
+<text class="dg-node-t" x="366" y="146">Cloud and smoke</text>
+<text class="dg-node-s" x="366" y="165">block the view entirely</text>
+<text class="dg-node-t" x="366" y="204">A 375 m pixel</text>
+<text class="dg-node-s" x="366" y="223">not a flame, not a perimeter</text>
+<text class="dg-node-t" x="366" y="262">Threshold and saturation</text>
+<text class="dg-node-s" x="366" y="281">“high confidence” = saturated</text>
+<text class="dg-step" x="712" y="30">03 · WHAT THE ANALYSIS SEES</text>
+<text class="dg-node-s" x="712" y="322">3,101 rows in a table</text>
+<text class="dg-node-s" x="28" y="359">
+<tspan x="28" dy="0">Fire A · seen on several passes </tspan>
+<tspan x="28" dy="23">→ 4 detections. Intensity is inflated </tspan>
+<tspan x="28" dy="23">where the satellite looked more often.</tspan>
+</text>
+<text class="dg-node-s" x="372" y="359">
+<tspan x="372" dy="0">Fire B · seen once </tspan>
+<tspan x="372" dy="23">→ 1 detection.</tspan>
+</text>
+<text class="dg-node-s" x="670" y="359">
+<tspan x="670" dy="0">Fire C · under cloud </tspan>
+<tspan x="670" dy="23">→ 0 detections. Every intensity </tspan>
+<tspan x="670" dy="23">is a lower bound.</tspan>
+</text>
+</g>
+<g class="zh">
+<text class="dg-step" x="20" y="30">01 · 真实火场</text>
+<text class="dg-node-s" x="20" y="322">实际在燃烧的东西</text>
+<text class="dg-node-t" x="96" y="134" fill="#f4ebe0" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">A</text>
+<text class="dg-node-t" x="184" y="201" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">B</text>
+<text class="dg-node-t" x="108" y="244" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">C</text>
+<text class="dg-step" x="352" y="30">02 · 观测过程</text>
+<text class="dg-node-t" x="366" y="88">每天两次过境</text>
+<text class="dg-node-s" x="366" y="107">不是连续监视</text>
+<text class="dg-node-t" x="366" y="146">云与烟</text>
+<text class="dg-node-s" x="366" y="165">会完全遮住视线</text>
+<text class="dg-node-t" x="366" y="204">一个 375 m 像元</text>
+<text class="dg-node-s" x="366" y="223">不是火焰,也不是火场边界</text>
+<text class="dg-node-t" x="366" y="262">阈值与饱和</text>
+<text class="dg-node-s" x="366" y="281">「高置信度」等于亮温饱和</text>
+<text class="dg-step" x="712" y="30">03 · 分析看到的东西</text>
+<text class="dg-node-s" x="712" y="322">表格里的 3,101 行</text>
+<text class="dg-node-s" x="28" y="359">
+<tspan x="28" dy="0">火 A · 被多次过境看到 </tspan>
+<tspan x="28" dy="23">→ 4 条探测。卫星看得越勤的地方,</tspan>
+<tspan x="28" dy="23">强度就被抬得越高。</tspan>
+</text>
+<text class="dg-node-s" x="372" y="359">
+<tspan x="372" dy="0">火 B · 只被看到一次 </tspan>
+<tspan x="372" dy="23">→ 1 条探测。</tspan>
+</text>
+<text class="dg-node-s" x="670" y="359">
+<tspan x="670" dy="0">火 C · 在云下 → 0 条探测。</tspan>
+<tspan x="670" dy="23">所有强度都只是下界。</tspan>
+</text>
+</g>
+</svg>
+:::

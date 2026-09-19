@@ -1,0 +1,397 @@
+# <span class="en">Integrated findings and discussion</span><span class="zh">综合发现与讨论</span> {#sec-integration}
+
+## <span class="en">Bringing the two orders together</span><span class="zh">把一阶与二阶放在一起</span>
+
+```{r}
+#| label: integrate-numbers
+#| echo: false
+
+lad <- SO$linhom_ladder
+lad_main <- lad[[which(SO$sig_ladder == SO$sigma_main)]]
+lad_big  <- lad[[which.max(SO$sig_ladder)]]
+gd2 <- as.data.frame(SO$env_g) |> dplyr::filter(r > 0, is.finite(obs), obs > 0)
+k00 <- SO$knox_res |> dplyr::filter(space_m == 1000, time_d == 0)
+k_max <- SO$knox_res |> dplyr::slice_max(ratio, n = 1)
+cp  <- VA$clustpar
+N_CLUST <- cp[["kappa"]] * area(win)
+PSIB <- VA$psib
+RANGE_FOLD <- FO_K$int_check$ratio_max_to_mean[which(FO_K$sigma_ladder == FO_K$sigma_main)]
+```
+
+```{r}
+#| label: tbl-integrate
+#| tbl-cap: "<span class='en'>The findings of this report, organised by the question each answers and the reference model each rests on.</span><span class='zh'>本报告的各项发现,按其所回答的问题与所依据的参照模型组织。(下表为英文原表)</span>"
+
+tibble::tribble(
+  ~Order, ~Question, ~Finding, ~Reference,
+  "First", "How does intensity vary in space?",
+  sprintf("About %.0f-fold range around a mean of %.3f per km²; one stable central–southern concentration.",
+          RANGE_FOLD, LAM_BAR),
+  "Descriptive (KDE, σ = 2 km)",
+
+  "First", "How does it vary in time?",
+  sprintf("Daily counts vary %s–%s, but the variation is dominated by overpass and cloud, not fire.",
+          n_fmt(min(FO_T$daily$n_pxday)), n_fmt(max(FO_T$daily$n_pxday))),
+  "Cross-sensor comparison",
+
+  "First", "Does it track engineered drainage?",
+  sprintf("Yes. Median %s m from a canal vs %s m for a random location; × %.3f per km, others held constant.",
+          n_fmt(FO_C$cov_compare$median_at_detections[FO_C$cov_compare$covariate=="d_canal"]),
+          n_fmt(FO_C$cov_compare$median_in_window[FO_C$cov_compare$covariate=="d_canal"]),
+          VA$eff$per_km_multiplier[VA$eff$term == "d_canal"]),
+  "Berman Z₁; `ppm` M1",
+
+  "First", "Is it just 'near water'?",
+  sprintf("No, the opposite. Intensity *rises* × %.3f per km away from natural rivers.",
+          VA$eff$per_km_multiplier[VA$eff$term == "d_river"]),
+  "`ppm` M1",
+
+  "Second", "Is the pattern random?",
+  sprintf("Rejected (p %s), but guaranteed by the first-order result, so uninformative.",
+          pv(SO$test_L_csr$p.value)),
+  "**N1** CSR",
+
+  "Second", "Does clustering survive a kernel intensity gradient?",
+  sprintf("**Not identifiable.** p %s at σ_λ = 2 km, p %s at σ_λ = 10 km; the verdict tracks the null's flexibility.",
+          sprintf("%.3f", lad_main$test$p.value),
+          sprintf("%.4f", lad_big$test$p.value)),
+  "**N2** inhomogeneous Poisson",
+
+  "Second", "Does *measured geography* explain it?",
+  sprintf("No (p %s). A %d-parameter covariate trend cannot reproduce the observed L(r).",
+          pv(VA$gof_M1_test$p.value), VA$n_par_M1),
+  "**N4** fitted `ppm`",
+
+  "Second", "What does reproduce it?",
+  sprintf("Trend + clustering. Thomas process not rejected (p %.2f): ~%.0f clusters, scale %s m, ~%.0f detections each, sibling probability %.2f.",
+          VA$gof_M3_test$p.value, N_CLUST, n_fmt(round(cp[["scale"]], -1)),
+          VA$mu, PSIB),
+  "**N5** fitted Thomas",
+
+  "Second", "Is there space–time interaction?",
+  sprintf("Yes, at all nine thresholds. Same-day pairs within 1 km occur %.2f× as often as under date permutation (p %s).",
+          k00$ratio, pv(k00$p_value)),
+  "**N3** random labelling"
+) |>
+  gt::gt(groupname_col = "Order") |>
+  gt::fmt_markdown(columns = c(Finding, Reference)) |>
+  gt::cols_width(Question ~ gt::pct(23), Finding ~ gt::pct(53),
+                 Reference ~ gt::pct(24)) |>
+  gt::tab_options(table.font.size = gt::pct(81), data_row.padding = gt::px(7),
+                  row_group.font.weight = "bold")
+```
+
+## <span class="en">How the first- and second-order findings complement each other</span><span class="zh">一阶与二阶发现如何互补</span>
+
+::: {.en}
+**The first-order analysis locates the hazard; it cannot explain its
+concentration.** The intensity surface (@fig-kde-main) says fire is in the
+central–southern regency, and the covariate analysis (@fig-rhohat) says that is
+where the engineered drainage is. But an intensity surface is agnostic about mechanism: a
+`r sprintf("%.0f", RANGE_FOLD)`-fold intensity range is equally consistent with
+"many independent ignitions in a favourable environment" and with "a few
+ignitions that spread".
+:::
+
+::: {.zh}
+**一阶分析定位了灾害,但无法解释它为何集中。** 强度面(@fig-kde-main)告诉我们火在该县中南部,
+协变量分析(@fig-rhohat)告诉我们那里正是人工排水所在之处。但强度面对**机制**是不置可否的:约
+`r sprintf("%.0f", RANGE_FOLD)` 倍的强度变化幅度,既与「在有利环境中有许多相互独立
+的点火」相容,也与「少数点火随后蔓延」同样相容。
+:::
+
+::: {.en}
+**The second-order analysis distinguishes those two, but only once the null
+model is chosen well enough to have power.** This is the pivot of the whole
+report, and it is worth stating plainly:
+
+- Against a **kernel** intensity at 1–2 km, the pattern *is* consistent with an
+  inhomogeneous Poisson process (@fig-linhom). That is not evidence of independence; it is a
+  test with almost no power, because a 2 km kernel over this window has roughly
+  `r n_fmt(round(area(win)/1e6 / (pi * (SO$sigma_main/1000)^2)))` resolution
+  cells for `r n_fmt(N_PX)` points.
+- Against a **`r VA$n_par_M1`-parameter covariate** trend, the pattern
+  is decisively *not* Poisson ($p$ `r pv(VA$gof_M1_test$p.value)`).
+- Adding a two-parameter clustering mechanism to that same trend produces a
+  model that **fits** ($p =$ `r sprintf("%.2f", VA$gof_M3_test$p.value)`).
+:::
+
+::: {.zh}
+**二阶分析能区分这两者,但前提是零模型选得足够好、具备检验力。** 这是整份报告的
+枢轴,值得直白地写出来:
+
+- 相对 1–2 km 的**核**强度,该模式**确实**与非齐次泊松过程相容(@fig-linhom)。这不是独立性的
+  证据;这是一个几乎没有检验力的检验,因为 2 km 的核在本窗口上约有
+  `r n_fmt(round(area(win)/1e6 / (pi * (SO$sigma_main/1000)^2)))` 个分辨单元,
+  而点只有 `r n_fmt(N_PX)` 个。
+- 相对一个 **`r VA$n_par_M1` 参数的协变量**趋势,该模式则**决定性地不是**
+  泊松($p$ `r pv(VA$gof_M1_test$p.value)`)。
+- 在同一趋势上再加入一个两参数的聚集机制,得到的模型**拟合良好**
+  ($p =$ `r sprintf("%.2f", VA$gof_M3_test$p.value)`)。
+:::
+
+::: {.en}
+**Together they give a two-layer account.** Drainage and access geography set
+where fire is *possible*, the first-order layer, whose residual map (@fig-parres) shows it works as an
+envelope but over-predicts broadly across canal-rich areas that did not burn. Within that envelope fire arrives in
+compact clusters of roughly
+`r sprintf("%.1f", cp[["scale"]]/1000)` km scale (@tbl-thomas), and those clusters are
+organised in time as well as in space. Neither layer alone is the phenomenon.
+:::
+
+::: {.zh}
+**两者合起来给出一个两层的解释。** 排水与可达性地理条件决定了火在哪里**可能**
+发生。这是一阶层,残差图(@fig-parres)显示它作为一个「包络」是有效的,但在大片有
+运河却没有过火的区域会**过度预测**。在这个包络之内,火以约
+`r sprintf("%.1f", cp[["scale"]]/1000)` km 尺度的紧凑簇群出现(@tbl-thomas),而这些簇群在时间上
+和空间上同样是有组织的。任何单独一层都不是这个现象本身。
+:::
+
+::: {.en}
+The whole sequence of reference models, and the verdict each returned, is drawn
+in @fig-ladder. Ordering the rungs by how flexible the null is (rather than by
+the order in which they were tried) is what makes the problem visible: the
+verdict rises and falls with the null model, not with the data, until the
+family is changed rather than the flexibility dial.
+:::
+
+::: {.zh}
+整套参照模型及各自给出的判定,绘制在 @fig-ladder 中。把各级按**零模型的灵活度**
+排序(而不是按尝试的先后)正是让问题显形的关键:判定随零模型上下浮动,而不是
+随数据变化,直到换掉的是模型**族**而非灵活度旋钮为止。
+:::
+
+::: {#fig-ladder}
+<!-- Nested includes resolve relative to the MAIN document (take-home-ex1.qmd),
+     not relative to this file, so the path is written from there. -->
+{{< include _include/dg-nullladder.qmd >}}
+
+<span class="en">The null-model ladder. Rungs are ordered by the flexibility of
+the null, not by the order tried. The boxed pair is the identifiability
+problem: the same data and the same statistic give opposite verdicts at two
+intensity bandwidths.</span><span class="zh">零模型阶梯。各级按零模型的灵活度排序,
+而非按尝试顺序。方框圈出的那一对就是可识别性问题:同一份数据、同一个统计量,在两个
+强度带宽下给出相反的判定。</span>
+:::
+
+::: {.callout-important .en}
+## The methodological lesson, stated once
+Whether the few-kilometre structure in this pattern is called *"fine-scale
+intensity variation"* or *"clustering"* is **not decidable from one
+realisation**. Those are two descriptions of the same data, and the kernel-based
+test simply relabels the structure according to how flexible the analyst allows
+the intensity estimate to be.
+
+What *is* decidable, and what this report establishes, is narrower and more
+useful: the structure at a few kilometres is **not accounted for by the
+drainage, road, river and settlement geography that was measured**, and it is
+**organised in time**. Both of those conclusions come from null models that
+require no bandwidth at all.
+:::
+
+::: {.callout-important .zh}
+## 方法学教训,只说一次
+
+本模式中那个数公里尺度的结构,该叫它*「细尺度强度变化」*还是*「聚集」*,
+**从单次实现中无法判定**。这是对同一批数据的两种描述,而基于核的检验只是按分析者
+允许强度估计有多灵活,来给这个结构重新贴标签。
+
+**可以**判定、也是这项分析真正确立的结论,更窄,但更有用:那个数公里尺度的结构
+**无法由已测得的排水、道路、河流与居民点地理条件解释**,而且它**在时间上是有组织
+的**。这两个结论都来自**完全不需要带宽**的零模型。
+:::
+
+::: {.en}
+This has an immediate operational consequence, developed in
+@sec-implications: a static risk map derived from drainage geography identifies
+roughly the right envelope but is poorly calibrated *within* it, whereas a rule
+that also responds to recent detections exploits the space–time dependence.
+:::
+
+::: {.zh}
+这有一个直接的操作后果,详见 @sec-implications：一张由排水地理条件推导出的静态
+风险图能大致识别出正确的包络,但在包络**内部**校准很差;而一个同时响应近期探测的
+规则则利用了时空依赖。
+:::
+
+## <span class="en">Are the findings consistent across analytical views?</span><span class="zh">这些发现在不同分析视角下是否一致?</span>
+
+```{r}
+#| label: tbl-consistency
+#| tbl-cap: "<span class='en'>Every robustness check performed, and what it showed.</span><span class='zh'>已执行的每一项稳健性检验及其结果。(下表为英文原表)</span>"
+
+bind_rows(
+  tibble(Check = "Intensity bandwidth σ_λ (N2)",
+         Variant = paste0(n_fmt(SO$sig_ladder), " m"),
+         Result = vapply(lad, function(x) sprintf("p %s", pv(x$test$p.value)), ""),
+         Verdict = vapply(lad, function(x)
+           ifelse(x$test$p.value < 0.05, "rejects null", "cannot reject"), "")),
+  tibble(Check = "Point-event definition (N2, σ_λ = 2 km)",
+         Variant = names(SO$unit_check),
+         Result = vapply(SO$unit_check, function(x)
+           sprintf("n = %s, p %s", n_fmt(x$n), pv(x$test$p.value)), ""),
+         Verdict = "cannot reject, consistent across units"),
+  SO$window_check |>
+    transmute(Check = "Study window (N2, σ_λ = 2 km)",
+              Variant = ifelse(inner_buffer_km == 0, "full regency",
+                               paste0("shrunk ", inner_buffer_km, " km")),
+              Result = sprintf("n = %s, p %s", n_fmt(n), pv(dclf_p)),
+              Verdict = "unchanged, not an edge effect"),
+  tibble(Check = "Renormalisation (N2)",
+         Variant = paste0("normpower = ", SO$np_check$normpower),
+         Result = sprintf("L(2 km) = %s", n_fmt(round(SO$np_check$L_at_2000))),
+         Verdict = "same sign and shape"),
+  tibble(Check = "Parametric nulls",
+         Variant = c("N4 log-linear trend", "N4b flexible trend",
+                     "N5 trend + Thomas"),
+         Result = c(sprintf("p %s", pv(VA$gof_M1_test$p.value)),
+                    sprintf("p %s", pv(VA$gof_M2_test$p.value)),
+                    sprintf("p %.2f", VA$gof_M3_test$p.value)),
+         Verdict = c("rejects null", "rejects null", "**fits**")),
+  tibble(Check = "Space–time (N3)",
+         Variant = sprintf("%s km / ≤%s d", SO$knox_res$space_m/1000,
+                           SO$knox_res$time_d),
+         Result = sprintf("ratio %.2f, p %s", SO$knox_res$ratio,
+                          pv(SO$knox_res$p_value)),
+         Verdict = ifelse(SO$knox_res$p_value < 0.05, "rejects null",
+                          "cannot reject"))
+) |>
+  gt::gt(groupname_col = "Check") |>
+  gt::fmt_markdown(columns = Verdict) |>
+  gt::tab_options(table.font.size = gt::pct(80), data_row.padding = gt::px(4),
+                  row_group.font.weight = "bold")
+```
+
+::: {.en}
+Two things are stable, and one is not.
+
+**Stable.** The *parametric* verdict (geography-driven Poisson rejected,
+trend-plus-clustering accepted) and the *space–time* verdict. Neither depends
+on a bandwidth. The N2 non-result is also stable across event definitions,
+windows and normalisations, which confirms it is a property of the test rather
+than of any incidental choice.
+
+**Not stable.** The N2 verdict across $\sigma_\lambda$, by design. Reporting a
+single $\sigma_\lambda$ would have produced a confident conclusion in either
+direction depending on which value was chosen, which is precisely why the
+ladder is shown.
+
+The first-order findings are less robust than either, and the report says so:
+absolute intensities are lower bounds because of cloud, and the day-to-day
+profile is observation-driven.
+:::
+
+::: {.zh}
+两件事是稳定的,一件不是。
+
+**稳定的。** *参数化*的判定(地理驱动的泊松被拒绝、趋势加聚集被接受)以及
+*时空*判定。两者都不依赖带宽。N2 的「非结果」在不同事件定义、窗口与归一化方式下
+也同样稳定,这印证了它是**检验本身**的性质,而不是某个偶然选择的性质。
+
+**不稳定的。** N2 在不同 $\sigma_\lambda$ 下的判定,而这是**刻意设计**的。若只
+报告单一 $\sigma_\lambda$,就会得出一个自信的结论,而结论方向完全取决于选了哪个
+取值。这正是要展示整个带宽阶梯的原因。
+
+一阶发现的稳健性比这两者都低,报告也如实说明:由于云的存在,绝对强度只是下界,
+而逐日轮廓是由观测驱动的。
+:::
+
+## <span class="en">Alternative explanations</span><span class="zh">替代解释</span>
+
+::: {.en}
+Four alternatives could produce the observed structure without fire-to-fire
+interaction, and each is assessed on its merits.
+
+**1. Sensor artefacts.** A single burning area spans several 375 m pixels, which
+would appear as a cluster. *Assessment:* addressed by construction. The
+pixel-day unit removes same-day repeat overpasses and the event unit removes
+spatial extent entirely; the N2 result is identical across all three
+(@sec-so-robustness), and no result below ~500 m is interpreted anywhere.
+
+**2. An omitted covariate.** If land cover, peat depth or tenure varies at a few
+kilometres and drives fire, the "clustering" in M3 is unmodelled first-order
+variation. *Assessment:* **this cannot be excluded, and it is the most serious
+alternative.** It is the identifiability problem in applied form. What N4
+establishes is that *the geography we measured* does not explain the pattern, 
+not that no geography could. The Thomas process should therefore be read as a
+compact *description* of a few-kilometre correlation structure, not as evidence
+that ignitions physically propagate.
+
+**3. Multi-day smouldering.** Peat fires burn for days, so a location recurring
+on consecutive days creates space–time dependence without new ignition.
+*Assessment:* real and quantitatively relevant, 
+`r sprintf("%.0f%%", 100*mean(persist$n_days > 1))` of pixels were detected on
+more than one day (@sec-typeflag). It inflates the Knox result at lags ≥ 1 and
+cannot be separated from spread with these data. It does *not* explain the
+lag-0 excess (`r sprintf("%.2f×", k00$ratio)` within 1 km on the same day),
+which involves distinct locations.
+
+**4. Correlated observation.** Cloud clears in patches, so detections could
+cluster because *detection* clusters. *Assessment:* independent thinning leaves
+the pair-correlation function unchanged [@baddeley2015], but cloud is not
+independent thinning: a cloud-hole a few kilometres across would mimic a fire
+cluster a few kilometres across. Partial reassurance comes from the
+three-satellite comparison (they pass at different times and so see different
+cloud fields), but this is **not a complete control**, and it applies to the
+Thomas cluster scale as much as to the intensity surface.
+:::
+
+::: {.zh}
+有四种替代解释可以在**不存在火与火之间交互**的情况下产生观测到的结构,以下逐一
+按其实际分量评估。
+
+**1. 传感器假象。** 一片燃烧区域横跨若干 375 m 像元,看起来就像一个簇。*评估:*
+已由构造方式解决。像元-日单元剔除了同日重复过境,事件单元则完全剔除了空间范围;
+而 N2 结果在三种单元下完全一致(@sec-so-robustness),并且报告中任何低于约 500 m
+的结果都未被解读。
+
+**2. 遗漏的协变量。** 如果土地覆盖、泥炭深度或土地权属在数公里尺度上变化并驱动火,
+那么 M3 中的「聚集」其实是未建模的一阶变化。*评估:* **这一点无法排除,而且它是
+最严重的替代解释。** 它就是可识别性问题的应用版形态。N4 所确立的是*我们所测得的
+地理条件*无法解释该模式,而不是「没有任何地理条件能解释」。因此 Thomas 过程应被
+读作对一个数公里相关结构的紧凑**描述**,而不是点火在物理上传播的证据。
+
+**3. 跨日阴燃。** 泥炭火会烧数天,因此同一位置在连续几天复现,就会在没有新点火的
+情况下造成时空依赖。*评估:* 真实存在且在量上相关,
+`r sprintf("%.0f%%", 100*mean(persist$n_days > 1))` 的像元被探测到超过一天
+(@sec-typeflag)。它会抬高滞后 ≥ 1 的 Knox 结果,而用这些数据无法把它与蔓延分开。
+但它**无法**解释滞后 0 的超额(1 km 内同日为 `r sprintf("%.2f×", k00$ratio)`),
+因为那涉及的是**不同的位置**。
+
+**4. 相关的观测过程。** 云是成片放晴的,因此探测可能因为*探测本身*成簇而成簇。
+*评估:* 独立抽稀不改变对相关函数 [@baddeley2015],但云不是独立抽稀:一个数公里宽
+的云洞会伪装成一个数公里宽的火簇。三卫星比较提供了部分安慰(它们过境时刻不同,
+因此看到的是不同的云场)但这**不是完整的对照**,而且这一点对 Thomas 簇群尺度的
+威胁与对强度面的威胁同样大。
+:::
+
+## <span class="en">What would change these conclusions</span><span class="zh">什么会改变这些结论</span>
+
+::: {.en}
+- **A full season of data** would settle whether the September concentration is
+  persistent or episodic, and would give the N2 test far more power by allowing
+  intensity to be estimated from a longer record than the one being tested.
+  This is a one-line change to the acquisition call.
+- **Peat depth, water-table and land-cover data** would test alternative 2
+  directly, and would convert the canal proximity proxy into a measured
+  mechanism.
+- **A cloud-mask time series** would let the observation process be modelled as
+  a known thinning rather than treated as an unquantified bias, the single
+  largest improvement available to the first-order analysis, and the only way to
+  address alternative 4 properly.
+- **A directional second-order analysis** would test whether the clustering is
+  aligned with the canal grid, which the isotropic functions used here cannot
+  see.
+:::
+
+::: {.zh}
+- **一整个火季的数据**能够判定 9 月的这种集中是持续性的还是偶发性的,并且能让
+  强度从一段比被检验对象更长的记录中估计,从而大幅提升 N2 检验的检验力。这只需要
+  改动获取脚本调用的一行。
+- **泥炭深度、地下水位与土地覆盖数据**能够直接检验替代解释 2,并把「运河邻近度」
+  这个代理变量转化为一个被实际测量的机制。
+- **云掩膜时间序列**能让观测过程被建模为一个**已知的抽稀**,而不是被当作未量化的
+  偏差处理。这是一阶分析可获得的最大改进,也是正确处理替代解释 4 的唯一途径。
+- **方向性(各向异性)二阶分析**能检验聚集是否与运河格网对齐,而本报告所用的各向
+  同性函数看不到这一点。
+:::
