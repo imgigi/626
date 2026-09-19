@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-html/tabby.min.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-597958c53c93a607afca12fd375c57ed.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.8.26">
+
+  <meta name="author" content="Ji Guofang · ISSS626">
+  <meta name="dcterms.date" content="2026-09-12">
+  <title>ISSS626-GAA – Take-home Exercise 1 · Executive Summary</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="../../site_libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="../../site_libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../site_libs/revealjs/dist/theme/quarto-1ba167030714a74843f1227310b7d492.css">
+  <link href="../../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="../../site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="../../site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="../../site_libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <!-- Set the language attribute BEFORE the body paints, so a reader who chose
+       中文 does not see a flash of English first. The button and its handler
+       live in _include/lang-toggle.html, which is injected after the body. -->
+  <script>
+  (function () {
+    var l = "en";
+    try { l = localStorage.getItem("isss626-th1-lang") || "en"; } catch (e) {}
+    if (l !== "en" && l !== "zh") l = "en";
+    document.documentElement.setAttribute("data-lang", l);
+  })();
+  </script>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section data-background-color="#213b34" class="quarto-title-block">
+  <h1 class="title"><span class="en">Fire on Drained Peat</span><span class="zh">排水泥炭地上的火</span></h1>
+  <p class="subtitle"><span class="en">Spatial and spatio-temporal point pattern analysis of active-fire detections<br>Pulang Pisau Regency, Central Kalimantan · 4–11 September 2026</span><span class="zh">卫星活跃火点的空间与时空点模式分析<br>中加里曼丹 Pulang Pisau 县 · 2026 年 9 月 4–11 日</span></p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Ji Guofang · ISSS626 
+</div>
+</div>
+</div>
+
+  <p class="date">2026-09-12</p>
+</section>
+<section id="findings" class="slide level2">
+<h2><span class="en">Main findings</span><span class="zh">主要研究结果</span></h2>
+<div class="eyebrow">
+<p><span class="en">RESEARCH QUESTIONS, AND WHAT THEY RETURNED</span><span class="zh">研究问题,及其答案</span></p>
+</div>
+<div class="card-grid cols-3 t-xs">
+<div class="card card-quiet">
+<p><span class="lab"><span class="en">Q1 · First order, space</span><span class="zh">Q1 · 一阶,空间</span></span></p>
+<div class="en">
+<p><em>How does detection intensity vary across the regency, and is it associated with proximity to engineered drainage rather than to water in general?</em></p>
+</div>
+<div class="zh">
+<p><em>探测强度在全县如何变化?它是否与<strong>人工排水</strong>的邻近度相关,而不只是泛泛地「靠水」?</em></p>
+</div>
+</div>
+<div class="card card-quiet">
+<p><span class="lab"><span class="en">Q2 · Second order, space</span><span class="zh">Q2 · 二阶,空间</span></span></p>
+<div class="en">
+<p><em>Once the large-scale intensity gradient is accounted for, do the detections still show clustering, and over what range of distances?</em></p>
+</div>
+<div class="zh">
+<p><em>在扣除大尺度强度梯度之后,探测点是否仍表现出聚集?在什么距离尺度上?</em></p>
+</div>
+</div>
+<div class="card card-quiet">
+<p><span class="lab"><span class="en">Q3 · Second order, space–time</span><span class="zh">Q3 · 二阶,时空</span></span></p>
+<div class="en">
+<p><em>Are detections that are close in space also close in time, beyond what each margin alone implies?</em></p>
+</div>
+<div class="zh">
+<p><em>空间上靠近的探测点,在时间上是否也靠近?这种靠近的程度,是否超出两个边缘分布各自 所隐含的水平?</em></p>
+</div>
+</div>
+</div>
+<div class="kpi-row">
+<div class="kpi">
+<p><span class="kpi-val">~39×</span> <span class="kpi-lab"><span class="en">Peak-to-mean detection intensity</span><span class="zh">核密度峰值与全县平均值之比</span></span></p>
+</div>
+<div class="kpi kpi-water">
+<p><span class="kpi-val">2.1<span class="kpi-unit">&nbsp;km</span></span> <span class="kpi-lab"><span class="en">Estimated Thomas cluster scale</span><span class="zh">Thomas 模型估计聚集尺度</span></span></p>
+</div>
+<div class="kpi kpi-fire">
+<p><span class="kpi-val">1.52×</span> <span class="kpi-lab"><span class="en">Pair ratio: same day, within 1 km</span><span class="zh">同日、1 km 内观测/期望点对数</span></span></p>
+</div>
+</div>
+<div class="card-grid cols-3 t-xs">
+<div class="card">
+<p><span class="lab"><span class="en">Where</span><span class="zh">在哪里</span></span></p>
+<div class="en">
+<p>Detections sit <strong>closer to engineered canals</strong> and <strong>farther from natural rivers</strong> than random locations in the same window.</p>
+</div>
+<div class="zh">
+<p>相对同一窗口内的随机位置,火点<strong>更靠近人工运河</strong>,而<strong>相对远离天然河流</strong>。</p>
+</div>
+</div>
+<div class="card card-water">
+<p><span class="lab"><span class="en">How</span><span class="zh">怎样聚集</span></span></p>
+<div class="en">
+<p>Spatial clustering <strong>remains after adjustment</strong> for the measured distance covariates.</p>
+</div>
+<div class="zh">
+<p>在控制已测得的距离协变量之后,空间聚集<strong>依然存在</strong>。</p>
+</div>
+</div>
+<div class="card card-fire">
+<p><span class="lab"><span class="en">When</span><span class="zh">何时</span></span></p>
+<div class="en">
+<p>Same-day pairs are in <strong>excess relative to date permutation</strong>, and the excess is short-range.</p>
+</div>
+<div class="zh">
+<p>同日邻近点对数<strong>高于日期置换下的期望值</strong>,且这一超额是短程的。</p>
+</div>
+</div>
+</div>
+<div class="takeaway">
+<p><span class="lab"><span class="en">In one line</span><span class="zh">一句话</span></span></p>
+<div class="en">
+<p>The results indicate spatial heterogeneity tied to engineered drainage, local clustering that measured geography does not explain, and short-range space–time association.</p>
+</div>
+<div class="zh">
+<p>结果表明:存在与人工排水相关的空间异质性、已测得的地理条件无法解释的局部聚集, 以及短程的时空关联。</p>
+</div>
+</div>
+</section>
+<section id="study-area" class="slide level2">
+<h2><span class="en">Study area and data</span><span class="zh">研究区与数据</span></h2>
+<div class="eyebrow">
+<p><span class="en">01 · STUDY AREA AND DATA</span><span class="zh">01 · 研究区与数据</span></p>
+</div>
+<div class="columns">
+<div class="column" style="width:54%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home-ex1-slides_files/figure-revealjs/slide-context-1.png" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:46%;">
+<div class="kpi-row">
+<div class="kpi">
+<p><span class="kpi-val">3,101</span> <span class="kpi-lab"><span class="en">VIIRS 375 m active-fire detections</span><span class="zh">VIIRS 375 m 活跃火点探测</span></span></p>
+</div>
+<div class="kpi">
+<p><span class="kpi-val">8<span class="kpi-unit">&nbsp;days</span></span> <span class="kpi-lab"><span class="en">4–11 September 2026</span><span class="zh">2026 年 9 月 4–11 日</span></span></p>
+</div>
+</div>
+<div class="card t-xs">
+<p><span class="lab"><span class="en">Why this regency</span><span class="zh">为什么选这个县</span></span></p>
+<div class="en">
+<p>Pulang Pisau is peatland in Central Kalimantan carrying the drainage canals left by the Mega Rice Project. The window is the <strong>administrative unit that owns the response</strong>, not a hull drawn around the data.</p>
+</div>
+<div class="zh">
+<p>Pulang Pisau 位于中加里曼丹泥炭地区,境内分布着百万公顷稻米工程遗留的排水渠网。 研究窗口取<strong>承担应对责任的行政单元</strong>,而不是围绕数据画出的凸包。</p>
+</div>
+</div>
+<div class="card card-quiet t-xs">
+<p><span class="lab"><span class="en">Window</span><span class="zh">研究窗口</span></span></p>
+<div class="en">
+<p>9,759 km², EPSG:32749 (UTM 49S). The period is the full extent of the open FIRMS archive at the time of access.</p>
+</div>
+<div class="zh">
+<p>9,759 km²,EPSG:32749(UTM 49S)。时段为取数时 FIRMS 开放档案的 全部范围。</p>
+</div>
+</div>
+</div></div>
+</section>
+<section id="observation" class="slide level2">
+<h2><span class="en">A detection is not a fire</span><span class="zh">一次探测不是一场火</span></h2>
+<div class="eyebrow">
+<p><span class="en">02 · DATA PREPARATION</span><span class="zh">02 · 数据处理</span></p>
+</div>
+<div class="kpi-row">
+<div class="kpi">
+<p><span class="kpi-val">3,101</span> <span class="kpi-lab"><span class="en">Detections</span><span class="zh">探测次数</span></span></p>
+</div>
+<div class="kpi kpi-water">
+<p><span class="kpi-val">2,715</span> <span class="kpi-lab"><span class="en">Pixel-days · primary unit</span><span class="zh">像元-日 · 主分析单位</span></span></p>
+</div>
+<div class="kpi">
+<p><span class="kpi-val">241</span> <span class="kpi-lab"><span class="en">Merged events · sensitivity</span><span class="zh">合并事件 · 敏感性分析</span></span></p>
+</div>
+<div class="kpi">
+<p><span class="kpi-val">8.8%</span> <span class="kpi-lab"><span class="en">Pixel-days seen by all three VIIRS sensors</span><span class="zh">三个 VIIRS 传感器共同检出的像元-日</span></span></p>
+</div>
+</div>
+<!-- ===========================================================================
+     Logic diagram 3 of 3 - a detection is not a fire
+     Take-home Exercise 1 | ISSS626
+
+     The distinction the whole report is built on: what reaches the analysis is
+     the fire field multiplied by an observation process. Three fires are drawn
+     on the left with deliberately different fates - one seen repeatedly, one
+     seen once, one never seen - because that asymmetry is what makes daily
+     counts observation-driven and intensities lower bounds.
+
+     Canvas 1000 x 430. Shapes once, labels twice (.en / .zh); see the note at
+     the top of dg-pipeline.qmd.
+     =========================================================================== -->
+<div class="diagram">
+<svg viewbox="0 0 1000 430" role="img" aria-label="A detection is not a fire. The true fire field passes through an observation process - two overpasses a day, cloud and smoke, a 375 metre pixel, an algorithm threshold - before it becomes a table of detections. One fire yields four detections, another yields one, and a third under cloud yields none.">
+<defs> <marker id="obArrow" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="8" markerheight="8" orient="auto-start-reverse"> <path d="M 0 0 L 10 5 L 0 10 z" fill="#68736c"> </path> </marker> </defs> <g> <rect x="4" y="46" width="272" height="254" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="4" y="46" width="4" height="254" fill="#ad4d33"> </rect> <path d="M 44 108 C 74 76 154 72 200 100 C 246 128 244 200 206 238 C 168 276 82 272 54 234 C 26 196 22 138 44 108 Z" fill="#eacbb4" fill-opacity="0.45" stroke="#cf875d" stroke-width="1" stroke-dasharray="4 3"> </path> <circle cx="96" cy="128" r="14" fill="#ad4d33"> </circle> <circle cx="184" cy="196" r="10" fill="#cf875d"> </circle> <circle cx="108" cy="238" r="12" fill="#ad4d33"> </circle> <ellipse cx="112" cy="234" rx="46" ry="26" fill="#a9b0a6" fill-opacity="0.72"> </ellipse> <rect x="336" y="46" width="300" height="254" rx="4" fill="#fffefa" stroke="#287a80" stroke-width="1.2" stroke-dasharray="5 4"> </rect> <rect x="352" y="66" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8"> </rect> <rect x="352" y="124" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8"> </rect> <rect x="352" y="182" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8"> </rect> <rect x="352" y="240" width="268" height="50" rx="3" fill="#edf4f1" stroke="#287a80" stroke-width="0.8"> </rect> <rect x="696" y="46" width="300" height="254" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="696" y="46" width="4" height="254" fill="#68736c"> </rect> <g stroke="#d7dbd1" stroke-width="0.9" fill="#fffefa"> <rect x="722" y="76" width="42" height="42"> </rect> <rect x="766" y="76" width="42" height="42"> </rect> <rect x="810" y="76" width="42" height="42"> </rect> <rect x="854" y="76" width="42" height="42"> </rect> <rect x="898" y="76" width="42" height="42"> </rect> <rect x="722" y="120" width="42" height="42"> </rect> <rect x="766" y="120" width="42" height="42"> </rect> <rect x="810" y="120" width="42" height="42"> </rect> <rect x="854" y="120" width="42" height="42"> </rect> <rect x="898" y="120" width="42" height="42"> </rect> <rect x="722" y="164" width="42" height="42"> </rect> <rect x="766" y="164" width="42" height="42"> </rect> <rect x="810" y="164" width="42" height="42"> </rect> <rect x="854" y="164" width="42" height="42"> </rect> <rect x="898" y="164" width="42" height="42"> </rect> <rect x="722" y="208" width="42" height="42"> </rect> <rect x="766" y="208" width="42" height="42"> </rect> <rect x="810" y="208" width="42" height="42"> </rect> <rect x="854" y="208" width="42" height="42"> </rect> <rect x="898" y="208" width="42" height="42"> </rect> </g> <rect x="766" y="76" width="42" height="42" fill="#ad4d33" stroke="#ad4d33"> </rect> <rect x="810" y="76" width="42" height="42" fill="#ad4d33" stroke="#ad4d33"> </rect> <rect x="766" y="120" width="42" height="42" fill="#ad4d33" stroke="#ad4d33"> </rect> <rect x="810" y="120" width="42" height="42" fill="#ad4d33" stroke="#ad4d33"> </rect> <rect x="854" y="208" width="42" height="42" fill="#cf875d" stroke="#cf875d"> </rect> <line x1="282" y1="173" x2="330" y2="173" stroke="#68736c" stroke-width="1.8" marker-end="url(#obArrow)"> </line> <line x1="642" y1="173" x2="690" y2="173" stroke="#68736c" stroke-width="1.8" marker-end="url(#obArrow)"> </line> <circle cx="12" cy="352" r="7" fill="#ad4d33"> </circle> <circle cx="356" cy="352" r="7" fill="#cf875d"> </circle> <circle cx="654" cy="352" r="7" fill="#a9b0a6"> </circle> </g> <g class="en"> <text class="dg-step" x="20" y="30">01 · THE FIRE FIELD</text> <text class="dg-node-s" x="20" y="322">what is actually burning</text> <text class="dg-node-t" x="96" y="134" fill="#f4ebe0" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">A</text> <text class="dg-node-t" x="184" y="201" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">B</text> <text class="dg-node-t" x="108" y="244" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">C</text> <text class="dg-step" x="352" y="30">02 · THE OBSERVATION PROCESS</text> <text class="dg-node-t" x="366" y="88">Two overpasses a day</text> <text class="dg-node-s" x="366" y="107">not a continuous watch</text> <text class="dg-node-t" x="366" y="146">Cloud and smoke</text> <text class="dg-node-s" x="366" y="165">block the view entirely</text> <text class="dg-node-t" x="366" y="204">A 375 m pixel</text> <text class="dg-node-s" x="366" y="223">not a flame, not a perimeter</text> <text class="dg-node-t" x="366" y="262">Threshold and saturation</text> <text class="dg-node-s" x="366" y="281">“high confidence” = saturated</text> <text class="dg-step" x="712" y="30">03 · WHAT THE ANALYSIS SEES</text> <text class="dg-node-s" x="712" y="322">3,101 rows in a table</text> <text class="dg-node-s" x="28" y="359"> <tspan x="28" dy="0">Fire A · seen on several passes </tspan> <tspan x="28" dy="23">→ 4 detections. Intensity is inflated </tspan> <tspan x="28" dy="23">where the satellite looked more often.</tspan> </text> <text class="dg-node-s" x="372" y="359"> <tspan x="372" dy="0">Fire B · seen once </tspan> <tspan x="372" dy="23">→ 1 detection.</tspan> </text> <text class="dg-node-s" x="670" y="359"> <tspan x="670" dy="0">Fire C · under cloud </tspan> <tspan x="670" dy="23">→ 0 detections. Every intensity </tspan> <tspan x="670" dy="23">is a lower bound.</tspan> </text> </g> <g class="zh"> <text class="dg-step" x="20" y="30">01 · 真实火场</text> <text class="dg-node-s" x="20" y="322">实际在燃烧的东西</text> <text class="dg-node-t" x="96" y="134" fill="#f4ebe0" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">A</text> <text class="dg-node-t" x="184" y="201" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">B</text> <text class="dg-node-t" x="108" y="244" fill="#25332e" font-size="15" style="font-size:15px; font-weight:700; fill:#fffefa" text-anchor="middle">C</text> <text class="dg-step" x="352" y="30">02 · 观测过程</text> <text class="dg-node-t" x="366" y="88">每天两次过境</text> <text class="dg-node-s" x="366" y="107">不是连续监视</text> <text class="dg-node-t" x="366" y="146">云与烟</text> <text class="dg-node-s" x="366" y="165">会完全遮住视线</text> <text class="dg-node-t" x="366" y="204">一个 375 m 像元</text> <text class="dg-node-s" x="366" y="223">不是火焰,也不是火场边界</text> <text class="dg-node-t" x="366" y="262">阈值与饱和</text> <text class="dg-node-s" x="366" y="281">「高置信度」等于亮温饱和</text> <text class="dg-step" x="712" y="30">03 · 分析看到的东西</text> <text class="dg-node-s" x="712" y="322">表格里的 3,101 行</text> <text class="dg-node-s" x="28" y="359"> <tspan x="28" dy="0">火 A · 被多次过境看到 </tspan> <tspan x="28" dy="23">→ 4 条探测。卫星看得越勤的地方,</tspan> <tspan x="28" dy="23">强度就被抬得越高。</tspan> </text> <text class="dg-node-s" x="372" y="359"> <tspan x="372" dy="0">火 B · 只被看到一次 </tspan> <tspan x="372" dy="23">→ 1 条探测。</tspan> </text> <text class="dg-node-s" x="670" y="359"> <tspan x="670" dy="0">火 C · 在云下 → 0 条探测。</tspan> <tspan x="670" dy="23">所有强度都只是下界。</tspan> </text> </g>
+</svg>
+</div>
+<div class="takeaway takeaway-warn">
+<p><span class="lab"><span class="en">What this rules out</span><span class="zh">这排除了什么</span></span></p>
+<div class="en">
+<p>Daily counts are driven by overpass timing and cloud as much as by fire, so <strong>no trend claim is made</strong> and every intensity is a <strong>lower bound</strong>.</p>
+</div>
+<div class="zh">
+<p>逐日计数受过境时间与云层的影响不亚于受火情影响,因此<strong>全篇不作趋势论断</strong>, 而每一个强度都只是<strong>下界</strong>。</p>
+</div>
+</div>
+</section>
+<section id="methods" class="slide level2">
+<h2><span class="en">How the analysis is built</span><span class="zh">分析是怎么搭起来的</span></h2>
+<div class="eyebrow">
+<p><span class="en">03 · METHODS</span><span class="zh">03 · 分析方法</span></p>
+</div>
+<!-- ===========================================================================
+     Logic diagram 1 of 3 - the analysis pipeline
+     Take-home Exercise 1 | ISSS626
+
+     Authored on a 1000 x 410 canvas and scaled by `.diagram svg` in
+     slides.scss. Type sizes come from the `dg-*` classes there, so the three
+     diagrams share one scale.
+
+     Shapes are drawn once. The labels are drawn twice, as two sibling <g>
+     layers carrying .en and .zh, which the language switch shows and hides
+     exactly as it does for prose. Keeping the two text layers separate - and
+     the geometry out of both - is what stops a translation from moving a box.
+     =========================================================================== -->
+<div class="diagram">
+<svg viewbox="0 0 1000 410" role="img" aria-label="Analysis pipeline: data, quality and units, first order, second order, value added, and the impasse that sends the second-order stage back to a new null model.">
+<defs> <marker id="dgArrow" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="7" markerheight="7" orient="auto-start-reverse"> <path d="M 0 0 L 10 5 L 0 10 z" fill="#a9b0a6"> </path> </marker> <marker id="dgArrowFire" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="7" markerheight="7" orient="auto-start-reverse"> <path d="M 0 0 L 10 5 L 0 10 z" fill="#ad4d33"> </path> </marker> </defs> <g> <rect x="2" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="2" y="86" width="4" height="124" fill="#68736c"> </rect> <rect x="205" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="205" y="86" width="4" height="124" fill="#287a80"> </rect> <rect x="408" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="408" y="86" width="4" height="124" fill="#ad4d33"> </rect> <rect x="611" y="86" width="186" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="611" y="86" width="4" height="124" fill="#ad4d33"> </rect> <rect x="814" y="86" width="184" height="124" rx="4" fill="#f8f6f1" stroke="#dddcd3" stroke-width="1"> </rect> <rect x="814" y="86" width="4" height="124" fill="#608473"> </rect> <line x1="192" y1="138" x2="201" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)"> </line> <line x1="395" y1="138" x2="404" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)"> </line> <line x1="598" y1="138" x2="607" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)"> </line> <line x1="801" y1="138" x2="810" y2="138" stroke="#a9b0a6" stroke-width="1.6" marker-end="url(#dgArrow)"> </line> <rect x="205" y="14" width="186" height="46" rx="4" fill="#fffefa" stroke="#287a80" stroke-width="1" stroke-dasharray="4 3"> </rect> <line x1="298" y1="60" x2="298" y2="82" stroke="#287a80" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#dgArrow)"> </line> <path d="M 704 216 C 704 260 505 260 505 220" fill="none" stroke="#ad4d33" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#dgArrowFire)"> </path> <rect x="2" y="303" width="996" height="94" rx="4" fill="#f4ebe0" stroke="#ad4d33" stroke-width="1"> </rect> <rect x="2" y="303" width="5" height="94" fill="#ad4d33"> </rect> </g> <g class="en"> <text class="dg-step" x="18" y="112">01 · DATA</text> <text class="dg-node-t" x="18" y="140">3,101 detections</text> <text class="dg-node-s" x="18" y="163"> <tspan x="18" dy="0">VIIRS 375 m · </tspan> <tspan x="18" dy="18">4–11 Sep 2026</tspan> </text> <text class="dg-node-s" x="18" y="199">Pulang Pisau Regency</text> <text class="dg-step" x="221" y="112">02 · QA &amp; UNITS</text> <text class="dg-node-t" x="221" y="140">Three findings</text> <text class="dg-node-s" x="221" y="164">local time, sensor</text> <text class="dg-node-s" x="221" y="181"> <tspan x="221" dy="0">disagreement, </tspan> <tspan x="221" dy="18">saturation</tspan> </text> <text class="dg-step" x="424" y="112">03 · FIRST ORDER</text> <text class="dg-node-t" x="424" y="140">Where λ(u) varies</text> <text class="dg-node-s" x="424" y="164">~39× range; canals yes,</text> <text class="dg-node-s" x="424" y="182">rivers no</text> <text class="dg-step" x="627" y="112">04 · SECOND ORDER</text> <text class="dg-node-t" x="627" y="140">Null models</text> <text class="dg-node-s" x="627" y="164">CSR rejected but</text> <text class="dg-node-s" x="627" y="182">uninformative</text> <text class="dg-step" x="830" y="112">05 · VALUE ADDED</text> <text class="dg-node-t" x="830" y="140">A model that fits</text> <text class="dg-node-s" x="830" y="164">ppm rejected;</text> <text class="dg-node-s" x="830" y="182">Thomas kppm fits</text> <text class="dg-node-s" x="221" y="34" fill="#287a80">The satellite is part of</text> <text class="dg-node-s" x="221" y="52" fill="#287a80">the signal, not a window</text> <text class="dg-edge-t" x="604" y="279" text-anchor="middle" fill="#ad4d33">the impasse: the verdict tracked the null’s flexibility</text> <text class="dg-step" x="22" y="326">CONCLUSION</text> <text class="dg-node-t" x="22" y="354"> <tspan x="22" dy="0">Engineered drainage, not water · compact ~2.1 km clusters </tspan> <tspan x="22" dy="27">· genuine space–time interaction</tspan> </text> </g> <g class="zh"> <text class="dg-step" x="18" y="112">01 · 数据</text> <text class="dg-node-t" x="18" y="140">3,101 个探测</text> <text class="dg-node-s" x="18" y="163"> <tspan x="18" dy="0">VIIRS 375 m · </tspan> <tspan x="18" dy="18">2026-09-04 至 11</tspan> </text> <text class="dg-node-s" x="18" y="199">Pulang Pisau 县</text> <text class="dg-step" x="221" y="112">02 · 质量与单位</text> <text class="dg-node-t" x="221" y="140">三个发现</text> <text class="dg-node-s" x="221" y="163"> <tspan x="221" dy="0">本地时、传感器</tspan> <tspan x="221" dy="18">不一致、</tspan> </text> <text class="dg-node-s" x="221" y="199">亮温饱和</text> <text class="dg-step" x="424" y="112">03 · 一阶</text> <text class="dg-node-t" x="424" y="140">λ(u) 如何变化</text> <text class="dg-node-s" x="424" y="164">约 40 倍差异;近运河,</text> <text class="dg-node-s" x="424" y="182">远天然河流</text> <text class="dg-step" x="627" y="112">04 · 二阶</text> <text class="dg-node-t" x="627" y="140">零模型</text> <text class="dg-node-s" x="627" y="164">CSR 被拒绝,</text> <text class="dg-node-s" x="627" y="182">但没有信息量</text> <text class="dg-step" x="830" y="112">05 · 增值分析</text> <text class="dg-node-t" x="830" y="137"> <tspan x="830" dy="0">一个拟合得上</tspan> <tspan x="830" dy="22">的模型</tspan> </text> <text class="dg-node-s" x="830" y="181">ppm 被拒绝;</text> <text class="dg-node-s" x="830" y="199">Thomas kppm 拟合</text> <text class="dg-node-s" x="221" y="34" fill="#287a80">卫星是信号的一部分,</text> <text class="dg-node-s" x="221" y="52" fill="#287a80">不是一扇透明的窗</text> <text class="dg-edge-t" x="604" y="279" text-anchor="middle" fill="#ad4d33">僵局:判定追踪的是零模型的灵活度</text> <text class="dg-step" x="22" y="326">结论</text> <text class="dg-node-t" x="22" y="354"> <tspan x="22" dy="0">是人工排水,不是靠水 · 约 2.1 km 的紧凑簇群 </tspan> <tspan x="22" dy="27">· 真实的时空交互</tspan> </text> </g>
+</svg>
+</div>
+<div class="takeaway">
+<p><span class="lab"><span class="en">First order asks where; second order asks whether events interact</span><span class="zh">一阶问「在哪里」,二阶问「事件之间是否交互」</span></span></p>
+<div class="en">
+<p>In a single realisation the two are confounded. Every second-order statement below is therefore made <strong>relative to an explicit null model</strong>, never to a picture.</p>
+</div>
+<div class="zh">
+<p>在单次实现中,这两者是混淆的。因此下文每一项二阶论断,都是<strong>相对一个显式的零模型</strong> 作出的,不是相对一幅图。</p>
+</div>
+</div>
+</section>
+<section id="canals" class="slide level2">
+<h2><span class="en">Canals, not water</span><span class="zh">是运河,不是靠水</span></h2>
+<div class="eyebrow">
+<p><span class="en">04 · FIRST-ORDER RESULTS</span><span class="zh">04 · 一阶分析结果</span></p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home-ex1-slides_files/figure-revealjs/slide-canal-1.png" width="2790"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="columns t-xs">
+<div class="column" style="width:50%;">
+<div class="kpi-row">
+<div class="kpi">
+<p><span class="kpi-val">559<span class="kpi-unit">&nbsp;m</span></span> <span class="kpi-lab"><span class="en">Median distance to a canal, at detections</span><span class="zh">火点至运河的中位距离</span></span></p>
+</div>
+<div class="kpi kpi-water">
+<p><span class="kpi-val">1,119<span class="kpi-unit">&nbsp;m</span></span> <span class="kpi-lab"><span class="en">Same, at random locations</span><span class="zh">随机位置的同一距离</span></span></p>
+</div>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="card">
+<p><span class="lab"><span class="en">After multivariate adjustment</span><span class="zh">多变量调整之后</span></span></p>
+<div class="en">
+<p>Intensity falls <strong>×0.885 per km</strong> of distance from a canal and rises <strong>×1.196 per km</strong> from a river. The two run in opposite directions. That is what separates a <em>drainage</em> mechanism from simple proximity to water.</p>
+</div>
+<div class="zh">
+<p>每远离运河 1 km,强度变为原来的 <strong>0.885 倍</strong>;每远离河流 1 km,强度变为 <strong>1.196 倍</strong>。两者方向相反,正是这一点把 <strong>排水机制</strong>与泛泛的「靠水」区分开。</p>
+</div>
+</div>
+</div></div>
+</section>
+<section id="bandwidth" class="slide level2">
+<h2><span class="en">The bandwidth is the decision</span><span class="zh">带宽才是那个决策</span></h2>
+<div class="eyebrow">
+<p><span class="en">05 · SENSITIVITY ANALYSIS</span><span class="zh">05 · 敏感性分析</span></p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home-ex1-slides_files/figure-revealjs/slide-linhom-1.png" width="2790"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="card-grid cols-2 t-xs">
+<div class="card card-water">
+<p><span class="lab"><span class="en">Narrower bandwidth</span><span class="zh">较小带宽</span></span></p>
+<div class="en">
+<p>The estimated intensity keeps local variation, so the null already reproduces the clumping. Any further clustering then becomes <strong>harder to detect</strong>.</p>
+</div>
+<div class="zh">
+<p>估计强度保留了局部变化,零模型本身就能再现成团,因此额外的聚集<strong>更难被检出</strong>。</p>
+</div>
+</div>
+<div class="card card-fire">
+<p><span class="lab"><span class="en">Wider bandwidth</span><span class="zh">较大带宽</span></span></p>
+<div class="en">
+<p>The estimated intensity is smoother, and for <strong>the same data</strong> the <span class="math inline">\(p\)</span>-value falls: 0.093 → 0.080 → 0.020 → 0.003.</p>
+</div>
+<div class="zh">
+<p>估计强度更平滑,而在<strong>同一份数据</strong>下 <span class="math inline">\(p\)</span> 值随之下降: 0.093 → 0.080 → 0.020 → 0.003。</p>
+</div>
+</div>
+</div>
+<div class="takeaway takeaway-warn">
+<p><span class="lab"><span class="en">Why this matters</span><span class="zh">这为什么重要</span></span></p>
+<div class="en">
+<p>The verdict here tracks the null model, not the data. A non-significant result therefore <strong>cannot</strong> be read as evidence of no clustering. What the next slide changes is the <em>family</em> of null model, not its flexibility.</p>
+</div>
+<div class="zh">
+<p>由于判定追踪的是零模型而不是数据,这里的「不显著」<strong>不能</strong>读作「没有聚集」的证据。 下文换掉的是零模型的<strong>族</strong>,而不是它的灵活度,问题由此得到解决。</p>
+</div>
+</div>
+</section>
+<section id="models" class="slide level2">
+<h2><span class="en">A null model that can be falsified</span><span class="zh">一个可以被伪证的零模型</span></h2>
+<div class="eyebrow">
+<p><span class="en">06 · MODEL COMPARISON</span><span class="zh">06 · 模型比较</span></p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home-ex1-slides_files/figure-revealjs/slide-va-1.png" width="2790"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="model-details">
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span class="en">Model</span><span class="zh">模型</span></th>
+<th><span class="en">Test</span><span class="zh">检验</span></th>
+<th><span class="en">Reading</span><span class="zh">解释</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="en">Homogeneous Poisson</span><span class="zh">齐次泊松</span></td>
+<td><span class="en">rejected</span><span class="zh">拒绝</span></td>
+<td><span class="en">Departs from homogeneous randomness</span><span class="zh">不符合全域均匀随机</span></td>
+</tr>
+<tr class="even">
+<td><span class="en">Covariate Poisson</span><span class="zh">协变量泊松</span></td>
+<td><span class="math inline">\(p =\)</span> 0.003</td>
+<td><span class="en">Covariates do not explain all clustering</span><span class="zh">协变量不足以解释全部聚集</span></td>
+</tr>
+<tr class="odd">
+<td><span class="en">Thomas cluster process</span><span class="zh">Thomas 聚集过程</span></td>
+<td><span class="math inline">\(p =\)</span> 0.69</td>
+<td><span class="en">Not rejected by the available test</span><span class="zh">现有检验未拒绝</span></td>
+</tr>
+</tbody>
+</table>
+<div class="kpi-row">
+<div class="kpi kpi-water">
+<p><span class="kpi-val">2.1<span class="kpi-unit">&nbsp;km</span></span> <span class="kpi-lab"><span class="en">Estimated cluster scale</span><span class="zh">估计聚集尺度</span></span></p>
+</div>
+</div>
+<div class="card card-quiet t-xs">
+<p><span class="lab"><span class="en">What the scale is, and is not</span><span class="zh">这个尺度是什么、不是什么</span></span></p>
+<div class="en">
+<p>It describes the <strong>spatial scale of clustering</strong>. It is not a distance of fire spread, and the fitted parent count is the model’s accounting rather than a count of fires.</p>
+</div>
+<div class="zh">
+<p>它描述的是<strong>聚集的空间尺度</strong>,不是火势蔓延距离;拟合出的母点数量是模型的记账 方式,而不是火的计数。</p>
+</div>
+</div>
+</div>
+</section>
+<section id="space-time" class="slide level2">
+<h2><span class="en">Where and when are dependent</span><span class="zh">「哪里」与「何时」相互依赖</span></h2>
+<div class="eyebrow">
+<p><span class="en">07 · SPACE–TIME RESULTS</span><span class="zh">07 · 时空分析结果</span></p>
+</div>
+<div class="columns">
+<div class="column" style="width:58%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home-ex1-slides_files/figure-revealjs/slide-knox-1.png" width="1584"></p>
+</figure>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:42%;">
+<div class="kpi-row">
+<div class="kpi kpi-fire">
+<p><span class="kpi-val">1.52×</span> <span class="kpi-lab"><span class="en">Same day, within 1 km · observed / expected</span><span class="zh">同日、1 km 内 · 观测/期望</span></span></p>
+</div>
+</div>
+<div class="card t-xs">
+<p><span class="lab"><span class="en">The null used here</span><span class="zh">这里用的零模型</span></span></p>
+<div class="en">
+<p>199 random permutations of the <strong>date labels</strong>, holding both marginals fixed. It uses <strong>no bandwidth and no covariates</strong>, which is why it escapes the problem on the previous slide. The null is rejected at all nine space–time thresholds.</p>
+</div>
+<div class="zh">
+<p>对<strong>日期标签</strong>做 199 次随机置换,同时固定两个边缘分布。它<strong>不用带宽、 也不用协变量</strong>,这正是它能绕开上一页那个问题的原因。九组时空阈值下,零模型都被拒绝。</p>
+</div>
+</div>
+<div class="card card-quiet t-xs">
+<p><span class="lab"><span class="en">Caveat</span><span class="zh">保留</span></span></p>
+<div class="en">
+<p>The association may reflect an advancing fire front and multi-day smouldering, not contagion between separate ignitions.</p>
+</div>
+<div class="zh">
+<p>这一关联可能反映火线推进与多日阴燃,而非彼此独立的点火之间的传染。</p>
+</div>
+</div>
+</div></div>
+</section>
+<section id="implications" class="slide level2">
+<h2><span class="en">Implications for public-safety management</span><span class="zh">对公共安全管理的启示</span></h2>
+<div class="eyebrow">
+<p><span class="en">08 · DISCUSSION</span><span class="zh">08 · 讨论</span></p>
+</div>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span class="en">Finding</span><span class="zh">研究结果</span></th>
+<th><span class="en">Management implication</span><span class="zh">管理建议</span></th>
+<th><span class="en">What would have to be established first</span><span class="zh">仍需先行确认的内容</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="en">Concentration near engineered canals</span><span class="zh">火点集中于人工运河附近</span></td>
+<td><span class="en">Prioritise survey and patrol along the drainage network</span><span class="zh">优先沿渠网开展调查与巡查</span></td>
+<td><span class="en">Groundwater level and canal condition</span><span class="zh">地下水位与渠道状况</span></td>
+</tr>
+<tr class="even">
+<td><span class="en">Clustering at a few-kilometre scale</span><span class="zh">数公里尺度的空间聚集</span></td>
+<td><span class="en">Plan surveillance at local rather than regency scale</span><span class="zh">按局地尺度而非全县尺度安排监测</span></td>
+<td><span class="en">Whether the scale transfers to other regencies</span><span class="zh">该尺度能否推广到其他县</span></td>
+</tr>
+<tr class="odd">
+<td><span class="en">Association at short distance and short lag</span><span class="zh">短距离、短时间间隔上的关联</span></td>
+<td><span class="en">Concentrate short-term monitoring near recent detections</span><span class="zh">在近期火点附近集中短期监测</span></td>
+<td><span class="en">Separating persistence from new ignition</span><span class="zh">区分持续阴燃与新增点火</span></td>
+</tr>
+</tbody>
+</table>
+<div class="takeaway takeaway-warn">
+<p><span class="lab"><span class="en">The boundary of this evidence</span><span class="zh">这份证据的边界</span></span></p>
+<div class="en">
+<p>These are <strong>associations within one eight-day window</strong>, not causal effects. A full fire season, plus hydrological, land-cover and canal-condition data, would be required before any of the right-hand column could be settled.</p>
+</div>
+<div class="zh">
+<p>以上是<strong>单一八天窗口内的关联</strong>,不是因果效应。要确定右栏中的任何一项,都需要覆盖 完整火季,并纳入水文、土地覆盖与渠道状况数据。</p>
+</div>
+</div>
+</section>
+<section id="conclusions" class="slide level2">
+<h2><span class="en">Conclusions</span><span class="zh">结论</span></h2>
+<div class="eyebrow">
+<p><span class="en">CONCLUSIONS</span><span class="zh">研究结论</span></p>
+</div>
+<div class="card-grid cols-3">
+<div class="card">
+<p><span class="lab"><span class="en">What the analysis shows</span><span class="zh">分析显示了什么</span></span></p>
+<div class="en">
+<p>Detection intensity varies about 39-fold across the regency, concentrating near engineered drainage and away from natural rivers.</p>
+</div>
+<div class="zh">
+<p>探测强度在全县范围内变化约 39 倍,集中于人工排水 附近,并相对远离天然河流。</p>
+</div>
+</div>
+<div class="card card-water">
+<p><span class="lab"><span class="en">What survives the null models</span><span class="zh">哪些结论经得起零模型检验</span></span></p>
+<div class="en">
+<p>Clustering at roughly 2.1 km is <strong>not explained</strong> by the measured geography, and space and time are <strong>dependent</strong> at short range.</p>
+</div>
+<div class="zh">
+<p>约 2.1 km 尺度的聚集<strong>无法</strong>由已测得的地理 条件解释,而空间与时间在短程上是<strong>相互依赖</strong>的。</p>
+</div>
+</div>
+<div class="card card-fire">
+<p><span class="lab"><span class="en">What it cannot bear</span><span class="zh">它承担不了什么</span></span></p>
+<div class="en">
+<p>No trend claim, no causal claim, and no count of distinct fires. The window is eight days and the detections are an observation process, not the fire field.</p>
+</div>
+<div class="zh">
+<p>不作趋势论断、不作因果论断,也不给出不同火场的计数。窗口只有八天,而探测记录是 一个<strong>观测过程</strong>,不是火场本身。</p>
+</div>
+</div>
+</div>
+<div class="takeaway">
+<p><span class="lab"><span class="en">For planning</span><span class="zh">对规划而言</span></span></p>
+<div class="en">
+<p>The evidence supports <strong>where to look and how often</strong>, at local scale, along the drainage network. It does not support attributing cause, and it does not support forecasting beyond the observed window.</p>
+</div>
+<div class="zh">
+<p>这份证据支持在局地尺度上、沿渠网决定<strong>去哪里看、多久看一次</strong>;它明确<strong>不</strong>支持 归因,也不支持把预测外推到观测窗口之外。</p>
+</div>
+</div>
+
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p><span class="en">ISSS626 · Take-home Exercise 1 · Pulang Pisau active-fire point patterns</span><span class="zh">ISSS626 · 课后作业一 · Pulang Pisau 活跃火点模式</span></p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="../../site_libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="../../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="../../site_libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="../../site_libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="../../site_libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="../../site_libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="../../site_libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="../../site_libs/revealjs/plugin/search/search.js"></script>
+  <script src="../../site_libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="../../site_libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': false,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'fade',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'fast',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1500,
+
+        height: 900,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 3.5e-2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <!-- =====================================================================
+         Language toggle (EN / 中文)
+         Take-home Exercise 1 | ISSS626
+
+         Both language versions of every prose block are present in the HTML;
+         this switch only changes which one is displayed, so switching is
+         instant and needs no server and no second render.
+
+         The choice is stored in localStorage under one key shared by the
+         technical report and the executive summary, so moving between the two
+         documents keeps the selected language.
+
+         Three things are NOT handled by the .en / .zh markup and are handled
+         here instead:
+
+           1. Placement. On the technical report the site navbar is fixed to the
+              top of the viewport, so a `position: fixed` switch would sit on top
+              of it. The switch is therefore moved into the navbar's own tool
+              slot (`.quarto-navbar-tools`), which is a sibling of the collapsing
+              menu and so stays visible at every width. On the slides there is no
+              navbar and the switch stays fixed in the corner.
+
+           2. Template chrome. Strings such as the table-of-contents heading and
+              the "Author" / "Published" labels are emitted by Quarto's template,
+              not by the document body, so no .en / .zh span can reach them. They
+              are swapped from the DICT table below.
+
+           3. Figures keep their English titles and axis labels: that text is
+              drawn into the PNG by R at render time.
+         ===================================================================== -->
+
+    <div class="lang-switch" role="group" aria-label="Language / 语言">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+    </div>
+
+    <script>
+    (function () {
+      var KEY = "isss626-th1-lang";
+      var VALID = { en: 1, zh: 1 };
+
+      // ---- 1. Move the switch into the navbar, where one exists ---------------
+      // Done before the first apply() so the switch never paints in the wrong
+      // place. `.quarto-navbar-tools` is a sibling of `#navbarCollapse`, not a
+      // child, so the switch is not swallowed by the mobile hamburger.
+      var sw = document.querySelector(".lang-switch");
+      var tools = document.querySelector("#quarto-header .quarto-navbar-tools");
+      if (sw && tools) {
+        tools.appendChild(sw);
+        sw.classList.add("in-navbar");
+      }
+
+      // ---- 2. Template chrome -------------------------------------------------
+      // Quarto writes these strings itself. Each entry is keyed by the English
+      // the template produces; the original is cached on first pass so that
+      // switching back to English restores it exactly.
+      var DICT = {
+        "Contents": "目录",
+        "Table of contents": "目录",
+        "Author": "作者",
+        "Authors": "作者",
+        "Published": "发布日期",
+        "Modified": "最后修改",
+        "Code": "代码",
+        "Show All Code": "展开全部代码",
+        "Hide All Code": "折叠全部代码",
+        "View Source": "查看源文件",
+        "Full Screen": "全屏",
+        "Close": "关闭",
+        "Note": "注",
+        "Tip": "提示",
+        "Warning": "注意",
+        "Important": "要点",
+        "Caution": "当心",
+        // Navbar. Most pages on this site are English-only in the body, so without
+        // these the switch would be present everywhere and do nothing on nine of
+        // the eleven pages. Translating the site chrome makes it meaningful on all
+        // of them, and keeps the chosen language visible while browsing.
+        "Home": "首页",
+        "About": "关于",
+        "Hands-on Exercise": "课堂练习",
+        "In-class Exercise": "堂上练习",
+        "Take-home Exercise": "课后作业",
+        "Search": "搜索",
+        "ISSS626-GAA": "ISSS626-GAA"
+      };
+
+      var CHROME_SEL = [
+        "#toc-title",
+        "nav[role=doc-toc] > h2",
+        ".quarto-title-meta-heading",
+        ".code-tools-button",
+        "#quarto-code-tools-menu",
+        ".dropdown-menu .dropdown-item",
+        ".callout-title-container",
+        ".callout-caption",
+        "#quarto-header .navbar .menu-text",
+        "#quarto-header .navbar .dropdown-item",
+        "#quarto-search .aa-DetachedSearchButtonPlaceholder",
+        "#quarto-search [title]"
+      ].join(",");
+
+      // Text nodes are collected once. Holding the nodes themselves (rather than
+      // re-querying) keeps the swap independent of how Quarto nests the labels,
+      // and avoids touching any markup inside them, such as the Bootstrap icon
+      // in the code-tools button.
+      var chrome = null;
+      function collectChrome() {
+        var out = [];
+        var hosts = document.querySelectorAll(CHROME_SEL);
+        for (var i = 0; i < hosts.length; i++) {
+          var walker = document.createTreeWalker(hosts[i], NodeFilter.SHOW_TEXT, null);
+          var n;
+          while ((n = walker.nextNode())) {
+            var t = n.nodeValue.trim();
+            if (DICT[t]) out.push({ node: n, en: n.nodeValue, zh: n.nodeValue.replace(t, DICT[t]) });
+          }
+        }
+        return out;
+      }
+
+      function applyChrome(lang) {
+        if (chrome === null) chrome = collectChrome();
+        for (var i = 0; i < chrome.length; i++) {
+          chrome[i].node.nodeValue = lang === "zh" ? chrome[i].zh : chrome[i].en;
+        }
+      }
+
+      // ---- 3. The switch itself ----------------------------------------------
+      function apply(lang, persist) {
+        if (!VALID[lang]) lang = "en";
+        document.documentElement.setAttribute("data-lang", lang);
+        document.documentElement.setAttribute("lang", lang === "zh" ? "zh-Hans" : "en");
+        if (persist) {
+          try { localStorage.setItem(KEY, lang); } catch (e) { /* private mode */ }
+        }
+        applyChrome(lang);
+        var btns = document.querySelectorAll(".lang-switch button");
+        for (var i = 0; i < btns.length; i++) {
+          var on = btns[i].getAttribute("data-lang") === lang;
+          btns[i].classList.toggle("active", on);
+          btns[i].setAttribute("aria-pressed", on ? "true" : "false");
+        }
+        // Reveal.js lays slides out once on load; a language change alters
+        // block heights, so ask it to re-measure if it is present.
+        if (window.Reveal && typeof window.Reveal.layout === "function") {
+          window.Reveal.layout();
+        }
+      }
+
+      var saved = "en";
+      try { saved = localStorage.getItem(KEY) || "en"; } catch (e) { /* ignore */ }
+
+      document.addEventListener("click", function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest(".lang-switch button") : null;
+        if (b) { ev.preventDefault(); apply(b.getAttribute("data-lang"), true); }
+      });
+
+      // Keyboard shortcut: Alt+L cycles the language.
+      document.addEventListener("keydown", function (ev) {
+        if (ev.altKey && (ev.key === "l" || ev.key === "L")) {
+          apply(document.documentElement.getAttribute("data-lang") === "zh" ? "en" : "zh", true);
+        }
+      });
+
+      apply(saved, false);
+
+      // The code-tools dropdown items exist from the start, but the callout
+      // labels of any lazily-rendered block may not. One re-collect after load
+      // is cheap insurance and keeps the swap correct.
+      window.addEventListener("load", function () {
+        chrome = null;
+        applyChrome(document.documentElement.getAttribute("data-lang"));
+      });
+    })();
+    </script>
+    
+
+    <script>
+
+      // htmlwidgets need to know to resize themselves when slides are shown/hidden.
+
+      // Fire the "slideenter" event (handled by htmlwidgets.js) when the current
+
+      // slide changes (different for each slide format).
+
+      (function () {
+
+        // dispatch for htmlwidgets
+
+        function fireSlideEnter() {
+
+          const event = window.document.createEvent("Event");
+
+          event.initEvent("slideenter", true, true);
+
+          window.document.dispatchEvent(event);
+
+        }
+
+    
+
+        function fireSlideChanged(previousSlide, currentSlide) {
+
+          fireSlideEnter();
+
+    
+
+          // dispatch for shiny
+
+          if (window.jQuery) {
+
+            if (previousSlide) {
+
+              window.jQuery(previousSlide).trigger("hidden");
+
+            }
+
+            if (currentSlide) {
+
+              window.jQuery(currentSlide).trigger("shown");
+
+            }
+
+          }
+
+        }
+
+    
+
+        // hookup for slidy
+
+        if (window.w3c_slidy) {
+
+          window.w3c_slidy.add_observer(function (slide_num) {
+
+            // slide_num starts at position 1
+
+            fireSlideChanged(null, w3c_slidy.slides[slide_num - 1]);
+
+          });
+
+        }
+
+    
+
+      })();
+
+    </script>
+
+    
+
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+                // target, if specified
+                link.setAttribute("target", "_blank");
+                if (link.getAttribute("rel") === null) {
+                  link.setAttribute("rel", "noopener");
+                }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>

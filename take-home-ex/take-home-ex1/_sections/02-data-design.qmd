@@ -1,0 +1,399 @@
+# <span class="en">Data and study design</span><span class="zh">数据与研究设计</span> {#sec-data}
+
+## <span class="en">Data sources</span><span class="zh">数据来源</span>
+
+```{r}
+#| label: tbl-sources
+#| tbl-cap: "<span class='en'>Datasets used, with provenance and the role each plays in the analysis.</span><span class='zh'>所用数据集、来源出处,以及各自在分析中承担的角色。</span>"
+
+tibble::tribble(
+  ~Dataset, ~Source, ~Coverage, ~Accessed, ~Role,
+  "VIIRS S-NPP 375 m active fire (VNP14IMGTDL, NRT)",
+  "NASA FIRMS / LANCE",
+  "South-East Asia regional extract; 4–11 Sep 2026",
+  "12 Sep 2026",
+  "**Primary point pattern**",
+
+  "VIIRS NOAA-20 and NOAA-21 375 m active fire (NRT)",
+  "NASA FIRMS / LANCE",
+  "same window",
+  "12 Sep 2026",
+  "Independent replication of the observation process",
+
+  "MODIS Terra/Aqua 1 km active fire (C6.1, NRT)",
+  "NASA FIRMS / LANCE",
+  "same window",
+  "12 Sep 2026",
+  "Coarse-resolution cross-check",
+
+  "Indonesia subnational boundaries, admin levels 1–3 (COD-AB v01)",
+  "Badan Pusat Statistik / UN OCHA, via HDX",
+  "National; boundaries valid from 1 Apr 2020, file published 23 Jun 2026",
+  "12 Sep 2026",
+  "**Study window** (ADM2) and reporting units (ADM3)",
+
+  "geoBoundaries gbOpen IDN ADM2",
+  "William & Mary geoLab",
+  "National",
+  "12 Sep 2026",
+  "Independent cross-check of the study-window geometry",
+
+  "OpenStreetMap: waterway=canal/drain/ditch, waterway=river/stream, highway=*, place=*",
+  "OpenStreetMap contributors (Overpass API), ODbL 1.0",
+  "Study bounding box",
+  "12 Sep 2026",
+  "Spatial covariates and cartographic reference"
+) |>
+  gt::gt() |>
+  gt::fmt_markdown(columns = c(Dataset, Role)) |>
+  gt::cols_width(Dataset ~ gt::pct(26), Source ~ gt::pct(18),
+                 Coverage ~ gt::pct(22), Accessed ~ gt::pct(10),
+                 Role ~ gt::pct(24)) |>
+  gt::tab_options(table.font.size = gt::pct(82),
+                  data_row.padding = gt::px(5))
+```
+
+::: {.en}
+Two acquisition routes are implemented, and both are in the repository.
+`scripts/01_download_firms.R` uses the authenticated FIRMS *Area API*, which
+supports arbitrary date ranges and returns the science-quality Standard
+Processing products; `scripts/01b_assemble_public7d.R` uses the open 7-day
+regional CSVs, which need no credentials. Everything downstream is identical.
+**The results in this report were produced from the open 7-day route**, so the
+temporal window is the eight local days from `r format(DATE_MIN, "%d %B")` to
+`r format(DATE_MAX, "%d %B %Y")`, and the products are Near Real-Time. The
+consequences of that choice are stated wherever they matter, most
+importantly in @sec-typeflag, because the NRT product omits the `type` flag
+that identifies static non-vegetation heat sources.
+:::
+
+::: {.zh}
+仓库中实现了两条数据获取路径。`scripts/01_download_firms.R` 使用需认证的 FIRMS
+*Area API*,支持任意日期范围并返回科学质量的标准处理(SP)产品;
+`scripts/01b_assemble_public7d.R` 使用无需凭据的开放 7 日区域 CSV。两条路径的
+下游处理完全一致。**本报告结果来自开放 7 日路径**,因此时间窗口为八个当地日
+(`r format(DATE_MIN, "%Y-%m-%d")` 至 `r format(DATE_MAX, "%Y-%m-%d")`),
+产品为近实时(NRT)。这一选择的后果会在相关处逐一说明,最重要的是
+@sec-typeflag,因为 NRT 产品缺少用于识别静态非植被热源的 `type` 标记。
+:::
+
+## <span class="en">Study area</span><span class="zh">研究区</span>
+
+```{r}
+#| label: fig-studyarea
+#| fig-cap: "<span class='en'>Study area. Left: Pulang Pisau Regency within Kalimantan, with all VIIRS S-NPP detections recorded across the island in the same eight days. Right: the regency, its eight kecamatan, and the drainage geography that motivates the analysis.</span><span class='zh'>研究区。左:Pulang Pisau 县在加里曼丹岛中的位置,叠加同一八天内全岛的 VIIRS S-NPP 探测点。右:该县、其八个区(kecamatan),以及引出本研究问题的排水地理格局。</span>"
+#| fig-alt: "Study area. Left: Pulang Pisau Regency within Kalimantan, with all VIIRS S-NPP detections recorded across the island in the same eight days. Right: the regency, its eight kecamatan, and the drainage geography that motivates the analysis."
+#| fig-width: 11
+#| fig-height: 8.2
+
+kal_prov <- readRDS(file.path(DER, "kal_prov.rds"))
+kal_fire <- readRDS(file.path(DER, "kal_fires_context.rds"))
+
+# --- Left panel: island context ---------------------------------------------
+# Showing island-wide detections makes the case for the site selection visible
+# rather than asserted: Pulang Pisau is one of the densest parts of a very
+# active island in this particular week.
+m_ctx <- ggplot() +
+  geom_sf(data = kal_prov, fill = "#f5f5f4", colour = "white", linewidth = 0.3) +
+  geom_sf(data = kal_fire, colour = PAL$fire_l, size = 0.10, alpha = 0.35) +
+  geom_sf(data = bnd, fill = NA, colour = PAL$fire, linewidth = 0.8) +
+  annotate("text", x = sf::st_coordinates(sf::st_centroid(bnd))[1],
+           y = sf::st_bbox(bnd)["ymin"] - 55000, label = "Pulang Pisau",
+           size = 3.1, fontface = "bold", colour = "#1c1917") +
+  ggspatial::annotation_scale(location = "br", height = unit(0.12, "cm"),
+                              text_cex = 0.55, line_width = 0.4) +
+  labs(title = "Kalimantan, 4–11 September 2026",
+       subtitle = paste0(n_fmt(nrow(kal_fire)),
+                         " VIIRS S-NPP detections (low-confidence excluded)")) +
+  theme_map(11) + theme(legend.position = "none")
+
+# --- Right panel: the regency itself ----------------------------------------
+m_area <- ggplot() +
+  geom_sf(data = bnd, fill = "#fafaf9", colour = NA) +
+  geom_sf(data = osm$canal, colour = PAL$water, linewidth = 0.12, alpha = 0.5) +
+  geom_sf(data = osm$river, colour = "#155e75", linewidth = 0.42) +
+  geom_sf(data = kec, fill = NA, colour = "#a8a29e", linewidth = 0.3,
+          linetype = "22") +
+  geom_sf(data = bnd, fill = NA, colour = "#1c1917", linewidth = 0.6) +
+  geom_sf(data = osm$settle, shape = 21, fill = "white", colour = "#1c1917",
+          size = 0.75, stroke = 0.3) +
+  ggrepel::geom_text_repel(
+    data = sf::st_point_on_surface(kec),
+    aes(geometry = geometry, label = adm3_name), stat = "sf_coordinates",
+    size = 2.5, fontface = "bold", colour = "#1c1917",
+    bg.color = "white", bg.r = 0.14, min.segment.length = 0.4,
+    segment.size = 0.25, seed = 7) +
+  ggspatial::annotation_scale(location = "br", height = unit(0.12, "cm"),
+                              text_cex = 0.55, line_width = 0.4) +
+  ggspatial::annotation_north_arrow(
+    location = "tr", height = unit(0.7, "cm"), width = unit(0.7, "cm"),
+    style = ggspatial::north_arrow_minimal(text_size = 6)) +
+  labs(title = "Pulang Pisau Regency",
+       subtitle = paste0("Thin blue: ", n_fmt(nrow(osm$canal)),
+                         " canal/drain/ditch segments · thick blue: natural rivers\n",
+                         "Dashed: kecamatan boundaries · circles: settlements")) +
+  theme_map(11) + theme(legend.position = "none")
+
+m_ctx + m_area + patchwork::plot_layout(widths = c(0.47, 0.53))
+```
+
+::: {.interp .en}
+**Across the island.** Kalimantan burned widely in this week (`r n_fmt(nrow(kal_fire))` S-NPP detections island-wide), but activity is
+patchy, and Pulang Pisau sits inside one of the densest southern clusters.
+Within the regency, the canal network (thin blue) is dense in the centre and
+south and sparse in the forested north, while natural rivers (thick blue) run
+broadly north–south. Settlements are few and align with the rivers and the
+canal grid. The visual expectation this sets up (that fire should follow the
+canal grid rather than the rivers) is tested formally in @sec-fo-covariates
+and should not be read off this map, which shows infrastructure, not fire.
+*One limit:* OSM completeness is uneven and is likely better near settlements,
+which could by itself produce an apparent canal–fire association.
+:::
+
+::: {.interp .zh}
+**放到全岛看。** 本周加里曼丹全岛普遍过火(全岛
+`r n_fmt(nrow(kal_fire))` 个 S-NPP 探测点)但活动呈斑块状,而 Pulang Pisau
+正位于南部最密集的簇群之一。县内运河网络(细蓝线)在中部与南部密集、在北部林区
+稀疏;天然河流(粗蓝线)大致南北走向。居民点数量不多,沿河流与运河格网分布。
+本图建立的视觉预期(火应跟随运河格网而非河流)将在 @sec-fo-covariates 中
+正式检验,**不应**直接从本图读出结论:本图显示的是基础设施,不是火。
+*一点限度:* OSM 完备性并不均匀,在居民点附近很可能更好,仅此一点就足以造成
+「运河, 火」关联的假象。
+:::
+
+## <span class="en">What counts as a point event</span><span class="zh">什么算一个点事件</span> {#sec-event-def}
+
+::: {.en}
+This is the single most consequential definitional decision in the study, and
+it has no unique right answer.
+
+A FIRMS record is one **pixel-overpass**: the algorithm flagged a 375 m pixel as
+containing active fire during one satellite pass [@schroeder2014]. Treating each
+record as a point event therefore builds three kinds of duplication into the
+pattern:
+
+1. **Spatial duplication**, a single burning area spans several adjacent
+   pixels, all of which are flagged.
+2. **Temporal duplication within a day**, S-NPP passes roughly twice daily, so
+   a fire burning for a full day can be flagged twice at the same location.
+3. **Multi-day persistence**, peat fires smoulder for days or weeks, and the
+   same pixel recurs.
+
+Only the third of these is a property of fire. The first two are properties of
+the sensor. Because they operate at scales (375 m; 0 m) *below* the scales at
+which any substantive question is posed, they would inflate exactly the
+small-distance clustering that a second-order analysis is designed to detect.
+
+Three analysis units are therefore constructed, and every second-order result
+is reported for all three.
+:::
+
+::: {.zh}
+这是全研究中最具决定性影响的定义性抉择,而且它没有唯一正确的答案。
+
+一条 FIRMS 记录是一次**像元-过境**:算法在某次卫星过境时把一个 375 m 像元标记为
+含有活跃火 [@schroeder2014]。因此,若把每条记录都当作一个点事件,就会把三种重复
+性内建进模式:
+
+1. **空间重复**,一片燃烧区域横跨若干相邻像元,这些像元全部被标记。
+2. **日内时间重复**,S-NPP 每天约过境两次,因此烧了一整天的火可能在同一位置被
+   标记两次。
+3. **跨日持续**,泥炭火会阴燃数天甚至数周,同一像元反复出现。
+
+其中只有第三种是**火**的性质,前两种是**传感器**的性质。由于它们作用的尺度
+(375 m;0 m)**低于**任何实质性问题所设定的尺度,它们恰恰会放大二阶分析本就要
+检测的小距离聚集。
+
+因此构建三种分析单元,且每一项二阶结果都对三者分别报告。
+:::
+
+```{r}
+#| label: tbl-units
+#| tbl-cap: "<span class='en'>The three analysis units. The pixel-day unit is used for all headline results.</span><span class='zh'>三种分析单元。所有主要结果均采用「像元-日」单元。</span>"
+
+tibble::tibble(
+  Unit = c("**Detection**", "**Pixel-day** *(primary)*", "**Event**"),
+  Definition = c(
+    "Every retained record: one 375 m pixel in one overpass.",
+    "One point per unique 375 m grid cell per **local** calendar day; among duplicates the highest-FRP record is kept.",
+    "Single-linkage cluster of pixel-days within 750 m *and* 1 day of one another, reduced to its centroid."),
+  n = c(N_DET, N_PX, N_EV),
+  Removes = c(
+    "nothing",
+    "same-day repeat overpasses of one pixel",
+    "spatial extent and multi-day persistence of one burning area"),
+  Interprets_as = c(
+    "detection intensity, closest to the raw observation",
+    "daily fire-affected pixel, the compromise used throughout",
+    "approximate distinct fire event, i.e. nearest to *ignitions*")
+) |>
+  gt::gt() |>
+  gt::cols_label(Interprets_as = "Interpreted as") |>
+  gt::fmt_markdown(columns = c(Unit)) |>
+  gt::fmt_number(columns = n, decimals = 0) |>
+  gt::tab_options(table.font.size = gt::pct(84),
+                  data_row.padding = gt::px(6))
+```
+
+::: {.en}
+The pixel-day unit is primary because it removes the duplication that is purely
+instrumental (repeat overpasses) without discarding the duplication that is
+substantively meaningful (a pixel that burns on several successive days is
+genuinely burning on several successive days). The event unit is the most
+appealing conceptually, but @sec-so-robustness shows that at this fire density
+single-linkage chaining merges much of the landscape into one component, so it
+is used for robustness rather than for headline results.
+:::
+
+::: {.zh}
+之所以以「像元-日」为主单元,是因为它剔除了纯属仪器性的重复(重复过境),同时
+保留了实质上有意义的重复(某像元连续几天燃烧,就是真的连续几天在烧)。「事件」
+单元在概念上最有吸引力,但 @sec-so-robustness 表明:在本例的火密度下,单连接
+链式合并会把大片景观并成一个连通分量,因此该单元仅用于稳健性检验,而非主要结果。
+:::
+
+## <span class="en">Spatial study window</span><span class="zh">空间研究窗口</span> {#sec-window}
+
+::: {.en}
+The window is **Pulang Pisau Regency** as delineated in the official COD-AB
+ADM2 layer [@codab2026], projected to EPSG:32749.
+:::
+
+::: {.zh}
+研究窗口为官方 COD-AB ADM2 图层 [@codab2026] 界定的 **Pulang Pisau 县**,
+投影至 EPSG:32749。
+:::
+
+```{r}
+#| label: window-numbers
+#| echo: false
+gb <- readRDS(file.path(DER, "kal_adm2.rds")) |>
+  dplyr::filter(shapeName == "Pulang Pisau") |> sf::st_transform(P$crs_proj)
+area_gb <- as.numeric(sf::st_area(gb)) / 1e6
+area_attr <- readRDS(file.path(DER, "pp_adm2_cod.rds"))$area_sqkm[1]
+```
+
+::: {.en}
+Three choices need defending.
+
+**Why an administrative boundary at all?** A point process must be analysed
+inside a window that is defined independently of the points; otherwise edge
+effects and intensity estimates are conditioned on the data. Candidate windows
+were a regency boundary, a peat-hydrological unit, and a convex or concave hull
+of the detections. The hull is disqualified outright. It is defined by the
+data. A hydrological unit would be scientifically preferable, since the process
+is hydrological, but it does not correspond to any administrative mandate. The
+regency is chosen because **it is the unit that owns the response**: fire
+suppression, land-use permitting and village-level prevention budgets are
+administered at regency and kecamatan level, so findings expressed on this
+window are directly actionable. The cost is that the boundary is arbitrary with
+respect to the fire process, and @sec-so-robustness tests the consequence.
+:::
+
+::: {.zh}
+有三项选择需要论证。
+
+**为什么要用行政边界?** 点过程必须在一个**独立于点本身**定义的窗口内分析,否则
+边界效应与强度估计都会被数据所条件化。候选窗口有三种:县界、泥炭水文单元,以及
+探测点的凸包/凹包。凸包直接被排除。它是由数据定义的。水文单元在科学上更可取
+(该过程本身就是水文性的),但它不对应任何行政职责。最终选择县界,因为**它是
+承担应对责任的单元**:灭火、土地利用许可与村级预防预算都在县与区(kecamatan)
+层级管理,因此在这一窗口上表述的发现可以直接落地。代价是该边界相对于火灾过程是
+任意的,@sec-so-robustness 检验了这一代价的后果。
+:::
+
+::: {.en}
+**Why the official COD-AB layer?** It is sourced from Badan Pusat Statistik and
+carries a stated validity date (boundaries valid from 1 April 2020), a version,
+and kecamatan-level nesting. The independently produced geoBoundaries ADM2
+polygon for the same regency gives an area of
+`r sprintf("%.1f", area_gb)` km² against
+`r sprintf("%.1f", AREA_KM2)` km² here (a difference of
+`r sprintf("%.2f%%", 100*abs(area_gb-AREA_KM2)/AREA_KM2)`), which is
+reassuring, and unsurprising, since both ultimately derive from the same BPS
+geometry.
+
+**What is the window's actual extent?** The polygon is a single part,
+topologically valid, with `r n_fmt(nrow(sf::st_coordinates(bnd)))` vertices.
+Its area is `r n_fmt(AREA_KM2)` km², closely matching the
+`area_sqkm` attribute carried in the source file
+(`r sprintf("%.0f", area_attr)` km²). It is strongly **elongated**:
+`r sprintf("%.0f", diff(win$xrange)/1000)` km east–west by
+`r sprintf("%.0f", diff(win$yrange)/1000)` km north–south. This matters twice
+over: it caps the distance at which second-order functions can be estimated
+(@sec-so-params), and it makes a single isotropic kernel bandwidth a stronger
+assumption than it would be in a compact window (@sec-fo-bandwidth). The
+southern boundary is a coast, so part of the perimeter borders water rather
+than land, a further source of edge effect that no edge correction models,
+because those corrections assume the process continues beyond the boundary.
+:::
+
+::: {.zh}
+**为什么用官方 COD-AB 图层?** 它源自印尼中央统计局(Badan Pusat Statistik),
+带有明确生效日期(边界自 2020 年 4 月 1 日起有效)、版本号,以及区级嵌套结构。
+独立制作的 geoBoundaries ADM2 多边形对同一个县给出面积
+`r sprintf("%.1f", area_gb)` km²,本研究为 `r sprintf("%.1f", AREA_KM2)` km²,
+差异 `r sprintf("%.2f%%", 100*abs(area_gb-AREA_KM2)/AREA_KM2)`。这既令人放心
+也不意外,因为两者最终都源自同一套 BPS 几何。
+
+**这个窗口的实际范围是什么?** 该多边形为单一部件、拓扑有效,共
+`r n_fmt(nrow(sf::st_coordinates(bnd)))` 个顶点。面积
+`r n_fmt(AREA_KM2)` km²,与源文件所带 `area_sqkm` 属性
+(`r sprintf("%.0f", area_attr)` km²)高度一致。其形状**高度狭长**:东西向
+`r sprintf("%.0f", diff(win$xrange)/1000)` km,南北向
+`r sprintf("%.0f", diff(win$yrange)/1000)` km。这有双重影响:它限制了二阶函数
+可被估计的最大距离(@sec-so-params),也使「单一各向同性核带宽」这一假设比在
+紧凑窗口中更强(@sec-fo-bandwidth)。南界为海岸线,因此部分周长临水而非临陆
+。这是又一处边界效应来源,而任何边界校正都无法建模它,因为那些校正都假定过程在
+边界之外继续存在。
+:::
+
+## <span class="en">Temporal study window</span><span class="zh">时间研究窗口</span> {#sec-temporal-window}
+
+::: {.en}
+The analysis covers **`r format(DATE_MIN, "%d %B")` to
+`r format(DATE_MAX, "%d %B %Y")`** (`r N_DAYS` local days), which is the full
+extent of the open FIRMS archive at the time of access.
+
+This is a short window, and honesty about what it can support matters more than
+apparent sophistication:
+
+- It falls in the **peak of the Central Kalimantan dry season**, so it captures
+  the hazard at its most intense, not as an annual average. Conclusions
+  describe a burning episode, not a fire year.
+- **No seasonality can be estimated.** Questions about monthly or inter-annual
+  variation are outside the reach of these data, and are not asked.
+- Temporal aggregation is to the **local calendar day**. Finer aggregation is
+  impossible: as @sec-fo-temporal shows, S-NPP contributes detections at only
+  about two local times per day, so anything finer than a day would describe
+  the satellite's orbit rather than the fire's behaviour.
+- Eight days is enough for a space-time interaction test at lags of 0–5 days
+  (@sec-so-knox), which is the relevant scale for fire spread and for
+  day-to-day ignition decisions, but not for anything longer.
+
+The authenticated acquisition script is included precisely so that this
+limitation is removable: supplying a FIRMS `MAP_KEY` and rerunning
+`scripts/01_download_firms.R` with a wider date range reproduces every result
+below over a full season, with no change to any other file.
+:::
+
+::: {.zh}
+分析覆盖 `r format(DATE_MIN, "%Y-%m-%d")` 至
+`r format(DATE_MAX, "%Y-%m-%d")`,共 **`r N_DAYS` 个当地日**,即访问时开放 FIRMS
+档案的全部范围。
+
+这是一个很短的窗口,而诚实说明它能支持什么,比表面上的复杂度更重要:
+
+- 它正落在**中加里曼丹旱季峰值**,因此捕捉到的是灾害最强烈的状态,而非年度平均。
+  结论描述的是一次燃烧事件,不是一个火年。
+- **无法估计季节性。** 月际或年际变化的问题超出本数据能力范围,故本报告不提出。
+- 时间聚合到**当地日历日**。更细的聚合不可能:如 @sec-fo-temporal 所示,S-NPP
+  每天只在约两个当地时刻贡献探测,因此任何比「日」更细的粒度描述的都是卫星轨道,
+  而不是火的行为。
+- 八天足以支持滞后 0–5 天的时空交互检验(@sec-so-knox),这正是火蔓延与逐日点火
+  决策的相关尺度;但不足以支持更长尺度的分析。
+
+之所以把需认证的获取脚本一并纳入,正是为了让这一局限**可以被移除**:提供 FIRMS
+`MAP_KEY` 并以更宽日期范围重跑 `scripts/01_download_firms.R`,即可在整个火季上
+复现下文全部结果,其余文件一行都不需要改。
+:::

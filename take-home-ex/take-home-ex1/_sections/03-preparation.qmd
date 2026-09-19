@@ -1,0 +1,565 @@
+# <span class="en">Data preparation and quality assessment</span><span class="zh">数据准备与质量评估</span> {#sec-prep}
+
+::: {.en}
+All preparation is performed by `scripts/03_prepare.R`, which is reproduced in
+full in @sec-repro-scripts. This section explains each decision and reports what
+it cost in records. The guiding principle is that **no record is discarded
+silently**: every filter writes a row into an audit table, so the path from
+`r n_fmt(audit$n_in[1])` raw records to the analysed pattern is fully traceable.
+:::
+
+::: {.zh}
+全部数据准备由 `scripts/03_prepare.R` 完成,该脚本在 @sec-repro-scripts 中完整
+附录。以下解释每一项决策,并报告它在记录数上的代价。指导原则是**任何记录都不会被
+悄悄丢弃**:每一道筛选都会向审计表写入一行,因此从 `r n_fmt(audit$n_in[1])` 条
+原始记录到最终分析模式的整条路径都是可追溯的。
+:::
+
+```{r}
+#| label: audit-helper
+#| echo: false
+aud <- audit |> mutate(pct_removed = 100 * n_removed / n_in)
+get_aud <- function(pat) aud |> dplyr::filter(grepl(pat, step)) |> as.list()
+```
+
+## <span class="en">Import and schema harmonisation</span><span class="zh">数据导入与模式统一</span>
+
+::: {.en}
+Every column is read as `character` first. This is deliberate: if `readr`
+guessed a numeric type it would coerce a malformed coordinate to `NA` during
+parsing, and the record would be lost before it could be counted as a data
+fault. Numeric coercion happens afterwards, under our own control.
+
+The four products do not share a schema. VIIRS reports channel brightness
+temperatures as `bright_ti4` (4 µm) and `bright_ti5` (11 µm); MODIS reports
+`brightness` and `bright_t31`. Confidence is a three-level ordinal class for
+VIIRS (`low`/`nominal`/`high`), but an integer percentage 0–100 for MODIS. These
+are mapped onto common fields (`bt_fire`, `bt_bg`, `confidence_cls`), so that one
+filtering rule can be stated, while `firms_source` preserves the provenance of
+every row.
+:::
+
+::: {.zh}
+所有列先一律按 `character` 读入。这是刻意的:如果让 `readr` 猜测数值类型,它会在
+解析阶段就把格式错误的坐标强制转成 `NA`,该记录在能被计为一个数据缺陷之前就已经
+丢失了。数值转换在此之后、由我们自己控制地进行。
+
+四种产品的数据模式并不一致。VIIRS 用 `bright_ti4`(4 µm)和 `bright_ti5`(11 µm)
+报告通道亮温;MODIS 用 `brightness` 和 `bright_t31`。置信度在 VIIRS 中是三级有序
+分类(`low`/`nominal`/`high`),在 MODIS 中却是 0–100 的整数百分比。这些字段被
+映射到统一字段(`bt_fire`、`bt_bg`、`confidence_cls`),以便用一条筛选规则表述;
+同时 `firms_source` 保留每一行的来源出处。
+:::
+
+```{r}
+#| label: schema-demo
+#| code-fold: true
+#| code-summary: "Confidence harmonisation rule"
+#| eval: false
+
+fires |> mutate(confidence_cls = case_when(
+  sensor_family == "VIIRS" & str_starts(str_to_lower(confidence_raw), "l") ~ "low",
+  sensor_family == "VIIRS" & str_starts(str_to_lower(confidence_raw), "n") ~ "nominal",
+  sensor_family == "VIIRS" & str_starts(str_to_lower(confidence_raw), "h") ~ "high",
+  sensor_family == "MODIS" & conf_num <  30 ~ "low",      # MODIS 0-100 scale
+  sensor_family == "MODIS" & conf_num <  80 ~ "nominal",
+  sensor_family == "MODIS" & conf_num >= 80 ~ "high"))
+```
+
+## <span class="en">Coordinates: validity, and a precision trap</span><span class="zh">坐标:有效性,以及一个精度陷阱</span>
+
+::: {.en}
+No record had a missing or non-numeric coordinate, and none fell outside valid
+geographic ranges or on the (0, 0) null island, checks that cost nothing and
+would have been serious if they had fired.
+
+There is, however, a subtler issue. Latitudes are written with between one and
+five decimal places:
+:::
+
+::: {.zh}
+没有任何记录出现坐标缺失或非数值的情况,也没有任何记录落在有效地理范围之外或
+(0, 0) 这个「空岛」上。这些检查成本为零,但一旦触发就会很严重。
+
+不过存在一个更微妙的问题。纬度的小数位数在一位到五位之间不等:
+:::
+
+```{r}
+#| label: tbl-precision
+#| tbl-cap: "<span class='en'>Decimal places in the latitude field as delivered. The variation is an artefact of dropped trailing zeros, not of varying measurement precision.</span><span class='zh'>交付数据中纬度字段的小数位数。这种差异是末尾零被省略造成的假象,而不是测量精度本身在变化。</span>"
+raw_chk <- readr::read_csv(
+  list.files("data/raw", "^firms_pulangpisau_.*[.]csv$", full.names = TRUE)[1],
+  show_col_types = FALSE, col_types = readr::cols(.default = readr::col_character()))
+tibble(dp = nchar(stringr::str_replace(raw_chk$latitude, "^[^.]*[.]?", ""))) |>
+  count(dp, name = "records") |>
+  mutate(`implied precision` = scales::label_comma(accuracy = 0.01)(111320 / 10^dp),
+         `implied precision` = paste0(`implied precision`, " m")) |>
+  gt::gt() |> gt::cols_label(dp = "Decimal places") |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+Five decimal places implies roughly metre precision, which is spurious. The
+reported coordinate is the **centre of a 375 m nominal pixel**, and the pixel
+grows towards the swath edge, the `scan` and `track` fields in these data reach
+`r sprintf("%.2f", max(fire_sf$scan))` and
+`r sprintf("%.2f", max(fire_sf$track))` km respectively. The effective location
+uncertainty of a point in this pattern is therefore of order a few hundred
+metres, not metres.
+:::
+
+::: {.zh}
+五位小数意味着约米级精度,而这是虚假的。所报告的坐标是**一个 375 m 标称像元的
+中心**,而像元尺寸向扫描边缘增大,本数据中 `scan` 与 `track` 字段分别达到
+`r sprintf("%.2f", max(fire_sf$scan))` 与 `r sprintf("%.2f", max(fire_sf$track))`
+km。因此本模式中一个点的有效定位不确定度是**数百米量级**,而不是米级。
+:::
+
+::: {.callout-important .en}
+## The consequence for second-order analysis
+Because location uncertainty is of order 375 m, **no second-order result below
+about 400–500 m can be interpreted as a property of fire**. Structure at those
+distances is a property of the sensor's pixel grid. This bound is used in
+@sec-fo-bandwidth to reject two of the four automatic bandwidth selectors, and
+it is the reason all pair-correlation interpretation in @sec-so-pcf starts above
+500 m.
+:::
+
+::: {.callout-important .zh}
+## 这对二阶分析的后果
+
+由于定位不确定度为 375 m 量级,**任何低于约 400–500 m 的二阶结果都不能被解释为火的
+性质**。这些距离上的结构是传感器像元格网的性质。这一下界被用于 @sec-fo-bandwidth
+中否决四个自动带宽选择器中的两个,也是 @sec-so-pcf 中所有对相关函数的解读都从
+500 m 以上开始的原因。
+:::
+
+## <span class="en">Timestamps: the local-time correction</span><span class="zh">时间戳:本地时校正</span> {#sec-timezone}
+
+::: {.en}
+FIRMS reports `acq_date` and `acq_time` in **UTC**. Central Kalimantan observes
+*Waktu Indonesia Barat* (WIB), UTC+07. The S-NPP night overpass occurs at
+roughly 01:30 local time, which is **18:30 UTC on the previous calendar day**.
+
+Deriving a fire's "day" from the UTC date would therefore assign every night
+detection to the wrong day. The effect is not marginal:
+:::
+
+::: {.zh}
+FIRMS 以 **UTC** 报告 `acq_date` 与 `acq_time`。中加里曼丹使用西印尼时间
+(*Waktu Indonesia Barat*, WIB),即 UTC+07。S-NPP 的夜间过境约在当地时间 01:30,
+也就是**前一个日历日的 UTC 18:30**。
+
+因此,若用 UTC 日期推导一场火的「日期」,就会把每一个夜间探测都归到错误的日子。
+这个影响并不轻微:
+:::
+
+```{r}
+#| label: tbl-shift
+#| tbl-cap: "<span class='en'>Records whose local calendar date differs from the UTC calendar date, by overpass.</span><span class='zh'>本地日历日期与 UTC 日历日期不一致的记录数,按过境类型划分。</span>"
+fire_sf |> sf::st_drop_geometry() |>
+  count(Overpass = overpass, `Local date differs from UTC date` = day_shifted) |>
+  tidyr::pivot_wider(names_from = `Local date differs from UTC date`,
+                     values_from = n, values_fill = 0L,
+                     names_prefix = "shifted_") |>
+  gt::gt() |>
+  gt::cols_label(shifted_FALSE = "Same date", shifted_TRUE = "Shifted by one day") |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+`r n_fmt(sum(fire_sf$day_shifted))` of `r n_fmt(N_DET)` detections
+(`r sprintf("%.0f%%", 100*mean(fire_sf$day_shifted))`) (precisely the night
+overpasses) change date under the correction. Every temporal variable in this
+report is built from the local timestamp.
+
+A second fact emerges from the same conversion, and it constrains the whole
+temporal analysis:
+:::
+
+::: {.zh}
+`r n_fmt(N_DET)` 条探测中有 `r n_fmt(sum(fire_sf$day_shifted))` 条
+(`r sprintf("%.0f%%", 100*mean(fire_sf$day_shifted))`)(恰好就是夜间过境)在
+校正后改变了日期。此后每一个时间变量都基于本地时间戳构建。
+
+同一次时区转换还揭示出第二个事实,它约束了整个时间分析:
+:::
+
+```{r}
+#| label: fig-overpass
+#| fig-cap: "<span class='en'>Local acquisition time of every S-NPP detection. Detections arrive in two narrow windows because that is when the satellite passes, so nothing finer than a daily aggregation can describe fire rather than orbit.</span><span class='zh'>每个 S-NPP 探测点的本地获取时刻。探测集中在两个狭窄的时间窗内,因为那就是卫星过境的时刻;因此任何比「日」更细的聚合描述的都是轨道而不是火。</span>"
+#| fig-alt: "Local acquisition time of every S-NPP detection. Detections arrive in two narrow windows because that is when the satellite passes, so nothing finer than a daily aggregation can describe fire rather than orbit."
+#| fig-width: 8
+#| fig-height: 2.9
+
+fire_sf |> sf::st_drop_geometry() |>
+  ggplot(aes(hour_local, fill = overpass)) +
+  geom_histogram(binwidth = 1/6, colour = NA) +
+  scale_fill_manual(NULL, values = c(Day = PAL$fire_l, Night = PAL$water)) +
+  scale_x_continuous(breaks = seq(0, 24, 3), limits = c(0, 24),
+                     labels = function(x) sprintf("%02d:00", x)) +
+  labs(title = "S-NPP samples this landscape twice a day, not continuously",
+       subtitle = paste0("All ", n_fmt(N_DET),
+                         " retained detections, local time (WIB, UTC+07)"),
+       x = "Local time of acquisition", y = "Detections",
+       caption = "Day overpass 12:08-13:54; night overpass 00:11-01:51 local.") +
+  theme_th()
+```
+
+::: {.interp .en}
+**Two overpasses, not a day.** The distribution is bimodal with empty gaps covering
+about 21 of 24 hours. This is the satellite's orbit, not the fire's diurnal
+cycle: S-NPP crosses the equator at about 13:30 and 01:30 local. **Two
+consequences follow.** First, any diurnal question (when in the day do fires
+start, peak, or die down) is unanswerable with these data, and is not asked.
+Second, a fire that ignites and burns out between overpasses is invisible, so
+the pattern systematically under-represents short-lived fires. This is a
+first-order bias in the observation process, not random noise. *A caveat:* the
+within-window spread (about 1.8 h) reflects orbital drift across the eight
+days, not variation in when fires burn.
+:::
+
+::: {.interp .zh}
+**两次过境,不是一整天。** 分布呈双峰,空白区间覆盖了 24 小时中的约 21 小时。这是卫星的
+轨道,而不是火的日变化周期:S-NPP 约在当地 13:30 与 01:30 过赤道。**由此有两个
+后果。** 第一,任何日变化问题(火在一天中何时开始、何时最盛、何时熄灭)用这些
+数据都无法回答,因此不予讨论。第二,在两次过境之间点燃并烧完的火是不可见的,
+因此本模式系统性地低估了短时火。这是观测过程中的**一阶偏差**,不是随机噪声。
+*一点保留:* 窗口内约 1.8 小时的时刻散布反映的是八天间的轨道漂移,而不是火燃烧时刻的
+变化。
+:::
+
+## <span class="en">Confidence, and what "high confidence" actually means</span><span class="zh">置信度,以及「高置信度」的真实含义</span> {#sec-confidence}
+
+::: {.en}
+Low-confidence VIIRS detections carry an elevated false-alarm rate
+[@schroeder2014] and are removed:
+`r n_fmt(get_aud("low confidence")$n_removed)` records
+(`r sprintf("%.1f%%", get_aud("low confidence")$pct_removed)`) across all four
+products.
+
+Inspecting the retained classes produced an unexpected and important result.
+:::
+
+::: {.zh}
+低置信度的 VIIRS 探测具有偏高的误报率 [@schroeder2014],已被剔除:四种产品合计
+`r n_fmt(get_aud("low confidence")$n_removed)` 条
+(`r sprintf("%.1f%%", get_aud("low confidence")$pct_removed)`)。
+
+而检视被保留的各等级时,得到了一个出乎意料且重要的结果。
+:::
+
+```{r}
+#| label: tbl-saturation
+#| tbl-cap: "<span class='en'>Confidence class against I-04 channel saturation for S-NPP detections inside the study window. The correspondence is exact.</span><span class='zh'>研究窗口内 S-NPP 探测的置信度等级与 I-04 通道饱和情况的交叉表。两者完全一一对应。</span>"
+fire_sf |> sf::st_drop_geometry() |>
+  mutate(`I-04 saturated (>= 367 K)` = bt_fire >= 367) |>
+  count(`Confidence class` = confidence_cls, `I-04 saturated (>= 367 K)`) |>
+  tidyr::pivot_wider(names_from = `I-04 saturated (>= 367 K)`, values_from = n,
+                     values_fill = 0L, names_prefix = "sat_") |>
+  gt::gt() |>
+  gt::cols_label(sat_FALSE = "Below saturation", sat_TRUE = "At 367 K ceiling") |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+Every one of the `r n_fmt(sum(fire_sf$confidence_cls == "high", na.rm = TRUE))`
+"high" confidence detections sits exactly at
+`r sprintf("%.1f", max(fire_sf$bt_fire))` K, the I-04 channel saturation limit,
+and no "nominal" detection does. So in this product **"high confidence" is a
+statement about fire intensity, not about locational reliability**. It flags
+pixels so hot that the 4 µm channel saturated. Two things follow. First,
+confidence must not be used as a weight for location accuracy. Second, the fire
+radiative power reported for those `r sum(fire_sf$confidence_cls == "high", na.rm = TRUE)`
+records is derived from a saturated radiance and is a **lower bound**; FRP is
+consequently used only descriptively in this report, never as an analytical
+weight.
+:::
+
+::: {.zh}
+全部 `r n_fmt(sum(fire_sf$confidence_cls == "high", na.rm = TRUE))` 条「高」置信度
+探测的亮温都恰好落在 `r sprintf("%.1f", max(fire_sf$bt_fire))` K,即 I-04 通道的
+饱和上限,而没有任何一条「nominal」探测落在该值。因此在本产品中,**「高置信度」
+陈述的是火的强度,而不是定位可靠性**。它标记的是热到让 4 µm 通道饱和的像元。
+由此有两点推论。第一,置信度**不可**用作定位精度的权重。第二,这
+`r sum(fire_sf$confidence_cls == "high", na.rm = TRUE)` 条记录所报告的火辐射功率
+是由已饱和的辐亮度推导的,只是一个**下界**;因此 FRP 在全篇仅作描述性使用,
+从不作为分析权重。
+:::
+
+## <span class="en">Static heat sources and the missing `type` flag</span><span class="zh">静态热源与缺失的 `type` 标记</span> {#sec-typeflag}
+
+::: {.en}
+The FIRMS Standard Processing products carry a `type` flag distinguishing
+presumed vegetation fire (0) from active volcano (1), other static land source
+(2) and offshore (3). **The open 7-day NRT files omit it**, so the filter cannot
+be applied. Rather than ignore the gap, an empirical substitute is used: a
+persistent industrial source such as a gas flare should be detected on
+essentially every cloud-free overpass, so it would appear as a pixel recurring
+on nearly all days.
+:::
+
+::: {.zh}
+FIRMS 标准处理产品带有一个 `type` 标记,用于区分推定植被火(0)、活火山(1)、
+其他静态陆地热源(2)与离岸(3)。**开放的 7 日 NRT 文件不含该标记**,因此这道
+筛选无法应用。与其忽略这一缺口,这里采用一个经验替代:像气体火炬这类持续性工业
+热源,在几乎每一次无云过境时都应被探测到,因此它会表现为一个几乎每天都复现的
+像元。
+:::
+
+```{r}
+#| label: fig-persist
+#| fig-cap: "<span class='en'>How many distinct local days each 375 m pixel was detected on. No pixel recurs on more than six of the eight days, and the decay is smooth, the signature expected of spreading and smouldering fire, not of a static industrial source.</span><span class='zh'>每个 375 m 像元被探测到的不同本地日数。没有像元在八天中出现超过六天,且衰减平滑。这是蔓延与阴燃火所应有的特征,而非静态工业热源的特征。</span>"
+#| fig-alt: "How many distinct local days each 375 m pixel was detected on. No pixel recurs on more than six of the eight days, and the decay is smooth, the signature expected of spreading and smouldering fire, not of a static industrial source."
+#| fig-width: 7.4
+#| fig-height: 2.9
+
+persist |> count(n_days) |>
+  ggplot(aes(factor(n_days), n)) +
+  geom_col(fill = PAL$fire_l, width = 0.72) +
+  geom_text(aes(label = n_fmt(n)), vjust = -0.4, size = 3.1, colour = PAL$grey) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.13))) +
+  labs(title = "No candidate static heat source",
+       subtitle = paste0(n_fmt(nrow(persist)),
+                         " distinct 375 m pixels detected at least once in ",
+                         N_DAYS, " days"),
+       x = "Number of distinct local days on which the pixel was detected",
+       y = "Pixels",
+       caption = paste0("A gas flare or similar static source would be expected near ",
+                        N_DAYS, " days. The maximum observed is ",
+                        max(persist$n_days), ".")) +
+  theme_th()
+```
+
+::: {.en}
+`r n_fmt(sum(persist$n_days == 1))` of `r n_fmt(nrow(persist))` pixels
+(`r sprintf("%.0f%%", 100*mean(persist$n_days == 1))`) were detected on a single
+day, and the maximum is `r max(persist$n_days)` of `r N_DAYS`. There is no
+evidence of a static source in this window, so the inability to apply the `type`
+filter is judged not to bias the results. This is an empirical argument, not a
+guarantee: a flare obscured by cloud on several days would be missed, and the
+authenticated acquisition route (which returns the flag) would settle the
+question.
+:::
+
+::: {.zh}
+`r n_fmt(nrow(persist))` 个像元中有 `r n_fmt(sum(persist$n_days == 1))` 个
+(`r sprintf("%.0f%%", 100*mean(persist$n_days == 1))`)只在**一天**被探测到,
+最大值为 `r N_DAYS` 天中的 `r max(persist$n_days)` 天。本窗口内没有静态热源的证据,
+因此判定无法应用 `type` 筛选不会使结果产生偏差。这是一个**经验性论证,而非保证**:
+若某个火炬在若干天被云遮挡,就会被漏掉;而需认证的获取路径(会返回该标记)可以
+彻底解决这个问题。
+:::
+
+## <span class="en">Duplicates and repeat observation</span><span class="zh">重复记录与重复观测</span>
+
+```{r}
+#| label: tbl-dups
+#| tbl-cap: "<span class='en'>Coincident-point diagnostics for the three analysis units. Several spatstat summary functions assume a simple point pattern; the result is reported rather than left inside a warning.</span><span class='zh'>三种分析单元的重合点诊断。若干 spatstat 汇总函数假定点模式为简单点模式;此处明确报告结果,而不是把它留在一条警告信息里。</span>"
+dup_rep |>
+  gt::gt() |>
+  gt::cols_label(unit = "Analysis unit", n_points = "Points",
+                 n_duplicated = "Coincident points",
+                 n_outside_window = "Rejected as outside window") |>
+  gt::fmt_number(columns = where(is.numeric), decimals = 0) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+::: {.en}
+Exact duplicate records (identical product, coordinate and timestamp) numbered
+`r n_fmt(get_aud("exact duplicates")$n_removed)`. More interesting is that
+**no two detections share an exact coordinate**, because the pixel centre
+shifts slightly between overpasses as the scan geometry changes. The repeats are
+therefore invisible to a naive duplicate check and must be found by snapping to
+a grid:
+:::
+
+::: {.zh}
+完全重复的记录(产品、坐标与时间戳三者全同)共
+`r n_fmt(get_aud("exact duplicates")$n_removed)` 条。更值得注意的是,
+**没有任何两条探测共享完全相同的坐标**,因为随着扫描几何变化,像元中心在不同过境
+之间会有微小偏移。因此这些重复对朴素的去重检查是**不可见的**,必须通过对齐到格网
+才能找出:
+:::
+
+```{r}
+#| label: grid-snap
+#| eval: false
+xy <- sf::st_coordinates(fire_all_sf)
+fire_all_sf <- fire_all_sf |>
+  mutate(gx = floor(xy[, 1] / P$pixel_grid_m),     # P$pixel_grid_m = 375
+         gy = floor(xy[, 2] / P$pixel_grid_m),
+         pixel_id = paste(gx, gy, sep = "_"))
+```
+
+::: {.en}
+Collapsing to one point per pixel per local day removes
+`r n_fmt(N_DET - N_PX)` records (`r sprintf("%.1f%%", 100*(N_DET-N_PX)/N_DET)`),  same-day repeat overpasses of the same ground pixel.
+:::
+
+::: {.zh}
+折叠为「每像元每本地日一个点」后移除了 `r n_fmt(N_DET - N_PX)` 条记录
+(`r sprintf("%.1f%%", 100*(N_DET-N_PX)/N_DET)`),即同一地面像元在同一天的重复
+过境。
+:::
+
+## <span class="en">How much of this pattern is the satellite?</span><span class="zh">这个模式里有多少是卫星造成的?</span> {#sec-crosssensor}
+
+::: {.en}
+Three near-identical VIIRS instruments flew over this window in the same eight
+days. If detection were a faithful census of burning, they would largely agree.
+:::
+
+::: {.zh}
+在同样的八天里,有三台近乎相同的 VIIRS 仪器飞越本窗口。如果探测是对燃烧的忠实
+普查,它们本应大体一致。
+:::
+
+```{r}
+#| label: fig-crosssensor
+#| fig-cap: "<span class='en'>Agreement between the three VIIRS products. Left: how many of the three detected each fire-affected pixel-day. Right: daily detection counts by product, showing that day-to-day swings are not shared.</span><span class='zh'>三种 VIIRS 产品之间的一致性。左:每个过火像元-日被其中几种产品探测到。右:各产品的逐日探测数,显示逐日波动并不共享。</span>"
+#| fig-alt: "Agreement between the three VIIRS products. Left: how many of the three detected each fire-affected pixel-day. Right: daily detection counts by product, showing that day-to-day swings are not shared."
+#| fig-width: 10.5
+#| fig-height: 3.6
+
+agree <- fire_all |> sf::st_drop_geometry() |>
+  dplyr::filter(grepl("VIIRS", firms_source)) |>
+  distinct(pixel_id, date_local, firms_source) |>
+  count(pixel_id, date_local, name = "n_products")
+
+p1 <- agree |> count(n_products) |>
+  mutate(pct = 100 * n / sum(n)) |>
+  ggplot(aes(factor(n_products), n)) +
+  geom_col(fill = PAL$water, width = 0.68) +
+  geom_text(aes(label = sprintf("%s\n(%.0f%%)", n_fmt(n), pct)),
+            vjust = -0.25, size = 3, lineheight = 0.9, colour = PAL$grey) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
+  labs(title = "Most burning pixel-days are seen by only one of three satellites",
+       x = "Number of VIIRS products detecting the pixel-day",
+       y = "Pixel-days") +
+  theme_th(11)
+
+p2 <- FO_T$daily_sensor |>
+  tidyr::pivot_longer(-date_local, names_to = "product", values_to = "n") |>
+  mutate(product = stringr::str_replace(product, "_NRT", "")) |>
+  ggplot(aes(date_local, n, colour = product)) +
+  geom_line(linewidth = 0.75) + geom_point(size = 1.5) +
+  scale_colour_manual(NULL, values = c(VIIRS_SNPP = PAL$fire,
+                                       VIIRS_NOAA20 = PAL$fire_l,
+                                       VIIRS_NOAA21 = PAL$water,
+                                       MODIS = PAL$grey)) +
+  scale_x_date(date_labels = "%d %b") +
+  labs(title = "Daily counts disagree between near-identical sensors",
+       x = NULL, y = "Detections in window") +
+  theme_th(11)
+
+p1 + p2 + patchwork::plot_layout(widths = c(1, 1.15))
+```
+
+::: {.interp .en}
+**Where the sensors disagree.** Only
+`r sprintf("%.1f%%", 100*mean(agree$n_products == 3))` of fire-affected
+pixel-days were detected by all three VIIRS satellites, while
+`r sprintf("%.0f%%", 100*mean(agree$n_products == 1))` were seen by just one.
+The right panel shows the consequence: on 8 September, NOAA-20 recorded
+`r FO_T$daily_sensor$VIIRS_NOAA20_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+detections while NOAA-21 recorded
+`r FO_T$daily_sensor$VIIRS_NOAA21_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+over the same ground on the same day. **Evidence:** the instruments are
+functionally identical, so the disagreement must come from overpass timing,
+view geometry and, above all, cloud. **Implication:** detection is a heavily
+sub-sampled view of the fire field, so day-to-day count variation cannot be read
+as fire-activity variation, and absolute intensities are lower bounds
+throughout. *Worth noting:* the three satellites' orbits differ, so some genuine
+disagreement is expected even with perfect instruments.
+:::
+
+::: {.interp .zh}
+**传感器分歧出现在哪里。** 过火像元-日中只有
+`r sprintf("%.1f%%", 100*mean(agree$n_products == 3))` 被三颗 VIIRS 卫星全部探测到,
+而 `r sprintf("%.0f%%", 100*mean(agree$n_products == 1))` 只被其中一颗看到。右图
+显示了后果:9 月 8 日,NOAA-20 记录了
+`r FO_T$daily_sensor$VIIRS_NOAA20_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+条探测,而 NOAA-21 在同一天、同一片地面上记录了
+`r FO_T$daily_sensor$VIIRS_NOAA21_NRT[FO_T$daily_sensor$date_local == as.Date("2026-09-08")]`
+条。**证据:** 这些仪器在功能上是相同的,因此分歧必然来自过境时刻、观测几何,
+以及最主要的云层遮挡。**含义:** 探测是对火场的**严重欠采样**视图,因此逐日计数
+变化不能被读作火灾活动的变化,而全篇的绝对强度都只是下界。*需注意:* 三颗卫星轨道
+不同,因此即使仪器完美也会有一部分真实分歧。
+:::
+
+## <span class="en">Projection and spatial filtering</span><span class="zh">投影与空间筛选</span> {#sec-crs}
+
+::: {.en}
+Coordinates are transformed from EPSG:4326 to **EPSG:32749 (WGS 84 / UTM zone
+49S)**. The reasons, and the alternatives rejected:
+:::
+
+::: {.zh}
+坐标由 EPSG:4326 转换为 **EPSG:32749(WGS 84 / UTM 49S 带)**。理由,以及被
+否决的替代方案如下(下表为英文原表):
+:::
+
+| Requirement | Why | Outcome |
+|---|---|---|
+| Metre units | `spatstat` requires planar coordinates; bandwidths, distances and areas must be in a physical unit | Rules out any geographic CRS |
+| Low area distortion | Intensity is events per unit area, so area error propagates directly into every density estimate | UTM 49S gives `r n_fmt(AREA_KM2)` km² against `r n_fmt(AREA_GEOD)` km² measured geodesically on the WGS84 ellipsoid, an error of **`r sprintf("%.2f%%", CRS_ERR_PCT)`** |
+| Conformality | Isotropic kernels and isotropic distance functions assume distance means the same thing in all directions | Transverse Mercator is conformal; an equal-area projection would not be |
+| Local suitability | The regency spans 113.58–114.35 °E | Mostly within UTM zone 49 (108–114 °E); the eastern sliver crossing 114 °E is the source of the residual distortion above |
+
+::: {.en}
+DGN95 / Indonesia TM-3 was considered, since it is the national system, but its
+1.5°-wide zones place this regency awkwardly and it offers no practical
+advantage here over UTM 49S at this level of distortion.
+
+Points are then clipped to the window, removing
+`r n_fmt(get_aud("outside study window")$n_removed)` detections that fell in the
+buffered download box but outside the regency. Downloading a buffered box and
+clipping afterwards (rather than requesting the exact polygon) keeps the
+boundary decision in the analysis, where it is documented and testable, instead
+of in the acquisition step.
+:::
+
+::: {.zh}
+曾考虑 DGN95 / Indonesia TM-3(印尼国家坐标系),但其 1.5° 宽的分带使本县位置
+尴尬,且在当前畸变水平下相对 UTM 49S 没有实际优势。
+
+随后将点裁剪到窗口内,移除了
+`r n_fmt(get_aud("outside study window")$n_removed)` 条落在缓冲下载框内但在县界之外
+的探测。先下载缓冲框、事后裁剪(而不是直接请求精确多边形),是为了把边界决策**留在
+分析环节**(在那里它有文档、可检验)而不是埋进数据获取环节。
+:::
+
+## <span class="en">The audit trail</span><span class="zh">审计轨迹</span>
+
+```{r}
+#| label: tbl-audit
+#| tbl-cap: "<span class='en'>Complete record-level audit trail from raw download to analysed pattern.</span><span class='zh'>从原始下载到最终分析模式的完整记录级审计轨迹。</span>"
+aud |>
+  select(step, n_in, n_removed, pct_removed, n_out, reason) |>
+  gt::gt() |>
+  gt::cols_label(step = "Step", n_in = "In", n_removed = "Removed",
+                 pct_removed = "%", n_out = "Out", reason = "Rationale") |>
+  gt::fmt_number(columns = c(n_in, n_removed, n_out), decimals = 0) |>
+  gt::fmt_number(columns = pct_removed, decimals = 1) |>
+  gt::cols_width(step ~ gt::pct(17), reason ~ gt::pct(43)) |>
+  gt::tab_style(style = gt::cell_text(weight = "bold"),
+                locations = gt::cells_body(columns = n_out,
+                                           rows = nrow(aud))) |>
+  gt::tab_options(table.font.size = gt::pct(80), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+The pattern carried into analysis is **`r n_fmt(N_PX)` pixel-days**
+(`r n_fmt(N_DET)` detections collapsed to unique pixel × local day) in a
+`r n_fmt(AREA_KM2)` km² window over `r N_DAYS` days, a mean intensity
+of `r sprintf("%.3f", LAM_BAR)` per km², or one fire-affected pixel-day per
+`r sprintf("%.1f", 1/LAM_BAR)` km².
+:::
+
+::: {.zh}
+进入分析的模式为 **`r n_fmt(N_PX)` 个像元-日**(由 `r n_fmt(N_DET)` 条探测折叠为
+唯一的「像元 × 本地日」),窗口面积 `r n_fmt(AREA_KM2)` km²,时长
+`r N_DAYS` 天,平均强度 `r sprintf("%.3f", LAM_BAR)` 个/km²,即每
+`r sprintf("%.1f", 1/LAM_BAR)` km² 一个过火像元-日。
+:::

@@ -1,0 +1,247 @@
+# <span class="en">Limitations</span><span class="zh">局限</span> {#sec-limits}
+
+::: {.en}
+The limitations below are ordered by how much they should change a reader's
+confidence, not by how easy they are to state.
+:::
+
+::: {.zh}
+以下局限按「应当在多大程度上改变读者的信心」排序,而不是按「陈述起来是否容易」
+排序。
+:::
+
+## <span class="en">1. The observation process, not fire, sets the temporal signal</span><span class="zh">1. 决定时间信号的是观测过程,而不是火</span>
+
+::: {.en}
+This is the most serious limitation and it is demonstrated rather than
+suspected. Only
+`r sprintf("%.1f%%", 100*mean({a <- fire_all |> sf::st_drop_geometry() |> dplyr::filter(grepl("VIIRS", firms_source)) |> distinct(pixel_id, date_local, firms_source) |> count(pixel_id, date_local, name = "np"); a$np} == 3))`
+of fire-affected pixel-days were detected by all three VIIRS satellites; one day
+in eight has no daytime overpass at all; and near-identical sensors disagree by
+a factor of more than ten on individual days (@sec-crosssensor). Consequences:
+
+- **No claim is made about fire-activity trend.** The daily counts in
+  @sec-fo-temporal describe a fire–observation compound.
+- **All intensities are lower bounds.** A fire under cloud contributes nothing.
+- **The bias is not uniform.** Cloud is spatially autocorrelated, so if cloud
+  frequency differs systematically between the canal-dense south and the
+  forested north, the intensity *contrast* between them is biased too. Nothing
+  in these data bounds that bias.
+
+The space–time result is much more robust to this, because the Knox test
+conditions on the observed locations and dates rather than modelling them, and
+independent thinning leaves the pair-correlation function unchanged
+[@baddeley2015]. That is why the space–time finding is stated more confidently
+than anything else in this report. It does **not** rescue the spatial cluster
+scale, because cloud is *not* independent thinning and a cloud-hole a few
+kilometres across would mimic a fire cluster a few kilometres across.
+:::
+
+::: {.zh}
+这是最严重的局限,而且它是被**证明**出来的,不是被猜测的。过火像元-日中只有
+`r sprintf("%.1f%%", 100*mean({a <- fire_all |> sf::st_drop_geometry() |> dplyr::filter(grepl("VIIRS", firms_source)) |> distinct(pixel_id, date_local, firms_source) |> count(pixel_id, date_local, name = "np"); a$np} == 3))`
+被三颗 VIIRS 卫星全部探测到;八天中有一天完全没有白天过境;而近乎相同的传感器在
+个别日期上的分歧可达十倍以上(@sec-crosssensor)。后果:
+
+- **本报告不对火灾活动的趋势提出任何论断。** @sec-fo-temporal 中的逐日计数描述的是
+  一个「火, 观测」复合体。
+- **所有强度都只是下界。** 云层下的火贡献为零。
+- **偏差并不均匀。** 云具有空间自相关,因此若运河密集的南部与森林覆盖的北部云频率
+  存在系统性差异,两者之间的强度**对比**也会有偏。这些数据无法界定该偏差的范围。
+
+时空结果对此稳健得多,因为 Knox 检验**以观测到的位置与日期为条件**,而不是对它们
+建模;并且独立抽稀不改变对相关函数 [@baddeley2015]。这正是本报告中时空发现的陈述
+语气比其他任何结论都更有信心的原因。但它**并不能**挽救空间簇群尺度,因为云*不是*
+独立抽稀,而一个数公里宽的云洞会伪装成一个数公里宽的火簇。
+:::
+
+## <span class="en">2. Eight days is not a fire season</span><span class="zh">2. 八天不等于一个火季</span>
+
+::: {.en}
+The window is `r N_DAYS` local days at the peak of the dry season. It therefore
+describes **one burning episode**, and cannot speak to seasonality,
+inter-annual variation, El Niño sensitivity [@field2016], or whether September
+2026 was unusual. The authenticated acquisition script removes this limitation
+without changing any other file, and doing so is the single highest-value
+extension of this work.
+:::
+
+::: {.zh}
+窗口是旱季峰值期的 `r N_DAYS` 个当地日。因此它描述的是**一次燃烧事件**,无法就
+季节性、年际变化、厄尔尼诺敏感性 [@field2016],或 2026 年 9 月是否异常发表意见。
+需认证的获取脚本可以在不改动任何其他文件的前提下解除这一局限,而这么做正是本工作
+**单项价值最高**的扩展。
+:::
+
+## <span class="en">3. A detection is not a fire, and an event is not an ignition</span><span class="zh">3. 一次探测不是一场火,一个事件也不是一次点火</span>
+
+::: {.en}
+The analysis unit is a 375 m pixel-day. It over-counts large fires (many pixels)
+and under-counts short ones (invisible between overpasses). The event-level
+reconstruction in @sec-event-def was intended to recover something closer to
+ignitions, but at this fire density single-linkage chaining merged
+`r sprintf("%.0f%%", 100*max(fire_ev$n_px)/sum(fire_ev$n_px))` of all pixel-days
+into one component. Event counts are therefore reported as indicative only, and
+the *number* of fires in Pulang Pisau in this period is not estimated.
+:::
+
+::: {.zh}
+分析单元是 375 m 的像元-日。它**高估**大火(多个像元),**低估**短时火(在两次
+过境之间不可见)。@sec-event-def 中的事件级重建本意是恢复更接近点火的量,但在本例
+的火密度下,单连接链式合并把全部像元-日的
+`r sprintf("%.0f%%", 100*max(fire_ev$n_px)/sum(fire_ev$n_px))` 并进了一个连通分量。
+因此事件计数仅作指示性报告,本报告**不估计**该期间 Pulang Pisau 的火灾**数量**。
+:::
+
+## <span class="en">4. The spatial first/second-order decomposition is not identifiable</span><span class="zh">4. 空间一阶/二阶分解不可识别</span>
+
+::: {.en}
+This is not a caveat on a result; it is a limit on what any single-realisation
+study of this kind can conclude, and @sec-so-kinhom demonstrates it rather than
+asserting it. Tested against a kernel-based inhomogeneous Poisson null, the same
+data give $p =$ `r sprintf("%.3f", SO$linhom_ladder[[2]]$test$p.value)` at
+$\sigma_\lambda$ = 2 km and $p =$
+`r sprintf("%.4f", SO$linhom_ladder[[4]]$test$p.value)` at 10 km, with the
+$p$-value tracking the null's flexibility monotonically.
+
+Three consequences, stated precisely:
+
+- **No claim is made that the pattern "is clustered" in an absolute sense.**
+  That phrase has no bandwidth-free meaning here.
+- The claims that *are* made rest on nulls with few parameters: measured
+  geography does not reproduce the observed $L(r)$ (@sec-va-n4), and a
+  trend-plus-Thomas model does.
+- The fitted cluster scale of
+  `r n_fmt(round(VA$clustpar[["scale"]], -1))` m should be read as a compact
+  *description* of a few-kilometre correlation structure, not as evidence that
+  fires physically propagate over that distance. An unmeasured covariate
+  varying at the same scale would produce an identical signature.
+:::
+
+::: {.zh}
+这不是对某个结果的附带说明,而是对**任何**此类单次实现研究所能得出结论的限制,
+而且 @sec-so-kinhom 是**展示**了它,而不是断言它。在基于核的非齐次泊松零模型下,
+同一批数据在 $\sigma_\lambda$ = 2 km 时给出 $p =$
+`r sprintf("%.3f", SO$linhom_ladder[[2]]$test$p.value)`,在 10 km 时给出 $p =$
+`r sprintf("%.4f", SO$linhom_ladder[[4]]$test$p.value)`,$p$ 值单调地追踪零模型的
+灵活度。
+
+由此有三点精确的推论:
+
+- **本报告不声称该模式在绝对意义上「是聚集的」。** 在此处,这个说法脱离带宽就没有
+  意义。
+- 那些**确实**提出的论断,都建立在参数很少的零模型上:已测得的地理条件无法再现
+  观测到的 $L(r)$(@sec-va-n4),而「趋势 + Thomas」模型可以。
+- 拟合出的簇群尺度 `r n_fmt(round(VA$clustpar[["scale"]], -1))` m 应被读作对一个
+  数公里相关结构的紧凑**描述**,而不是火在该距离上物理传播的证据。任何在相同尺度上
+  变化的未测协变量都会产生完全相同的特征。
+:::
+
+## <span class="en">5. Covariates are proxies, and their completeness varies spatially</span><span class="zh">5. 协变量只是代理变量,且其完备性在空间上不均匀</span>
+
+::: {.en}
+The drainage finding (@sec-fo-covariates, @sec-va) rests on OSM
+`waterway=canal/drain/ditch`. Three caveats follow:
+
+- **It measures mapped canals, not drainage.** Water-table depth, peat depth and
+  canal condition (whether a channel still drains or has been blocked) are all
+  unobserved. Peat depth in particular is a strong known control on fire
+  severity [@konecny2016] and is absent here.
+- **OSM completeness is not spatially uniform**, and is plausibly better near
+  settlements and roads. If canals are better mapped where people are, and
+  people are where fires are lit, part of the canal effect could be a mapping
+  artefact. The river covariate partially guards against this (rivers are
+  mapped *at least* as completely as ditches, and the effect there runs in the
+  opposite direction), but it is not a complete control.
+- **Land cover is missing entirely.** Whether a location is degraded scrub,
+  smallholding, oil palm or intact swamp forest is the most obvious omitted
+  variable, and it is correlated with canal proximity.
+:::
+
+::: {.zh}
+排水相关的发现(@sec-fo-covariates、@sec-va)建立在 OSM 的
+`waterway=canal/drain/ditch` 之上。由此有三点告示:
+
+- **它度量的是「已制图的运河」,不是「排水」。** 地下水位深度、泥炭深度,以及运河
+  状况(某条渠道是否仍在排水、还是已被封堵)全都未被观测。其中泥炭深度尤其是已知
+  的火灾严重度强控制因素 [@konecny2016],而此处完全缺失。
+- **OSM 的完备性在空间上并不均匀**,而且很可能在居民点与道路附近更好。如果运河在
+  有人的地方被制图得更完整,而火又是在有人的地方被点燃,那么运河效应的一部分可能
+  是制图假象。河流协变量对此有部分防护(河流的制图完整度**至少**不低于沟渠,而其
+  效应方向相反)但这不是完整的对照。
+- **土地覆盖完全缺失。** 某个位置是退化灌丛、小农地、油棕还是完整沼泽林,是最明显
+  的遗漏变量,而且它与运河邻近度相关。
+:::
+
+## <span class="en">6. Statistical caveats that would change reported uncertainty, not direction</span><span class="zh">6. 会改变所报告不确定性、但不改变方向的统计性告示</span>
+
+::: {.en}
+- **Berman and KS $p$-values are anti-conservative.** Both assume independent
+  points; the points are demonstrably not independent (@sec-va-n4), so the
+  effective sample size is far below `r n_fmt(N_PX)` (@sec-fo-covariates).
+- **`ppm` standard errors are understated** for the same reason, which is why
+  coefficients are read for sign and magnitude and the clustering is modelled
+  explicitly in `kppm` (@sec-va).
+- **A non-rejection is not a confirmation.** The Thomas process was not rejected
+  ($p =$ `r sprintf("%.2f", VA$gof_M3_test$p.value)`), but other cluster
+  processes (a log-Gaussian Cox process, for instance) would very likely fit
+  comparably. The model is one adequate description, not the identified one.
+- **Isotropy is doubtful.** Canals form an oriented grid and fire plausibly
+  spreads along them, so an isotropic $g(r)$ would understate along-canal
+  correlation and overstate across-canal correlation. A directional analysis
+  would test this and was not performed.
+- **The Monte-Carlo $p$-value floor** is `r pv(1/(SO$nsim+1))` for the
+  envelope tests and 0.001 for the 999-permutation tests. Values at the floor
+  mean "no simulation was as extreme", not a precise probability.
+:::
+
+::: {.zh}
+- **Berman 与 KS 检验的 $p$ 值是反保守的。** 两者都假定点相互独立;而这些点可证
+  地并不独立(@sec-va-n4),因此有效样本量远低于 `r n_fmt(N_PX)`
+  (@sec-fo-covariates)。
+- **`ppm` 的标准误被低估**,原因相同;这正是为什么系数只按符号与量级解读,而聚集
+  性则在 `kppm` 中显式建模(@sec-va)。
+- **不拒绝不等于证实。** Thomas 过程未被拒绝($p =$
+  `r sprintf("%.2f", VA$gof_M3_test$p.value)`),但其他聚集过程(例如对数高斯 Cox
+  过程)很可能拟合得同样好。该模型是**一个**充分的描述,而不是被识别出来的那一个。
+- **各向同性可疑。** 运河构成有方向的格网,火很可能沿其蔓延,因此各向同性的 $g(r)$
+  会低估沿运河方向的相关、高估跨运河方向的相关。方向性分析可以检验这一点,但本报告
+  未做。
+- **蒙特卡洛 $p$ 值的下限**在包络检验中为 `r pv(1/(SO$nsim+1))`,在 999 次置换检验
+  中为 0.001。落在下限上的取值意味着「没有一次模拟达到同样极端」,而不是一个精确的
+  概率值。
+:::
+
+## <span class="en">7. Window and boundary effects</span><span class="zh">7. 窗口与边界效应</span>
+
+::: {.en}
+The window is administrative, not hydrological, so it cuts the fire process
+arbitrarily; its southern edge is a coast, where edge correction assumes a
+process that does not exist offshore and therefore over-corrects coastal
+intensity upward. Shrinking the window by 5 and 10 km left the second-order
+conclusion unchanged (@sec-so-robustness), which addresses the concern for
+interaction but not for the intensity surface.
+:::
+
+::: {.zh}
+该窗口是行政性的、而非水文性的,因此它任意地切割了火灾过程;其南缘为海岸,而边界
+校正假定过程在离岸处仍然存在,因此会把沿海强度**向上过度校正**。把窗口内缩 5 km 与
+10 km 后二阶结论未变(@sec-so-robustness),这消除了对**交互**结论的担忧,但没有
+消除对**强度面**的担忧。
+:::
+
+## <span class="en">8. What this study cannot say at all</span><span class="zh">8. 本研究完全无法回答的问题</span>
+
+::: {.en}
+For clarity about scope, the following are outside the reach of these data and
+are not claimed anywhere in this report: the *cause* of any individual fire; who
+lit it; whether canal blocking reduces fire (a causal claim requiring
+before–after or controlled comparison); smoke exposure or health outcomes; area
+burned or emissions; and any forecast of future fire.
+:::
+
+::: {.zh}
+为明确研究范围,以下内容超出这些数据的能力,本报告任何地方都未作此类论断:任何
+单场火的*成因*;是谁点的;运河封堵是否减少火灾(这是一个需要前后对照或有对照组
+比较的因果论断);烟霾暴露或健康结局;过火面积或排放量;以及对未来火灾的任何预测。
+:::

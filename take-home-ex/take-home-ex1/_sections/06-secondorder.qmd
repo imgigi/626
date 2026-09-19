@@ -1,0 +1,800 @@
+# <span class="en">Second-order analysis: do events interact?</span><span class="zh">二阶分析:事件之间有交互吗?</span> {#sec-so}
+
+::: {.en}
+First-order analysis established that intensity varies enormously across the
+window. Second-order analysis asks a different question: **given that variation,
+do detections still attract one another?**
+
+The answer turns out to depend almost entirely on what "given that variation"
+means, and this section's main finding is *why*. Three reference models are
+used in order of increasing stringency, and they do not agree. Understanding the
+disagreement is more informative than any one of the three tests.
+:::
+
+::: {.zh}
+一阶分析已确立强度在窗口内变化极大。二阶分析问的是另一个问题:**在给定这种变化
+之后,探测点之间是否仍然相互吸引?**
+
+结果表明,答案几乎完全取决于「给定这种变化」是什么意思,而这一节的**主要发现正是
+「为什么」**。此处按严格程度递增使用三个参照模型,而它们**并不一致**。理解这种
+不一致,比其中任何单个检验都更有信息量。
+:::
+
+## <span class="en">Parameters common to this section</span><span class="zh">本节通用参数</span> {#sec-so-params}
+
+```{r}
+#| label: so-params
+#| code-fold: true
+#| code-summary: "Estimation settings"
+
+NSIM <- SO$nsim          # 199 simulations -> global envelope level 2/200 = 1%
+CORR <- SO$corr          # Ohser-Stoyan translation correction
+r_K  <- SO$r_K           # 0 to 15 km
+r_G  <- SO$r_G           # 0 to 3 km
+
+tibble::tibble(
+  Setting = c("Analysis unit", "Simulations per envelope", "Envelope type",
+              "Edge correction (K, L, g)", "Edge correction (G, F, J)",
+              "r range (L)", "r range (G, F)", "Window bounding box"),
+  Value = c(
+    paste0("pixel-day, n = ", n_fmt(N_PX)),
+    paste0(NSIM, " (+ ", NSIM, " for the reference mean where the null is not CSR)"),
+    "global (constant width), α = 0.01",
+    CORR, "Kaplan–Meier",
+    paste0("0 – ", n_fmt(max(r_K)), " m"),
+    paste0("0 – ", n_fmt(max(r_G)), " m"),
+    sprintf("%.0f × %.0f km", diff(win$xrange)/1000, diff(win$yrange)/1000))
+) |>
+  gt::gt() |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+Two choices need a word of explanation.
+
+**Why global envelopes.** A pointwise envelope is read at every one of ~200
+distances, so its nominal 1% level applies to each $r$ separately and the
+probability of *some* excursion under the null is far higher than 1%
+[@baddeley2014envelope]. A global envelope has a constant width chosen so that
+the probability of the observed curve leaving it *anywhere* in the $r$ range is
+exactly $2/(199+1) = 1\%$. Every envelope in this section is global, and each is
+accompanied by a single $p$-value from a Diggle–Cressie–Loosmore–Ford (DCLF) or
+maximum-absolute-deviation (MAD) test, so that no conclusion depends on
+selectively reading a curve [@myllymaki2017].
+
+**Why $L$ rather than $K$.** A constant-width band applied to $K(r)$, whose
+variance grows like $r^4$, is set by the largest distances and is effectively
+blind at small $r$. All envelopes therefore use the variance-stabilised
+$L(r) = \sqrt{K(r)/\pi}$, which under a Poisson process equals $r$. Plots below
+show $L(r)$ **minus its reference curve**, so a horizontal line at zero is the
+null and any departure is read directly in metres.
+:::
+
+::: {.zh}
+有两项选择需要说明。
+
+**为什么用全局包络。** 逐点包络会在约 200 个距离上分别被读取,因此其名义 1% 水平
+只对每个 $r$ 单独成立,而在零模型下曲线*在某处*越界的概率远高于 1%
+[@baddeley2014envelope]。全局包络的宽度是常数,并使观测曲线在整个 $r$ 范围内
+*任何地方*越界的概率恰好为 $2/(199+1) = 1\%$。以下所有包络都是全局的,并且每个都
+配有一个来自 Diggle–Cressie–Loosmore–Ford(DCLF)或最大绝对偏差(MAD)检验的单一
+$p$ 值,从而使任何结论都不依赖于对曲线的选择性阅读 [@myllymaki2017]。
+
+**为什么用 $L$ 而不用 $K$。** 把常宽带用在 $K(r)$ 上时,由于其方差按 $r^4$ 增长,
+带宽实际由最大距离决定,在小 $r$ 处近乎失明。因此所有包络都使用方差稳定化的
+$L(r) = \sqrt{K(r)/\pi}$,它在泊松过程下等于 $r$。下文各图显示的是 $L(r)$
+**减去其参照曲线**,因此零水平线就是零模型,任何偏离都可以直接以米读取。
+:::
+
+## <span class="en">N1: against complete spatial randomness, and why it settles nothing</span><span class="zh">N1:对照完全空间随机性,以及它为何解决不了任何问题</span> {#sec-so-csr}
+
+::: {.rq .en}
+**Question tested.** *Is the pattern distinguishable from a uniform random
+scatter of the same number of points in the same window?*
+**Null model N1:** homogeneous Poisson, simulated by `runifpoint(n, W)`.
+:::
+
+::: {.rq .zh}
+**所检验的问题。** *该模式能否与同一窗口内、同样点数的均匀随机散布区分开?*
+**零模型 N1:** 齐次泊松过程,由 `runifpoint(n, W)` 模拟。
+:::
+
+```{r}
+#| label: fig-gfj
+#| fig-cap: "<span class='en'>Nearest-neighbour (G), empty-space (F) and J functions against complete spatial randomness. All three reject CSR decisively at every distance examined.</span><span class='zh'>最近邻(G)、空隙(F)与 J 函数对照完全空间随机性。三者在所考察的每个距离上都决定性地拒绝 CSR。</span>"
+#| fig-alt: "Nearest-neighbour (G), empty-space (F) and J functions against complete spatial randomness. All three reject CSR decisively at every distance examined."
+#| fig-width: 11
+#| fig-height: 3.5
+
+gf <- function(e, ttl, sub, ylab) {
+  d <- as.data.frame(e)
+  ggplot(d, aes(r / 1000)) +
+    geom_ribbon(aes(ymin = lo, ymax = hi, fill = "band"), alpha = 0.9) +
+    geom_line(aes(y = theo, colour = "theo"), linetype = "22", linewidth = 0.5) +
+    geom_line(aes(y = obs, colour = "obs"), linewidth = 0.85) +
+    scale_fill_manual(NULL, values = c(band = PAL$env),
+                      labels = "Global envelope") +
+    scale_colour_manual(NULL, values = c(obs = PAL$fire, theo = PAL$theo),
+                        labels = c(obs = "Observed", theo = "CSR"),
+                        breaks = c("obs", "theo")) +
+    labs(title = ttl, subtitle = sub, x = "Distance r (km)", y = ylab) +
+    theme_th(10)
+}
+
+gf(SO$env_G, "G: nearest-neighbour distances",
+   "Observed far ABOVE CSR → neighbours much closer than random",
+   "G(r)") +
+gf(SO$env_F, "F: empty-space distances",
+   "Observed far BELOW CSR → large empty gaps exist",
+   "F(r)") +
+gf(SO$env_J, "J = (1−G)/(1−F)",
+   "J < 1 throughout → clustering, not inhibition",
+   "J(r)") +
+  patchwork::plot_layout(nrow = 1, guides = "collect") &
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: fig-lcsr
+#| fig-cap: "<span class='en'>L function against CSR, centred on the theoretical value. The global envelope is so narrow relative to the observed excess that it is barely visible.</span><span class='zh'>L 函数对照 CSR,以理论值为中心。相对观测到的超额,全局包络窄到几乎看不见。</span>"
+#| fig-alt: "L function against CSR, centred on the theoretical value. The global envelope is so narrow relative to the observed excess that it is barely visible."
+#| fig-width: 9
+#| fig-height: 3.8
+
+plot_env_centred(
+  SO$env_L_csr,
+  title = "N1: L(r) against complete spatial randomness",
+  subtitle = paste0("DCLF u = ",
+                    formatC(stat_of(SO$test_L_csr), format = "g", digits = 3),
+                    ", p ", pv(SO$test_L_csr$p.value),
+                    "  ·  MAD p ", pv(SO$mad_L_csr$p.value),
+                    "  ·  ", NSIM, " simulations"),
+  caption = "This rejection was a foregone conclusion: the first-order analysis already showed intensity varying ~40-fold.",
+  ref_lab = "CSR")
+```
+
+```{r}
+#| label: nnd-numbers
+#| echo: false
+nnd_ratio <- SO$nnd_obs / mean(SO$nnd_csr)
+```
+
+::: {.en}
+Every statistic rejects CSR at the smallest attainable $p$-value
+(`r pv(SO$test_L_csr$p.value)`, the floor for `r NSIM` simulations). The mean
+nearest-neighbour distance is `r sprintf("%.0f", SO$nnd_obs)` m against
+`r sprintf("%.0f", mean(SO$nnd_csr))` m expected under CSR (simulated
+2.5–97.5% interval `r sprintf("%.0f", quantile(SO$nnd_csr, .025))`–`r sprintf("%.0f", quantile(SO$nnd_csr, .975))` m),  a ratio of `r sprintf("%.2f", nnd_ratio)`, so observed neighbours are about
+`r sprintf("%.1f", 1/nnd_ratio)` times closer together than random.
+:::
+
+::: {.zh}
+每一个统计量都在所能达到的最小 $p$ 值上拒绝 CSR
+(`r pv(SO$test_L_csr$p.value)`,即 `r NSIM` 次模拟的下限)。平均最近邻距离为
+`r sprintf("%.0f", SO$nnd_obs)` m,而 CSR 下的期望为
+`r sprintf("%.0f", mean(SO$nnd_csr))` m(模拟 2.5–97.5% 区间
+`r sprintf("%.0f", quantile(SO$nnd_csr, .025))`–`r sprintf("%.0f", quantile(SO$nnd_csr, .975))` m),比值为 `r sprintf("%.2f", nnd_ratio)`,即观测到的邻居之间的距离约为随机情形的
+`r sprintf("%.1f", 1/nnd_ratio)` 分之一。
+:::
+
+::: {.callout-warning .en}
+## This tells us almost nothing
+The result is real but uninformative, and the reason is structural, not
+statistical. CSR bundles two hypotheses (*constant intensity* and
+*independent points*) into one null. The first-order analysis already
+demonstrated that constant intensity is false, with intensity ranging over
+roughly `r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[which(FO_K$sigma_ladder == FO_K$sigma_main)])`-fold
+around the mean. Rejection of N1 was therefore guaranteed *before any
+second-order statistic was computed*, and it cannot be attributed to interaction.
+:::
+
+::: {.callout-warning .zh}
+## 这几乎没有告诉我们任何东西
+
+这个结果是真实的,但没有信息量,而原因是**结构性的**而非统计性的。CSR 把两个假设(*常数强度*与*点相互独立*)捆进了一个零模型。一阶分析已经证明常数强度不成立:
+强度围绕均值的变化幅度约
+`r sprintf("%.0f", FO_K$int_check$ratio_max_to_mean[which(FO_K$sigma_ladder == FO_K$sigma_main)])`
+倍。因此对 N1 的拒绝在*任何二阶统计量被计算之前*就已经注定,而且它**无法**被归因于
+交互作用。
+:::
+
+## <span class="en">N2: against an inhomogeneous Poisson process</span><span class="zh">N2:对照非齐次泊松过程</span> {#sec-so-kinhom}
+
+::: {.rq .en}
+**Question tested.** *Once the large-scale intensity gradient is taken as given,
+do detections still cluster beyond what that gradient explains?*
+**Null model N2:** inhomogeneous Poisson with intensity fixed at the kernel
+estimate $\hat\lambda_{\sigma_\lambda}$, simulated by `rpoispp(lambda_hat)`.
+**Statistic:** $L_{inhom}(r)$, weighting each pair by
+$1/(\hat\lambda(x_i)\hat\lambda(x_j))$ so that intensity variation is divided
+out [@baddeley2000].
+:::
+
+::: {.rq .zh}
+**所检验的问题。** *在把大尺度强度梯度视为已给定之后,探测点是否仍然聚集到超出
+该梯度所能解释的程度?*
+**零模型 N2:** 非齐次泊松过程,其强度固定为核估计
+$\hat\lambda_{\sigma_\lambda}$,由 `rpoispp(lambda_hat)` 模拟。
+**统计量:** $L_{inhom}(r)$,它对每一对点按
+$1/(\hat\lambda(x_i)\hat\lambda(x_j))$ 加权,从而把强度变化除掉
+[@baddeley2000]。
+:::
+
+::: {.en}
+Two implementation decisions make the comparison legitimate, and both were
+arrived at after a first attempt failed.
+
+1. **A single fixed intensity.** `Linhom` will re-estimate $\hat\lambda$
+   separately for each simulated pattern by leave-one-out kernel smoothing.
+   That was tried first and rejected: it makes observed and simulated statistics
+   incommensurable, and on this pattern it was numerically degenerate, the
+   simulated $L_{inhom}$ collapsed to zero. Since the null model *is* "an
+   inhomogeneous Poisson process with intensity $\hat\lambda$", $\hat\lambda$ is
+   estimated once from the data and the same image is used throughout.
+2. **`normpower = 2`**, the normalisation recommended to reduce sensitivity to
+   error in $\hat\lambda$ [@baddeley2000]. The spatstat default changed in
+   version 3.8-1, so it is set explicitly.
+:::
+
+::: {.zh}
+有两项实现决策使这一比较得以成立,而两者都是在第一次尝试失败之后才确定的。
+
+1. **使用单一固定强度。** `Linhom` 会用留一核平滑为**每个**模拟模式分别重新估计
+   $\hat\lambda$。这一做法先被尝试、随后被否决:它使观测统计量与模拟统计量不可
+   比较,并且在本模式上数值退化,模拟出的 $L_{inhom}$ 坍缩为零。既然零模型**就是**
+   「强度为 $\hat\lambda$ 的非齐次泊松过程」,那么 $\hat\lambda$ 就从数据中估计
+   **一次**,并在全过程中使用同一张影像。
+2. **`normpower = 2`**,即推荐用于降低对 $\hat\lambda$ 估计误差敏感性的归一化方式
+   [@baddeley2000]。该参数的 spatstat 默认值在 3.8-1 版中有过变更,因此此处显式
+   设定。
+:::
+
+### <span class="en">The result: the answer is a function of $\sigma_\lambda$</span><span class="zh">结果:答案是 $\sigma_\lambda$ 的函数</span>
+
+```{r}
+#| label: fig-linhom
+#| fig-cap: "<span class='en'>Inhomogeneous L against an inhomogeneous Poisson null at four intensity bandwidths. The observed curve leaves the global envelope only at σ_λ = 10 km.</span><span class='zh'>四种强度带宽下,非齐次 L 对照非齐次泊松零模型。观测曲线只在 σ_λ = 10 km 时离开全局包络。</span>"
+#| fig-alt: "Inhomogeneous L against an inhomogeneous Poisson null at four intensity bandwidths. The observed curve leaves the global envelope only at σ_λ = 10 km."
+#| fig-width: 11
+#| fig-height: 6.4
+
+lad <- SO$linhom_ladder
+panels <- lapply(seq_along(lad), function(k) {
+  x <- lad[[k]]; s <- env_summary(x$env)
+  plot_env_centred(
+    x$env,
+    title = bquote(sigma[lambda] == .(n_fmt(x$sigma)) ~ "m"),
+    subtitle = sprintf("DCLF p %s · %s",
+                       pv(x$test$p.value),
+                       ifelse(is.na(s$r_first), "inside the envelope throughout",
+                              sprintf("outside over %.1f–%.1f km",
+                                      s$r_first, s$r_last))),
+    ref_lab = "Inhomogeneous Poisson") +
+    theme_th(10) + theme(legend.position = "none")
+})
+patchwork::wrap_plots(panels, nrow = 2)
+```
+
+```{r}
+#| label: tbl-linhom
+#| tbl-cap: "<span class='en'>The N2 test as a function of the intensity bandwidth, alongside a count of the resolution cells the null intensity consumes. The two columns move together.</span><span class='zh'>N2 检验作为强度带宽的函数,并列出零模型强度所消耗的分辨单元数。这两列是同步变化的。(下表为英文原表)</span>"
+
+A_KM2 <- area(win) / 1e6
+lin_tab <- bind_rows(lapply(lad, function(x) {
+  s <- env_summary(x$env)
+  cells <- A_KM2 / (pi * (x$sigma / 1000)^2)
+  tibble(`σ_λ (m)` = x$sigma,
+         `Resolution cells in the null` = cells,
+         `Points per cell` = N_PX / cells,
+         `DCLF p` = x$test$p.value,
+         `MAD p` = x$mad$p.value,
+         `Outside envelope` = ifelse(is.na(s$r_first), "—",
+                                     sprintf("%.1f–%.1f km", s$r_first, s$r_last)))
+}))
+lin_tab |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(`σ_λ (m)`, `Resolution cells in the null`),
+                 decimals = 0) |>
+  gt::fmt_number(columns = `Points per cell`, decimals = 2) |>
+  gt::fmt_number(columns = c(`DCLF p`, `MAD p`), decimals = 4) |>
+  gt::tab_footnote(
+    footnote = gt::md(paste0(
+      "*Resolution cells* is the window area divided by the kernel footprint ",
+      "$\\pi\\sigma_\\lambda^2$, a deliberately rough count of how many ",
+      "independent values the kernel intensity estimate is free to choose. ",
+      "It is an order-of-magnitude heuristic, not an exact effective degrees ",
+      "of freedom.")),
+    locations = gt::cells_column_labels(columns = `Resolution cells in the null`)) |>
+  gt::tab_options(table.font.size = gt::pct(82), data_row.padding = gt::px(6))
+```
+
+::: {.en}
+The pattern in that table is the central methodological finding of this report.
+:::
+
+::: {.zh}
+上表中的规律正是这项分析在方法学上的核心发现。
+:::
+
+```{r}
+#| label: fig-power
+#| fig-cap: "<span class='en'>Why the N2 test reaches opposite conclusions at different bandwidths: the flexibility of the null intensity, not the data, decides the answer.</span><span class='zh'>N2 检验在不同带宽下得出相反结论的原因:决定答案的是零模型强度的灵活度,而不是数据。</span>"
+#| fig-alt: "Why the N2 test reaches opposite conclusions at different bandwidths: the flexibility of the null intensity, not the data, decides the answer."
+#| fig-width: 9.4
+#| fig-height: 4.2
+
+pw <- lin_tab |>
+  transmute(sigma = `σ_λ (m)`, cells = `Resolution cells in the null`,
+            p = `DCLF p`) |>
+  bind_rows(tibble(sigma = NA_real_, cells = VA$n_par_M1,
+                   p = VA$gof_M1_test$p.value))
+pw$label <- c(sprintf("σ_λ = %s m", n_fmt(pw$sigma[1:4])),
+              "covariate model (N4, §7)")
+
+ggplot(pw, aes(cells, p)) +
+  annotate("rect", xmin = 1, xmax = Inf, ymin = 0.05, ymax = Inf,
+           fill = PAL$grey_l, alpha = 0.35) +
+  annotate("text", x = 3.2, y = 0.5, label = "cannot reject the null",
+           hjust = 0, size = 3.1, colour = PAL$grey) +
+  geom_hline(yintercept = 0.05, linetype = "22", colour = PAL$theo) +
+  geom_line(data = ~dplyr::filter(.x, !is.na(sigma)), colour = PAL$fire,
+            linewidth = 0.7) +
+  geom_point(aes(colour = is.na(sigma)), size = 3.4) +
+  # geom_label_repel rather than text: these labels sit over a line and two
+  # reference rules, and an opaque background keeps both readable.
+  ggrepel::geom_label_repel(aes(label = label), size = 3.1, colour = "#292524",
+                            seed = 5, min.segment.length = 0.1,
+                            box.padding = 0.65, point.padding = 0.35,
+                            label.size = 0, label.padding = unit(0.13, "lines"),
+                            fill = alpha("white", 0.9),
+                            segment.size = 0.3, segment.colour = PAL$grey) +
+  geom_hline(yintercept = 0, colour = NA) +
+  scale_x_log10(labels = label_comma()) +
+  scale_y_log10(labels = label_number(accuracy = 0.0001)) +
+  scale_colour_manual(values = c(`FALSE` = PAL$fire, `TRUE` = PAL$water),
+                      guide = "none") +
+  annotate("segment", x = 2715, xend = 2715, y = 0.0015, yend = 1,
+           linetype = "33", colour = PAL$water) +
+  annotate("text", x = 2715, y = 0.0013, label = "n = 2,715 points",
+           size = 2.9, colour = PAL$water, vjust = 1) +
+  labs(title = "Power depends on how many parameters the null is allowed",
+       subtitle = paste0("The same data, the same statistic, the same 199 ",
+                         "simulations — only the null's flexibility changes"),
+       x = "Resolution cells / parameters in the null intensity (log scale)",
+       y = "DCLF p-value (log scale)") +
+  theme_th(11)
+```
+
+::: {.interp .en}
+**Resolution against sample size.** At $\sigma_\lambda = 1$ km the kernel intensity has
+roughly `r n_fmt(round(lin_tab[["Resolution cells in the null"]][1]))` resolution
+cells for `r n_fmt(N_PX)` points, **fewer than one point per cell**. Such a null
+is close to saturated: it can reproduce almost any pattern, so failing to reject
+it (p = `r sprintf("%.3f", lin_tab[["DCLF p"]][1])`) carries little information.
+As $\sigma_\lambda$ grows, the null becomes parsimonious and the $p$-value falls
+monotonically to `r sprintf("%.4f", lin_tab[["DCLF p"]][4])` at 10 km, where
+excess clustering appears over
+`r sprintf("%.1f–%.1f km", env_summary(lad[[4]]$env)$r_first, env_summary(lad[[4]]$env)$r_last)`.
+The covariate model of @sec-va, with only `r VA$n_par_M1` parameters,
+sits at the far left and is rejected decisively. **Implication:** whether the
+~2 km structure in this pattern is called "intensity variation" or "clustering"
+is a **modelling choice**, not something these data can settle.
+*But note:* "resolution cells" is a rough heuristic for the null's flexibility,
+not an exact degrees-of-freedom calculation.
+:::
+
+::: {.interp .zh}
+**分辨单元数与样本量。** 在 $\sigma_\lambda = 1$ km 时,核强度约有
+`r n_fmt(round(lin_tab[["Resolution cells in the null"]][1]))` 个分辨单元,而点只有
+`r n_fmt(N_PX)` 个,**每个单元不到一个点**。这样的零模型接近**饱和**:它几乎能
+再现任何模式,因此「未能拒绝它」(p = `r sprintf("%.3f", lin_tab[["DCLF p"]][1])`)
+所携带的信息很少。随着 $\sigma_\lambda$ 增大,零模型变得简约,$p$ 值单调下降到
+10 km 时的 `r sprintf("%.4f", lin_tab[["DCLF p"]][4])`,此时在
+`r sprintf("%.1f–%.1f km", env_summary(lad[[4]]$env)$r_first, env_summary(lad[[4]]$env)$r_last)`
+范围内出现超额聚集。@sec-va 中仅有 `r VA$n_par_M1` 个参数的协变量模型位于
+最左端,并被决定性地拒绝。**含义:** 本模式中那个约 2 km 的结构,称之为「强度变化」
+还是「聚集」,是一个**建模选择**,而不是这些数据能够判定的事实。
+*但请注意:*「分辨单元」只是对零模型灵活度的粗略启发式度量,不是精确的自由度计算。
+:::
+
+::: {.callout-important .en}
+## The honest statement of the N2 result
+At the bandwidth chosen for the headline intensity surface
+($\sigma_\lambda = `r n_fmt(SO$sigma_main)`$ m), **the observed pattern is not
+distinguishable from an inhomogeneous Poisson process**
+(DCLF $p =$ `r sprintf("%.3f", lad[[which(SO$sig_ladder == SO$sigma_main)]]$test$p.value)`,
+MAD $p =$ `r sprintf("%.3f", lad[[which(SO$sig_ladder == SO$sigma_main)]]$mad$p.value)`,
+observed curve inside the 1% global envelope at every distance).
+
+It would be wrong to report this as "no clustering". It is a statement about a
+test with very little power, for two identifiable reasons:
+
+1. **The null is nearly saturated** at this bandwidth, as above.
+2. **The inverse-intensity weights are unbounded.** $L_{inhom}$ weights pairs by
+   $1/(\hat\lambda_i\hat\lambda_j)$, and at $\sigma_\lambda = 2$ km the fitted
+   intensity at the data points spans a factor of about
+   `r {lamx <- density(ppp_px, sigma = SO$sigma_main, edge = TRUE, positive = TRUE, dimyx = c(512,256))[win, drop = FALSE]; v <- lamx[ppp_px]; sprintf("%.0f", max(v)/min(v))}`.
+   A simulated pair falling in the sparse north therefore contributes an
+   enormous amount, giving the null distribution very heavy tails. The
+   consequence is visible in @fig-pcf, where the global envelope for $g_{inhom}$
+   is roughly ±200 around a null value of 1.
+
+The way out is not a better bandwidth. It is a **null model with few
+parameters**, which is what @sec-va provides.
+:::
+
+::: {.callout-important .zh}
+## 对 N2 结果的诚实表述
+
+在主强度面所选用的带宽下($\sigma_\lambda = `r n_fmt(SO$sigma_main)`$ m),
+**观测到的模式与非齐次泊松过程无法区分**
+(DCLF $p =$ `r sprintf("%.3f", lad[[which(SO$sig_ladder == SO$sigma_main)]]$test$p.value)`,
+MAD $p =$ `r sprintf("%.3f", lad[[which(SO$sig_ladder == SO$sigma_main)]]$mad$p.value)`,
+观测曲线在每个距离上都位于 1% 全局包络之内)。
+
+把这说成「没有聚集」是**错误的**。这是关于一个**检验力极低**的检验的陈述,而原因有
+两条、都可以指认:
+
+1. **在该带宽下零模型近乎饱和**,如上所述。
+2. **逆强度权重是无界的。** $L_{inhom}$ 按 $1/(\hat\lambda_i\hat\lambda_j)$ 对
+   点对加权,而在 $\sigma_\lambda = 2$ km 时,数据点处的拟合强度跨度约为
+   `r {lamx <- density(ppp_px, sigma = SO$sigma_main, edge = TRUE, positive = TRUE, dimyx = c(512,256))[win, drop = FALSE]; v <- lamx[ppp_px]; sprintf("%.0f", max(v)/min(v))}`
+   倍。因此一对落在稀疏北部的模拟点会贡献一个极大的量,使零分布具有非常重的尾部。
+   其后果在 @fig-pcf 中可见:$g_{inhom}$ 的全局包络在零值 1 附近大约是 ±200。
+
+出路**不是**更好的带宽,而是一个**参数很少的零模型**。这正是 @sec-va 所提供的。
+:::
+
+## <span class="en">Describing the structure, rather than testing it</span><span class="zh">描述这个结构,而不是检验它</span> {#sec-so-pcf}
+
+::: {.en}
+Since the N2 test cannot resolve the question, the pair-correlation function is
+used here **descriptively**: it says how much more pairing there is at distance
+$r$ than the fitted 2 km intensity implies, without asking whether that excess
+is significant.
+:::
+
+::: {.zh}
+既然 N2 检验无法解决这个问题,此处就把对相关函数**当作描述性工具**使用:它说明
+在距离 $r$ 上的成对程度比拟合的 2 km 强度所隐含的高出多少,而不追问这一超额是否
+显著。
+:::
+
+```{r}
+#| label: fig-pcf
+#| fig-cap: "<span class='en'>Inhomogeneous pair-correlation function relative to the σ_λ = 2 km intensity. The observed curve is shown with the global envelope, which is far too wide to be informative, itself a diagnostic of the weight-explosion problem.</span><span class='zh'>相对 σ_λ = 2 km 强度的非齐次对相关函数。图中同时给出全局包络,但它宽到完全没有信息量。这本身就是权重爆炸问题的诊断。</span>"
+#| fig-alt: "Inhomogeneous pair-correlation function relative to the σ_λ = 2 km intensity. The observed curve is shown with the global envelope, which is far too wide to be informative, itself a diagnostic of the weight-explosion problem."
+#| fig-width: 9.4
+#| fig-height: 4.2
+
+# g(r) is plotted on a log scale, which requires positive values. The r = 0
+# endpoint and the lower envelope can both be zero or negative for a
+# kernel-smoothed pair-correlation estimate, so those are handled explicitly
+# rather than silently dropped by the scale.
+gd <- as.data.frame(SO$env_g) |>
+  dplyr::filter(r > 0, is.finite(obs), obs > 0) |>
+  dplyr::mutate(lo_p = pmax(lo, min(obs) / 3), hi_p = pmax(hi, lo_p * 1.001))
+
+ggplot(gd, aes(r / 1000)) +
+  geom_ribbon(aes(ymin = lo_p, ymax = hi_p, fill = "band"), alpha = 0.55) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo,
+             linewidth = 0.5) +
+  geom_line(aes(y = obs, colour = "obs"), linewidth = 0.95) +
+  annotate("rect", xmin = 0, xmax = 0.5, ymin = -Inf, ymax = Inf,
+           fill = "#78716c", alpha = 0.22) +
+  annotate("segment", x = 0.5, xend = 0.5, y = -Inf, yend = Inf,
+           colour = "#57534e", linewidth = 0.4, linetype = "12") +
+  annotate("text", x = 0.58, y = max(gd$hi_p), label = "below sensor resolution",
+           hjust = 0, vjust = 1.4, size = 2.9, colour = "#57534e") +
+  scale_fill_manual(NULL, values = c(band = PAL$env),
+                    labels = "Global envelope (uninformatively wide)") +
+  scale_colour_manual(NULL, values = c(obs = PAL$fire), labels = "Observed") +
+  scale_y_log10(labels = label_number(accuracy = 0.1)) +
+  labs(title = expression(paste("Inhomogeneous pair correlation ", g[inhom](r))),
+       subtitle = paste0("σ_λ = ", n_fmt(SO$sigma_main),
+                         " m · log scale · dashed line at 1 is the null value"),
+       x = "Distance r (km)", y = expression(g[inhom](r))) +
+  theme_th(11)
+```
+
+```{r}
+#| label: tbl-pcf
+#| tbl-cap: "<span class='en'>Observed inhomogeneous pair correlation at selected distances, relative to the σ_λ = 2 km intensity. Reported descriptively: the envelope is too wide to support a significance claim.</span><span class='zh'>若干选定距离上观测到的非齐次对相关值(相对 σ_λ = 2 km 强度)。仅作描述性报告:包络太宽,不足以支持显著性论断。(下表为英文原表)</span>"
+tibble(`r (m)` = c(500, 750, 1000, 2000, 3000, 5000, 8000)) |>
+  mutate(`g_inhom(r)` = approx(gd$r, gd$obs, `r (m)`)$y,
+         `Excess pairing` = sprintf("%.1f× the null", `g_inhom(r)`)) |>
+  gt::gt() |>
+  gt::fmt_number(columns = `g_inhom(r)`, decimals = 2) |>
+  gt::fmt_number(columns = `r (m)`, decimals = 0) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(5))
+```
+
+::: {.interp .en}
+**Excess pairing at short range.** Relative to the 2 km kernel intensity there is still
+substantial excess pairing at short range (`r sprintf("%.1f×", approx(gd$r, gd$obs, 500)$y)` the null at 500 m,
+`r sprintf("%.1f×", approx(gd$r, gd$obs, 1000)$y)` at 1 km,
+`r sprintf("%.1f×", approx(gd$r, gd$obs, 2000)$y)` at 2 km) decaying towards
+but not reaching 1 by 8 km. **Evidence:** the *shape* is a clean monotone decay,
+which is what a clustered process produces. **But the envelope spans roughly
+±200**, so none of this is statistically distinguishable from the null: the
+inverse-intensity weights make the sampling distribution enormously dispersed.
+**Implication:** the descriptive scale of the excess is a few kilometres, and
+establishing it as real requires the parametric route of @sec-va, which
+independently estimates a cluster scale of
+`r n_fmt(round(VA$clustpar[["scale"]], -1))` m. *One qualification:* nothing inside the
+grey strip may be interpreted at all; and `divisor = "d"` makes $g$ intrinsically
+noisy at very small $r$.
+:::
+
+::: {.interp .zh}
+**短程上的超额成对。** 相对 2 km 的核强度,短距离上仍存在可观的超额成对(500 m 处为
+零模型的 `r sprintf("%.1f×", approx(gd$r, gd$obs, 500)$y)`,1 km 处
+`r sprintf("%.1f×", approx(gd$r, gd$obs, 1000)$y)`,2 km 处
+`r sprintf("%.1f×", approx(gd$r, gd$obs, 2000)$y)`)并向 1 衰减,但到 8 km 仍未
+达到 1。**证据:** 其*形状*是干净的单调衰减,而这正是聚集过程所产生的形态。
+**但包络跨度约为 ±200**,因此这些都无法在统计上与零模型区分:逆强度权重使抽样分布
+极度离散。**含义:** 该超额在描述意义上的尺度是数公里,而要确立它是真实的,需要
+@sec-va 的参数化路径,后者独立估计出的簇群尺度为
+`r n_fmt(round(VA$clustpar[["scale"]], -1))` m。*一项限定:* 灰色条带内的任何内容都不可
+解读;另外 `divisor = "d"` 使 $g$ 在极小 $r$ 处本身就很嘈杂。
+:::
+
+## <span class="en">Is the N2 non-result an artefact of our other choices?</span><span class="zh">N2 的「非结果」是其他选择造成的假象吗?</span> {#sec-so-robustness}
+
+```{r}
+#| label: tbl-robust
+#| tbl-cap: "<span class='en'>Robustness of the N2 result to the definition of a point event and to the study window. All variants agree, including the one that is immune to pixel-level duplication.</span><span class='zh'>N2 结果对「点事件定义」与「研究窗口」的稳健性。所有变体结论一致,包括那个对像元级重复完全免疫的变体。(下表为英文原表)</span>"
+
+t_unit <- bind_rows(lapply(names(SO$unit_check), function(nm) {
+  x <- SO$unit_check[[nm]]; s <- env_summary(x$env)
+  tibble(Check = "Point-event definition", Variant = nm, n = x$n,
+         `DCLF p` = x$test$p.value, `% r outside` = s$pct_out)
+}))
+
+t_win <- SO$window_check |>
+  transmute(Check = "Study window",
+            Variant = ifelse(inner_buffer_km == 0, "full regency",
+                             paste0("shrunk by ", inner_buffer_km, " km")),
+            n = n, `DCLF p` = dclf_p, `% r outside` = pct_r_outside)
+
+bind_rows(t_unit, t_win) |>
+  gt::gt(groupname_col = "Check") |>
+  gt::fmt_number(columns = n, decimals = 0) |>
+  gt::fmt_number(columns = `DCLF p`, decimals = 4) |>
+  gt::fmt_number(columns = `% r outside`, decimals = 1) |>
+  gt::tab_options(table.font.size = gt::pct(84), data_row.padding = gt::px(5),
+                  row_group.font.weight = "bold")
+```
+
+```{r}
+#| label: tbl-normpower
+#| tbl-cap: "<span class='en'>Sensitivity of the observed L_inhom to the normalisation power, whose spatstat default changed in version 3.8-1.</span><span class='zh'>观测 L_inhom 对归一化幂次的敏感性;该参数的 spatstat 默认值在 3.8-1 版中有过变更。(下表为英文原表)</span>"
+SO$np_check |>
+  rename(`normpower` = normpower, `L at 500 m` = L_at_500,
+         `L at 2 km` = L_at_2000, `L at 10 km` = L_at_10000) |>
+  gt::gt() |>
+  gt::fmt_number(columns = -normpower, decimals = 0) |>
+  gt::tab_options(table.font.size = gt::pct(85), data_row.padding = gt::px(4))
+```
+
+::: {.en}
+**Point-event definition.** All three units give the same answer at
+$\sigma_\lambda = 2$ km, inside the envelope, $p$ between
+`r sprintf("%.3f", min(vapply(SO$unit_check, function(x) x$test$p.value, 0)))` and
+`r sprintf("%.3f", max(vapply(SO$unit_check, function(x) x$test$p.value, 0)))`.
+The **event** unit matters most: it is already de-duplicated in space *and*
+time, so it cannot be affected by one fire occupying several pixels. Its
+agreement confirms that the N2 non-result is a property of the test, not of
+pixel-level duplication.
+
+It should be noted that the event unit is itself imperfect. Single-linkage
+chaining merged
+`r sprintf("%.0f%%", 100*max(fire_ev$n_px)/sum(fire_ev$n_px))` of all pixel-days
+into one component, because at this fire density there is no clean separation
+between discrete events, which is itself evidence of a spatially contiguous
+burning field.
+
+**Study window.** Shrinking the window by 5 and 10 km removes the boundary zone
+altogether, a stronger check on edge effects than any correction formula. The
+result is unchanged, so nothing here is manufactured by the translation
+correction or by the coastal boundary.
+
+**Normalisation.** `normpower = 1` and `2` change the magnitude of
+$L_{inhom}$ but not its shape or sign, so the choice is not load-bearing.
+:::
+
+::: {.zh}
+**点事件定义。** 三种单元在 $\sigma_\lambda = 2$ km 下给出相同答案,都位于包络
+之内,$p$ 介于
+`r sprintf("%.3f", min(vapply(SO$unit_check, function(x) x$test$p.value, 0)))` 与
+`r sprintf("%.3f", max(vapply(SO$unit_check, function(x) x$test$p.value, 0)))` 之间。
+其中**事件**单元最关键:它在空间**和**时间上都已去重,因此不可能受「一场火占据多个
+像元」的影响。它的一致性印证了 N2 的「非结果」是**检验本身**的性质,而不是像元级
+重复造成的。
+
+需要说明的是,事件单元本身并不完美。单连接链式合并把全部像元-日的
+`r sprintf("%.0f%%", 100*max(fire_ev$n_px)/sum(fire_ev$n_px))` 并进了一个连通分量,
+因为在本例的火密度下,离散事件之间没有清晰的分界,而这本身就是「火场在空间上连续
+成片」的证据。
+
+**研究窗口。** 把窗口内缩 5 km 与 10 km 会完全移除边界带,这是比任何校正公式都更强
+的边界效应检查。结果不变,因此此处没有任何结论是由平移校正或海岸边界制造出来的。
+
+**归一化。** `normpower = 1` 与 `2` 改变 $L_{inhom}$ 的**量级**,但不改变其形状或
+符号,因此这一选择不承重。
+:::
+
+## <span class="en">N3: space–time interaction</span><span class="zh">N3:时空交互</span> {#sec-so-knox}
+
+::: {.rq .en}
+**Question tested.** *Are detections that are close in space also close in
+time, beyond what their separate spatial and temporal patterns imply?*
+**Null model N3:** random labelling, the observed locations and the observed
+multiset of dates are both held fixed, and dates are randomly re-assigned to
+locations (999 permutations) [@knox1964].
+:::
+
+::: {.rq .zh}
+**所检验的问题。** *空间上靠近的探测点在时间上是否也靠近,其程度是否超出各自的
+空间格局与时间格局所隐含的水平?*
+**零模型 N3:** 随机贴标,观测到的位置与观测到的日期多重集**都保持固定**,只把
+日期随机重新分配给各位置(999 次置换)[@knox1964]。
+:::
+
+::: {.en}
+This null has a property none of the others has: **it requires no model for
+either marginal pattern**, and therefore no bandwidth and no covariates. The
+spatial configuration is taken as observed, the daily totals are taken as
+observed, and only their pairing is randomised. That makes it the strongest
+instrument available here, both because it sidesteps the scale-separation
+problem that crippled N2, and because @sec-fo-temporal showed the daily totals
+are contaminated by the observation process, which this test *conditions on*
+rather than models.
+:::
+
+::: {.zh}
+这个零模型有一个其他任何零模型都不具备的性质:**它不需要为任一边际格局建模**,
+因此既不需要带宽,也不需要协变量。空间构型按观测取用,逐日总量按观测取用,只有
+两者的**配对关系**被随机化。这使它成为此处最有力的工具,既因为它绕开了让 N2 瘫痪
+的尺度分离问题,也因为 @sec-fo-temporal 已表明逐日总量受观测过程污染,而本检验是
+**以它们为条件**,而不是对它们建模。
+:::
+
+```{r}
+#| label: fig-knox
+#| fig-cap: "<span class='en'>Space-time interaction. Left: observed count of space-time-close pairs relative to the permutation mean, for nine threshold combinations. Right: the excess by exact temporal lag, at two spatial radii.</span><span class='zh'>时空交互。左:九种阈值组合下,时空邻近对的观测数相对置换均值之比。右:两种空间半径下,按精确时间滞后给出的超额。</span>"
+#| fig-alt: "Space-time interaction. Left: observed count of space-time-close pairs relative to the permutation mean, for nine threshold combinations. Right: the excess by exact temporal lag, at two spatial radii."
+#| fig-width: 10.6
+#| fig-height: 4.4
+
+p_k <- SO$knox_res |>
+  mutate(space = paste0(space_m / 1000, " km"),
+         time = factor(paste0("≤ ", time_d, " day", ifelse(time_d == 1, "", "s")))) |>
+  ggplot(aes(time, ratio, fill = space)) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_col(position = position_dodge(0.8), width = 0.72) +
+  geom_text(aes(label = sprintf("%.2f", ratio)),
+            position = position_dodge(0.8), vjust = -0.35, size = 2.6,
+            colour = PAL$grey) +
+  scale_fill_manual("Spatial threshold",
+                    values = c(`1 km` = PAL$fire, `2 km` = PAL$fire_l,
+                               `5 km` = PAL$grey_l)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.14))) +
+  labs(title = "Observed / expected space-time-close pairs",
+       subtitle = "Expected = mean over 999 random re-labellings of the dates",
+       x = "Temporal threshold", y = "Ratio") +
+  theme_th(10)
+
+p_l <- bind_rows(
+  SO$st_by_lag_1km |> mutate(radius = "within 1 km"),
+  SO$st_by_lag     |> mutate(radius = "within 5 km")) |>
+  ggplot(aes(lag_days, ratio, colour = radius)) +
+  geom_hline(yintercept = 1, linetype = "22", colour = PAL$theo) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.1) +
+  scale_colour_manual(NULL, values = c(`within 1 km` = PAL$fire,
+                                       `within 5 km` = PAL$water)) +
+  scale_x_continuous(breaks = 0:5) +
+  labs(title = "Excess by temporal lag",
+       subtitle = "Ratio of observed to permuted pair counts at each exact lag",
+       x = "Temporal lag (days)", y = "Observed / expected") +
+  theme_th(10)
+
+p_k + p_l
+```
+
+```{r}
+#| label: tbl-knox
+#| tbl-cap: "<span class='en'>Monte-Carlo Knox test. p is the proportion of 999 date permutations producing at least as many space-time-close pairs as observed.</span><span class='zh'>蒙特卡洛 Knox 检验。p 为 999 次日期置换中,时空邻近对数不少于观测值的比例。(下表为英文原表)</span>"
+SO$knox_res |>
+  transmute(`Spatial threshold` = paste0(space_m / 1000, " km"),
+            `Temporal threshold` = paste0("≤ ", time_d, " d"),
+            `Pairs within spatial threshold` = n_pairs_space,
+            Observed = observed, `Expected (permuted)` = sim_mean,
+            Ratio = ratio, `p` = p_value) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(`Pairs within spatial threshold`, Observed,
+                             `Expected (permuted)`), decimals = 0) |>
+  gt::fmt_number(columns = Ratio, decimals = 2) |>
+  gt::fmt_number(columns = p, decimals = 3) |>
+  gt::tab_options(table.font.size = gt::pct(83), data_row.padding = gt::px(4))
+```
+
+```{r}
+#| label: knox-numbers
+#| echo: false
+k00 <- SO$knox_res |> dplyr::filter(space_m == 1000, time_d == 0)
+k_all_sig <- all(SO$knox_res$p_value < 0.05)
+k_max <- SO$knox_res |> dplyr::slice_max(ratio, n = 1)
+```
+
+::: {.interp .en}
+**Nine thresholds, one answer.** All nine threshold combinations reject at the
+permutation floor ($p$ `r pv(min(SO$knox_res$p_value))`), and the excess is
+sharply graded: within 1 km on the same day the observed count is
+`r sprintf("%.2f×", k00$ratio)` the permuted expectation, against
+`r sprintf("%.2f×", SO$knox_res$ratio[SO$knox_res$space_m==5000 & SO$knox_res$time_d==0])`
+at 5 km. The right panel shows the interaction is *localised*, not merely
+positive: at 1 km the ratio falls from
+`r sprintf("%.2f", SO$st_by_lag_1km$ratio[1])` at lag 0 through 1 into a
+**deficit** by lag 3 (`r sprintf("%.2f", SO$st_by_lag_1km$ratio[4])`). Nearby
+pairs are packed into a two-to-three-day window *at the expense of* longer lags.
+**Evidence:** the null holds both marginals fixed, and unlike N2 it uses no
+bandwidth and no covariates. **Implication:** where and when are genuinely
+dependent, fire predicts fire nearby for about two days. *Read with care:* this
+includes a moving front and multi-day smouldering, not only contagion; the
+lag-0 excess involves distinct locations, so not smouldering alone.
+:::
+
+::: {.interp .zh}
+**九组阈值,一个答案。** 九种阈值组合全部在置换下限上被拒绝
+($p$ `r pv(min(SO$knox_res$p_value))`),而超额呈明显梯度:1 km 内同日的观测数为
+置换期望的 `r sprintf("%.2f×", k00$ratio)`,而 5 km 处为
+`r sprintf("%.2f×", SO$knox_res$ratio[SO$knox_res$space_m==5000 & SO$knox_res$time_d==0])`。
+右图显示这一交互是*局域的*,而不仅仅是正的:在 1 km 上,比值从滞后 0 的
+`r sprintf("%.2f", SO$st_by_lag_1km$ratio[1])` 穿过 1,到滞后 3 时转为**亏缺**
+(`r sprintf("%.2f", SO$st_by_lag_1km$ratio[4])`)。邻近点对被压缩进一个两到三天的
+窗口内,而这是**以更长滞后为代价**的。**证据:** 该零模型固定了两个边际,而且与
+N2 不同,它不使用带宽、也不使用协变量。**含义:** 「哪里」与「何时」确实相互依赖
+,火会在约两天内预示附近再有火。*阅读时请留意:* 这里面既包含推进的火线,也包含同一片地面
+的跨日阴燃,而不只是传染;但滞后 0 的超额涉及的是**不同位置**,因此并非仅由阴燃
+造成。
+:::
+
+## <span class="en">Where this leaves the second-order question</span><span class="zh">二阶问题最终停在哪里</span>
+
+```{r}
+#| label: tbl-so-summary
+#| tbl-cap: "<span class='en'>The three second-order reference models and what each established.</span><span class='zh'>三个二阶参照模型及各自确立了什么。(下表为英文原表)</span>"
+tibble::tribble(
+  ~Null, ~Result, ~`What it establishes`,
+  "**N1** CSR",
+  sprintf("rejected, p %s", pv(SO$test_L_csr$p.value)),
+  "Nothing usable, rejection was guaranteed by the first-order result.",
+
+  "**N2** inhomogeneous Poisson, kernel intensity",
+  sprintf("not rejected at σ_λ = 1–2 km (p %s at 2 km); rejected at σ_λ = 10 km (p %s)",
+          sprintf("%.3f", lad[[2]]$test$p.value),
+          sprintf("%.4f", lad[[4]]$test$p.value)),
+  "That the spatial question is **not identifiable** from these data: the answer is set by the null's flexibility, not by the pattern.",
+
+  "**N3** random date labelling",
+  sprintf("rejected at all nine thresholds, strongest %.2f× at %s km / ≤%s d",
+          k_max$ratio, k_max$space_m/1000, k_max$time_d),
+  "Genuine space–time interaction, with no bandwidth, no covariates and no model for either marginal."
+) |>
+  gt::gt() |> gt::fmt_markdown(columns = everything()) |>
+  gt::cols_width(Null ~ gt::pct(22), Result ~ gt::pct(34),
+                 `What it establishes` ~ gt::pct(44)) |>
+  gt::tab_options(table.font.size = gt::pct(83), data_row.padding = gt::px(7))
+```
+
+::: {.en}
+The spatial second-order question is left open by N2 *by construction*. It is
+resolved in @sec-va by replacing the kernel null with a parametric one.
+:::
+
+::: {.zh}
+空间二阶问题被 N2 *在构造上*留成了开放问题。它在 @sec-va 中通过把核零模型替换为
+参数化零模型而得到解决。
+:::

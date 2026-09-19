@@ -1,0 +1,230 @@
+# <span class="en">Reproducibility appendix</span><span class="zh">可复现性附录</span> {#sec-repro}
+
+## <span class="en">How to reproduce this report</span><span class="zh">如何复现本报告</span>
+
+::: {.en}
+The repository is a self-contained Quarto project. From a clean clone:
+:::
+
+::: {.zh}
+本仓库是一个自包含的 Quarto 项目。从一份干净的克隆开始:
+:::
+
+```bash
+# 1. Acquire the data (choose ONE route)
+#    Route A - open 7-day FIRMS files, no credentials needed. Note that this
+#    returns whatever the most recent seven days happen to be, so re-running it
+#    today will NOT reproduce the September 2026 window analysed here.
+Rscript scripts/01b_assemble_public7d.R
+
+#    Route B - authenticated FIRMS Area API, arbitrary date range. This is the
+#    route that reproduces (or extends) the exact window.
+export FIRMS_MAP_KEY=<your key>          # or write it to .firms_key
+Rscript scripts/01_download_firms.R 2026-09-04 2026-09-11
+
+# 2. Boundaries and contextual layers
+Rscript scripts/02_osm_context.R
+
+# 3. Preparation and analysis
+Rscript scripts/03_prepare.R
+Rscript scripts/04_covariates.R
+Rscript scripts/05_firstorder.R
+Rscript scripts/05b_stkde.R
+Rscript scripts/06_secondorder.R
+Rscript scripts/07_valueadded.R
+
+# 4. Render the report and the executive summary
+quarto render
+```
+
+::: {.callout-note .en}
+## A note on exact reproducibility of the data
+The open 7-day FIRMS files are a *rolling window*: they always contain the last
+seven days. The raw CSV actually used here is committed to the repository
+(`data/raw/firms_pulangpisau_2026-09-04_2026-09-11.csv`), so steps 2–4 reproduce
+every number in this report exactly. Step 1 is documented so that the
+acquisition is transparent and so that the analysis can be re-run over a
+different or longer window, not because re-running it would return the same
+records.
+:::
+
+::: {.callout-note .zh}
+## 关于数据可精确复现性的说明
+
+开放的 7 日 FIRMS 文件是一个*滚动窗口*:它始终只包含最近七天。本研究实际使用的原始
+CSV 已提交进仓库(`data/raw/firms_pulangpisau_2026-09-04_2026-09-11.csv`),因此
+步骤 2–4 可以**精确**复现本报告中的每一个数字。步骤 1 之所以写出来,是为了让数据
+获取过程透明、并让分析能在不同或更长的窗口上重跑,而**不是**因为重跑它会返回相同的
+记录。
+:::
+
+## <span class="en">Pipeline structure</span><span class="zh">管线结构</span>
+
+::: {.en}
+Rectangles are scripts; rounded boxes are data artefacts.
+:::
+
+::: {.zh}
+矩形为脚本,圆角框为数据产物。
+:::
+
+```{mermaid}
+%%| label: fig-pipeline
+flowchart TD
+  A1["01 / 01b<br/>FIRMS acquisition"] --> D1(["data/raw/<br/>firms_*.csv"])
+  A2["02_osm_context.R"] --> D2(["data/raw/osm/"])
+  B0(["COD-AB ADM1-3<br/>(HDX / BPS)"]) --> P1
+  D1 --> P1["03_prepare.R<br/><i>QA, CRS, units</i>"]
+  P1 --> D3(["ppp_det · ppp_pxday · ppp_event<br/>win · fire_sf · qa_audit"])
+  D2 --> C1["04_covariates.R"]
+  B0 --> C1
+  C1 --> D4(["covars.rds<br/>d_canal · d_river · d_road · d_settle"])
+  D3 --> F1["05_firstorder.R<br/><i>KDE, quadrat, rhohat</i>"]
+  D4 --> F1
+  D3 --> F2["05b_stkde.R<br/><i>daily + ST kernels</i>"]
+  D3 --> S1["06_secondorder.R<br/><i>G/F/J, L, Linhom, Knox</i>"]
+  D3 --> V1["07_valueadded.R<br/><i>ppm, kppm</i>"]
+  D4 --> V1
+  F1 --> R(["index.qmd<br/>slides.qmd"])
+  F2 --> R
+  S1 --> R
+  V1 --> R
+```
+
+## <span class="en">Caching policy</span><span class="zh">缓存策略</span>
+
+::: {.en}
+Monte-Carlo envelopes dominate the runtime of this analysis. They are wrapped in
+a small helper so that the **code that ran stays visible in the report** while
+repeated renders do not repeat the computation:
+:::
+
+::: {.zh}
+蒙特卡洛包络占据了本分析的绝大部分运行时间。它们被包在一个小助手函数里,使得
+**实际运行过的代码仍然显示在报告中**,同时重复渲染不会重复计算:
+:::
+
+```{r}
+#| label: cache-helper-shown
+#| eval: false
+#| file: R/utils.R
+```
+
+::: {.en}
+Deleting `data/cache/` forces a full recomputation; because
+`set.seed(1234)` is set once at the top of every script, the recomputed values
+are identical.
+:::
+
+::: {.zh}
+删除 `data/cache/` 会强制完全重算;由于每个脚本开头都设定了一次
+`set.seed(1234)`,重算得到的数值完全相同。
+:::
+
+## <span class="en">Session information</span><span class="zh">会话信息</span>
+
+```{r}
+#| label: sessioninfo
+#| code-fold: true
+#| code-summary: "Full session information"
+
+si <- sessionInfo()
+pkgs <- c("sf", "terra", "spatstat", "spatstat.geom", "spatstat.explore",
+          "spatstat.model", "spatstat.random", "sparr", "dplyr", "ggplot2",
+          "tmap", "gt", "patchwork", "lubridate", "dbscan", "igraph",
+          "osmdata", "quarto", "knitr")
+tibble::tibble(
+  Package = pkgs,
+  Version = vapply(pkgs, function(p)
+    tryCatch(as.character(utils::packageVersion(p)),
+             error = function(e) "not installed"), character(1))
+) |>
+  gt::gt() |>
+  gt::tab_header(title = gt::md(paste0("**", si$R.version$version.string, "** on ",
+                                       si$running))) |>
+  gt::tab_source_note(gt::md(paste0(
+    "GEOS ", sf::sf_extSoftVersion()[["GEOS"]],
+    " &middot; GDAL ", sf::sf_extSoftVersion()[["GDAL"]],
+    " &middot; PROJ ", sf::sf_extSoftVersion()[["PROJ"]]))) |>
+  gt::tab_options(table.font.size = gt::pct(82), data_row.padding = gt::px(3),
+                  container.height = gt::px(420))
+```
+
+## <span class="en">Analysis scripts</span><span class="zh">分析脚本</span> {#sec-repro-scripts}
+
+::: {.en}
+The complete, unedited source of each script, inserted from disk at render time
+so that it cannot drift from what actually ran.
+:::
+
+::: {.zh}
+每个脚本的完整、未经编辑的源码,在渲染时从磁盘插入,因此不可能与实际运行的版本
+产生偏移。
+:::
+
+::: {.panel-tabset}
+
+### 01 acquisition (API)
+
+```{r}
+#| eval: false
+#| file: scripts/01_download_firms.R
+```
+
+### 01b acquisition (open)
+
+```{r}
+#| eval: false
+#| file: scripts/01b_assemble_public7d.R
+```
+
+### 02 OSM context
+
+```{r}
+#| eval: false
+#| file: scripts/02_osm_context.R
+```
+
+### 03 preparation
+
+```{r}
+#| eval: false
+#| file: scripts/03_prepare.R
+```
+
+### 04 covariates
+
+```{r}
+#| eval: false
+#| file: scripts/04_covariates.R
+```
+
+### 05 first order
+
+```{r}
+#| eval: false
+#| file: scripts/05_firstorder.R
+```
+
+### 05b spatio-temporal
+
+```{r}
+#| eval: false
+#| file: scripts/05b_stkde.R
+```
+
+### 06 second order
+
+```{r}
+#| eval: false
+#| file: scripts/06_secondorder.R
+```
+
+### 07 value added
+
+```{r}
+#| eval: false
+#| file: scripts/07_valueadded.R
+```
+
+:::
