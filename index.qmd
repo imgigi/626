@@ -199,6 +199,18 @@ toc: false
       <div class="dash-xmeta"><span><b>21</b> chunks</span><span><b>4</b> figures</span></div>
     </a>
 
+    <a class="dash-xcard" href="in-class-ex/in-class-ex4/in-class-ex4.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-green">4</span>
+        <span class="dash-xchip chip-green">Lesson 4</span>
+      </div>
+      <h3>Geographically Weighted Summary Statistics</h3>
+      <p>The kernel-weighted branch of Lesson 4 — bandwidth selection by CV and AIC,
+      local mean and robust median surfaces with <b>GWmodel</b>, and a geographically
+      weighted correlation read against its global counterpart</p>
+      <div class="dash-xmeta"><span><b>26</b> chunks</span><span><b>6</b> figures</span></div>
+    </a>
+
   </div>
 
   <h2 class="dash-section-title">Take-home Exercises</h2>

@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ji Guofang">
+<meta name="dcterms.date" content="2026-09-18">
+
+<title>In-class Exercise 4: Geographically Weighted Summary Statistics – ISSS626-GAA</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-b63d4034c3481c87820d918ed17e6fb1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<!-- Set the language attribute BEFORE the body paints, so a reader who chose
+     中文 does not see a flash of English first. The button and its handler
+     live in _include/lang-toggle.html, which is injected after the body. -->
+<script>
+(function () {
+  var l = "en";
+  try { l = localStorage.getItem("isss626-th1-lang") || "en"; } catch (e) {}
+  if (l !== "en" && l !== "zh") l = "en";
+  document.documentElement.setAttribute("data-lang", l);
+})();
+</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">ISSS626-GAA</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-hands-on-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Hands-on Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-hands-on-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1.html">
+ <span class="dropdown-text">Exercise 1a · Geospatial Data Science with R</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex1/hand-on-ex1b.html">
+ <span class="dropdown-text">Exercise 1b · Thematic Mapping and GeoVisualisation</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">
+ <span class="dropdown-text">Exercise 2a · 1st Order Spatial Point Patterns Analysis</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex2/hand-on-ex2b.html">
+ <span class="dropdown-text">Exercise 2b · 2nd Order Spatial Point Patterns Analysis</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex3/hand-on-ex3.html">
+ <span class="dropdown-text">Exercise 3 · Spatio-Temporal Point Patterns Analysis</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Spatial Weights and Applications</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-in-class-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">In-class Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-in-class-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex1/in-class-ex1.html">
+ <span class="dropdown-text">Exercise 1 · Analytical Maps and the Raster Data Model</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../in-class-ex/in-class-ex4/in-class-ex4.html">
+ <span class="dropdown-text">Exercise 4 · Geographically Weighted Summary Statistics</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-take-home-exercise" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Take-home Exercise</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-take-home-exercise">    
+        <li>
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1.html">
+ <span class="dropdown-text">Exercise 1 · Technical Report</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../take-home-ex/take-home-ex1/take-home-ex1-slides.html">
+ <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data">The Data</a></li>
+  <li><a href="#inputs-carried-over-from-hands-on-exercise-4" id="toc-inputs-carried-over-from-hands-on-exercise-4" class="nav-link" data-scroll-target="#inputs-carried-over-from-hands-on-exercise-4">Inputs Carried Over from Hands-on Exercise 4</a></li>
+  <li><a href="#from-sf-to-sp" id="toc-from-sf-to-sp" class="nav-link" data-scroll-target="#from-sf-to-sp">From <strong>sf</strong> to <strong>sp</strong></a></li>
+  <li><a href="#determining-the-bandwidth" id="toc-determining-the-bandwidth" class="nav-link" data-scroll-target="#determining-the-bandwidth">Determining the Bandwidth</a>
+  <ul>
+  <li><a href="#adaptive-bandwidth" id="toc-adaptive-bandwidth" class="nav-link" data-scroll-target="#adaptive-bandwidth">Adaptive bandwidth</a></li>
+  <li><a href="#fixed-bandwidth" id="toc-fixed-bandwidth" class="nav-link" data-scroll-target="#fixed-bandwidth">Fixed bandwidth</a></li>
+  </ul></li>
+  <li><a href="#geographically-weighted-summary-statistics" id="toc-geographically-weighted-summary-statistics" class="nav-link" data-scroll-target="#geographically-weighted-summary-statistics">Geographically Weighted Summary Statistics</a>
+  <ul>
+  <li><a href="#preparing-the-output" id="toc-preparing-the-output" class="nav-link" data-scroll-target="#preparing-the-output">Preparing the output</a></li>
+  <li><a href="#visualising-the-geographically-weighted-mean" id="toc-visualising-the-geographically-weighted-mean" class="nav-link" data-scroll-target="#visualising-the-geographically-weighted-mean">Visualising the geographically weighted mean</a></li>
+  <li><a href="#the-local-mean-against-the-global-one" id="toc-the-local-mean-against-the-global-one" class="nav-link" data-scroll-target="#the-local-mean-against-the-global-one">The local mean against the global one</a></li>
+  <li><a href="#robust-statistics-local-mean-against-local-median" id="toc-robust-statistics-local-mean-against-local-median" class="nav-link" data-scroll-target="#robust-statistics-local-mean-against-local-median">Robust statistics: local mean against local median</a></li>
+  </ul></li>
+  <li><a href="#the-effect-of-the-bandwidth" id="toc-the-effect-of-the-bandwidth" class="nav-link" data-scroll-target="#the-effect-of-the-bandwidth">The Effect of the Bandwidth</a></li>
+  <li><a href="#geographically-weighted-correlation" id="toc-geographically-weighted-correlation" class="nav-link" data-scroll-target="#geographically-weighted-correlation">Geographically Weighted Correlation</a>
+  <ul>
+  <li><a href="#the-conventional-analysis-first" id="toc-the-conventional-analysis-first" class="nav-link" data-scroll-target="#the-conventional-analysis-first">The conventional analysis first</a></li>
+  <li><a href="#determining-the-bandwidth-1" id="toc-determining-the-bandwidth-1" class="nav-link" data-scroll-target="#determining-the-bandwidth-1">Determining the bandwidth</a></li>
+  <li><a href="#computing-the-correlation-surface" id="toc-computing-the-correlation-surface" class="nav-link" data-scroll-target="#computing-the-correlation-surface">Computing the correlation surface</a></li>
+  <li><a href="#visualising-the-local-spearman-coefficient" id="toc-visualising-the-local-spearman-coefficient" class="nav-link" data-scroll-target="#visualising-the-local-spearman-coefficient">Visualising the local Spearman coefficient</a></li>
+  </ul></li>
+  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content column-page-left" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">In-class Exercise 4: Geographically Weighted Summary Statistics</h1>
+</div>
+
+
+
+<div class="quarto-title-meta column-page-left">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ji Guofang </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 18, 2026</p>
+    </div>
+  </div>
+  
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">September 19, 2026</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>Lesson 4 defines a neighbourhood twice over. The first definition is combinatorial — two counties are neighbours or they are not, by shared boundary or by a distance threshold — and it produces the neighbour lists and row-standardised weights built throughout <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Hands-on Exercise 4</a>, together with the spatially lagged variables that follow from them. None of that is taught again here.</p>
+<p>The second definition is continuous. A <strong>kernel</strong> replaces the in-or-out decision with a weight that decays with distance, and a <strong>bandwidth</strong> sets how quickly it decays. Every observation then contributes to every location, just by progressively less. This in-class exercise works entirely in that second branch:</p>
+<ul>
+<li>selecting a bandwidth by <strong>cross-validation</strong> and by <strong>AIC</strong>, adaptive and fixed,</li>
+<li>computing <strong>geographically weighted summary statistics</strong> — local mean, local median, and the rest of the robust family — with <code>gwss()</code> of <strong>GWmodel</strong>,</li>
+<li>computing <strong>geographically weighted correlation</strong>, and reading it against the single global correlation that conventional analysis would report.</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, ggstatsplot, tmap, tidyverse, knitr, GWmodel)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><strong>spdep</strong> is absent from that list, and its absence is the point: no neighbour list is constructed anywhere in this document. The kernel <em>is</em> the weighting scheme, so the object that <strong>spdep</strong> exists to build is never needed. <strong>GWmodel</strong> supplies the geographically weighted methods, and <strong>ggstatsplot</strong> supplies the global correlation test that they are compared against.</p>
+</section>
+<section id="the-data" class="level2">
+<h2 class="anchored" data-anchor-id="the-data">The Data</h2>
+<p>The same two files as the hands-on exercise, but more of the attribute table is retained:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Hunan</code></td>
+<td>County boundary layer of Hunan province, China, in ESRI shapefile format</td>
+</tr>
+<tr class="even">
+<td><code>Hunan_2012.csv</code></td>
+<td>Selected local development indicators for Hunan in 2012</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="inputs-carried-over-from-hands-on-exercise-4" class="level2">
+<h2 class="anchored" data-anchor-id="inputs-carried-over-from-hands-on-exercise-4">Inputs Carried Over from Hands-on Exercise 4</h2>
+<p>Importing the shapefile with <code>st_read()</code>, importing the csv with <code>read_csv()</code>, and attaching one to the other with <code>left_join()</code> were all covered in <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Hands-on Exercise 4</a>. The code is repeated here only so that this document runs on its own:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>hunan_sf <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">layer =</span> <span class="st">"Hunan"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">read_csv</span>(<span class="st">"data/aspatial/Hunan_2012.csv"</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">show_col_types =</span> <span class="cn">FALSE</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="st">"County"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="dv">7</span>, <span class="dv">15</span>, <span class="dv">16</span>, <span class="dv">31</span>, <span class="dv">32</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `Hunan' from data source 
+  `C:\Users\Imgigi\Desktop\629\in-class-ex\in-class-ex4\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 88 features and 7 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+<p>The import header is left visible: 88 polygon features with seven attribute fields, bounded by 108.7831–114.2544 E and 24.6342–30.1281 N, on geodetic CRS WGS 84. The layer is left unprojected throughout — <code>longlat = TRUE</code> in the <strong>GWmodel</strong> calls below makes them compute great circle distances in kilometres from those coordinates.</p>
+<p>One thing does differ from the hands-on version, and it is not cosmetic. There the join kept <code>select(1:4, 7, 15)</code> — the identifiers and GDPPC alone, because a spatial lag needs exactly one variable. Here the selection is widened to eight columns, adding <code>GIO</code> (gross industrial output), <code>Agri</code> and <code>Service</code>, because the correlation section needs a second variable to correlate GDPPC <em>against</em>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(hunan_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 88
+Columns: 9
+$ NAME_2   &lt;chr&gt; "Changde", "Changde", "Changde", "Changde", "Changde", "Chang…
+$ ID_3     &lt;int&gt; 21098, 21100, 21101, 21102, 21103, 21104, 21109, 21110, 21111…
+$ NAME_3   &lt;chr&gt; "Anxiang", "Hanshou", "Jinshi", "Li", "Linli", "Shimen", "Liu…
+$ County   &lt;chr&gt; "Anxiang", "Hanshou", "Jinshi", "Li", "Linli", "Shimen", "Liu…
+$ GDPPC    &lt;dbl&gt; 23667, 20981, 34592, 24473, 25554, 27137, 63118, 62202, 70666…
+$ GIO      &lt;dbl&gt; 5108.9, 13491.0, 10935.0, 18402.0, 8214.0, 17795.0, 99254.0, …
+$ Agri     &lt;dbl&gt; 4524.410, 6545.350, 2562.460, 7562.340, 3583.910, 5266.510, 1…
+$ Service  &lt;dbl&gt; 14100.0, 17727.0, 7525.0, 53160.0, 7031.0, 6981.0, 26617.8, 1…
+$ geometry &lt;POLYGON [°]&gt; POLYGON ((112.0625 29.75523..., POLYGON ((112.2288 29…</code></pre>
+</div>
+</div>
+</section>
+<section id="from-sf-to-sp" class="level2">
+<h2 class="anchored" data-anchor-id="from-sf-to-sp">From <strong>sf</strong> to <strong>sp</strong></h2>
+<p><strong>GWmodel</strong> predates the simple features standard and its functions expect a <code>Spatial*DataFrame</code> from the older <strong>sp</strong> class system. <code>as_Spatial()</code> performs the conversion:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>hunan_sp <span class="ot">&lt;-</span> hunan_sf <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_Spatial</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Two objects now describe the same 88 counties. <code>hunan_sp</code> is the input for <strong>GWmodel</strong>, and <code>hunan_sf</code> remains the object <strong>tmap</strong> is given at the end. Results come back from <code>gwss()</code> in the order of the rows that went in, which is what makes the <code>cbind()</code> in the mapping sections legitimate — that join is positional, not by key, so nothing between here and there may reorder or filter either object.</p>
+</div>
+</div>
+</section>
+<section id="determining-the-bandwidth" class="level2">
+<h2 class="anchored" data-anchor-id="determining-the-bandwidth">Determining the Bandwidth</h2>
+<p>The bandwidth is the one parameter that decides how local “local” is, and it is chosen by optimisation rather than by hand. <code>bw.gwr()</code> searches for the value that minimises a chosen criterion, either <strong>CV</strong> — leave-one-out cross-validation, scoring how well each location is predicted from its neighbours — or <strong>AIC</strong>, which penalises model complexity instead.</p>
+<p>The search is run against the intercept-only model <code>GDPPC ~ 1</code>, since what is wanted is a bandwidth for describing GDPPC locally, not for regressing it on anything.</p>
+<section id="adaptive-bandwidth" class="level3">
+<h3 class="anchored" data-anchor-id="adaptive-bandwidth">Adaptive bandwidth</h3>
+<p>An <strong>adaptive</strong> bandwidth holds the <em>number</em> of neighbours constant and lets the radius stretch or contract, so the kernel covers as many counties in the sparse west as in the dense north-east:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bw_CV_adaptive <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                         <span class="at">data =</span> hunan_sp,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">approach =</span> <span class="st">"CV"</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                         <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                         <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>bw_AIC_adaptive <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">data =</span> hunan_sp,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                          <span class="at">approach =</span> <span class="st">"AIC"</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                          <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                          <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                          <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="fixed-bandwidth" class="level3">
+<h3 class="anchored" data-anchor-id="fixed-bandwidth">Fixed bandwidth</h3>
+<p>A <strong>fixed</strong> bandwidth holds the <em>radius</em> constant instead, and the neighbour count varies with local density:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>bw_CV_fixed <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> hunan_sp,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">approach =</span> <span class="st">"CV"</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">adaptive =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>bw_AIC_fixed <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data =</span> hunan_sp,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                       <span class="at">approach =</span> <span class="st">"AIC"</span>,</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                       <span class="at">adaptive =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>                       <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Bandwidth =</span> <span class="fu">c</span>(<span class="st">"Adaptive"</span>, <span class="st">"Adaptive"</span>, <span class="st">"Fixed"</span>, <span class="st">"Fixed"</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">Criterion =</span> <span class="fu">c</span>(<span class="st">"CV"</span>, <span class="st">"AIC"</span>, <span class="st">"CV"</span>, <span class="st">"AIC"</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">Value =</span> <span class="fu">c</span>(bw_CV_adaptive, bw_AIC_adaptive,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                 bw_CV_fixed, bw_AIC_fixed),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">Unit =</span> <span class="fu">c</span>(<span class="st">"nearest neighbours"</span>, <span class="st">"nearest neighbours"</span>, <span class="st">"km"</span>, <span class="st">"km"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Bandwidth</th>
+<th style="text-align: left;">Criterion</th>
+<th style="text-align: right;">Value</th>
+<th style="text-align: left;">Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Adaptive</td>
+<td style="text-align: left;">CV</td>
+<td style="text-align: right;">22.00</td>
+<td style="text-align: left;">nearest neighbours</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Adaptive</td>
+<td style="text-align: left;">AIC</td>
+<td style="text-align: right;">22.00</td>
+<td style="text-align: left;">nearest neighbours</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fixed</td>
+<td style="text-align: left;">CV</td>
+<td style="text-align: right;">76.29</td>
+<td style="text-align: left;">km</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fixed</td>
+<td style="text-align: left;">AIC</td>
+<td style="text-align: right;">160.55</td>
+<td style="text-align: left;">km</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Interpretation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The two criteria behave differently depending on which kind of bandwidth they are searching over.</p>
+<p>Adaptive: CV and AIC both settle on <strong>22 nearest neighbours</strong>. Agreement between two criteria that optimise different things is the strongest evidence available here that 22 is a feature of the data rather than an artefact of the search — a quarter of the province, which is a defensible reading of “local”.</p>
+<p>Fixed: CV returns <strong>76.3 km</strong> and AIC returns <strong>160.6 km</strong>, more than double. That disagreement is diagnostic rather than a failure of either method. Hunan’s counties vary greatly in area, so a single radius means a different sample size everywhere it is placed; CV, scored point by point, chases the radius that fits the densest parts, while AIC tolerates a much broader kernel for the province as a whole. When a fixed bandwidth makes the two criteria disagree this sharply and an adaptive one makes them agree exactly, the adaptive specification is the one the data supports.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="geographically-weighted-summary-statistics" class="level2">
+<h2 class="anchored" data-anchor-id="geographically-weighted-summary-statistics">Geographically Weighted Summary Statistics</h2>
+<p><code>gwss()</code> computes the summary statistics at every location, each one weighted by the kernel. Setting <code>quantile = TRUE</code> adds the robust family — local median, interquartile range, and quantile imbalance — alongside the moment-based statistics:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gwstat <span class="ot">&lt;-</span> <span class="fu">gwss</span>(<span class="at">data =</span> hunan_sp,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">vars =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">bw =</span> bw_AIC_adaptive,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">quantile =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>               <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(<span class="fu">as.data.frame</span>(gwstat<span class="sc">$</span>SDF))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "GDPPC_LM"     "GDPPC_LSD"    "GDPPC_LVar"   "GDPPC_LSKe"   "GDPPC_LCV"   
+[6] "GDPPC_Median" "GDPPC_IQR"    "GDPPC_QI"    </code></pre>
+</div>
+</div>
+<p>Eight surfaces for a single variable: local mean, standard deviation, variance, skewness and coefficient of variation from the moment-based side, then median, IQR and quantile imbalance from the robust side. Each is a vector of 88 values — one per county — not a single number.</p>
+<section id="preparing-the-output" class="level3">
+<h3 class="anchored" data-anchor-id="preparing-the-output">Preparing the output</h3>
+<p><code>gwss()</code> returns its results in the <code>SDF</code> slot as a <code>Spatial*DataFrame</code>. Extracting the data table and binding it column-wise to <code>hunan_sf</code> restores a mappable <code>sf</code> object:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>gwstat_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(gwstat<span class="sc">$</span>SDF)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>hunan_gstat <span class="ot">&lt;-</span> <span class="fu">cbind</span>(hunan_sf, gwstat_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="visualising-the-geographically-weighted-mean" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-geographically-weighted-mean">Visualising the geographically weighted mean</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(hunan_gstat) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC_LM"</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">n =</span> <span class="dv">5</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">title =</span> <span class="st">"Local mean"</span>)) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Geographically weighted mean of GDPPC, 22 nearest neighbours"</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>           <span class="at">size =</span> <span class="fl">1.1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="the-local-mean-against-the-global-one" class="level3">
+<h3 class="anchored" data-anchor-id="the-local-mean-against-the-global-one">The local mean against the global one</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Statistic =</span> <span class="fu">c</span>(<span class="st">"Global mean"</span>, <span class="st">"Local mean, minimum"</span>, <span class="st">"Local mean, maximum"</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Global median"</span>, <span class="st">"Local median, minimum"</span>, <span class="st">"Local median, maximum"</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">GDPPC =</span> <span class="fu">c</span>(<span class="fu">mean</span>(hunan_sf<span class="sc">$</span>GDPPC),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">min</span>(hunan_gstat<span class="sc">$</span>GDPPC_LM), <span class="fu">max</span>(hunan_gstat<span class="sc">$</span>GDPPC_LM),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">median</span>(hunan_sf<span class="sc">$</span>GDPPC),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">min</span>(hunan_gstat<span class="sc">$</span>GDPPC_Median), <span class="fu">max</span>(hunan_gstat<span class="sc">$</span>GDPPC_Median))) <span class="sc">%&gt;%</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">","</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Statistic</th>
+<th style="text-align: right;">GDPPC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Global mean</td>
+<td style="text-align: right;">24,405</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Local mean, minimum</td>
+<td style="text-align: right;">13,689</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Local mean, maximum</td>
+<td style="text-align: right;">49,006</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Global median</td>
+<td style="text-align: right;">20,433</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Local median, minimum</td>
+<td style="text-align: right;">11,580</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Local median, maximum</td>
+<td style="text-align: right;">41,491</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Interpretation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Conventional analysis would report one number for Hunan: a mean GDPPC of 24,405 yuan. The geographically weighted mean replaces it with 88, running from <strong>13,689</strong> around Wugang in Shaoyang to <strong>49,006</strong> at Changsha — a 3.6-fold spread the single figure conceals entirely. This is spatial non-stationarity made measurable: the provincial average describes nowhere in particular, because the north-east corridor and the south-western uplands are not samples from the same population.</p>
+<p>The smoothing is substantial and deliberate. Raw GDPPC ranges from 8,497 to 88,656, so the local mean surface compresses a 10-fold spread into a 3.6-fold one. What survives that compression is the regional signal; what is removed is the county-level idiosyncrasy a spatial lag would have retained.</p>
+</div>
+</div>
+</section>
+<section id="robust-statistics-local-mean-against-local-median" class="level3">
+<h3 class="anchored" data-anchor-id="robust-statistics-local-mean-against-local-median">Robust statistics: local mean against local median</h3>
+<p>The moment-based and robust families are computed from the same kernel, so comparing them isolates the effect of the outliers rather than the effect of location:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>lm_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_gstat) <span class="sc">+</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC_LM"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>, <span class="at">n =</span> <span class="dv">5</span>, <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local mean"</span>)) <span class="sc">+</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Local mean"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>med_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_gstat) <span class="sc">+</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC_Median"</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>, <span class="at">n =</span> <span class="dv">5</span>, <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local median"</span>)) <span class="sc">+</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Local median"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(lm_map, med_map, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan_gstat<span class="sc">$</span>GDPPC_LM <span class="sc">/</span> hunan_gstat<span class="sc">$</span>GDPPC_Median)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.9186  1.0918  1.1473  1.1737  1.2298  1.6355 </code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Interpretation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The two maps share a pattern but not a level. The ratio of local mean to local median exceeds 1 almost everywhere, reaching <strong>1.64</strong>: in the neighbourhoods around Changsha the weighted mean sits 64% above the weighted median, because a handful of very rich counties pull it upward while the median ignores them by construction.</p>
+<p>That gap is itself the finding. Where mean and median agree, the local distribution is symmetric and either statistic describes the neighbourhood honestly. Where they diverge this far, the neighbourhood contains counties unlike their surroundings, and the mean surface is reporting their influence rather than the typical county. The robust surface is the more defensible description of the north-east, and the divergence between the two is more informative than either alone.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="the-effect-of-the-bandwidth" class="level2">
+<h2 class="anchored" data-anchor-id="the-effect-of-the-bandwidth">The Effect of the Bandwidth</h2>
+<p>Repeating the computation under the fixed bandwidth shows what the choice made in the previous section actually bought:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>gwstat_fixed <span class="ot">&lt;-</span> <span class="fu">gwss</span>(<span class="at">data =</span> hunan_sp,</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">vars =</span> <span class="st">"GDPPC"</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">bw =</span> bw_AIC_fixed,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">adaptive =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">quantile =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>hunan_gstat_fixed <span class="ot">&lt;-</span> <span class="fu">cbind</span>(hunan_sf, <span class="fu">as.data.frame</span>(gwstat_fixed<span class="sc">$</span>SDF))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>adaptive_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_gstat) <span class="sc">+</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC_LM"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>, <span class="at">n =</span> <span class="dv">5</span>, <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local mean"</span>)) <span class="sc">+</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Adaptive, 22 neighbours"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>fixed_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_gstat_fixed) <span class="sc">+</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC_LM"</span>,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>, <span class="at">n =</span> <span class="dv">5</span>, <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local mean"</span>)) <span class="sc">+</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Fixed, 160.6 km"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(adaptive_map, fixed_map, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Interpretation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The 160.6 km fixed kernel produces a local mean surface spanning 14,259 to 47,833 — close to the adaptive result, but reached for a different reason. A fixed radius over Hunan’s uneven county sizes draws on roughly thirty counties in the compact north-east and barely a dozen in the large western ones, so the western estimates rest on fewest observations exactly where the counties are largest. The CV bandwidth of 76.3 km makes this visible: at that radius the local mean runs from 10,135 to 72,045, a surface so close to the raw data that it has stopped summarising anything.</p>
+<p>The adaptive kernel removes that dependence by construction, which is why it is the appropriate specification for administrative areas of unequal size — the usual case.</p>
+</div>
+</div>
+</section>
+<section id="geographically-weighted-correlation" class="level2">
+<h2 class="anchored" data-anchor-id="geographically-weighted-correlation">Geographically Weighted Correlation</h2>
+<p>The same kernel machinery applies to a statistic computed from two variables. The question is whether the relationship between GDP per capita and gross industrial output holds with equal strength across the province.</p>
+<section id="the-conventional-analysis-first" class="level3">
+<h3 class="anchored" data-anchor-id="the-conventional-analysis-first">The conventional analysis first</h3>
+<p><code>ggscatterstats()</code> gives the global answer — one coefficient for all 88 counties, with its test:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggscatterstats</span>(<span class="at">data =</span> hunan_sf <span class="sc">%&gt;%</span> <span class="fu">st_drop_geometry</span>(),</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">x =</span> GIO,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">y =</span> GDPPC,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">xlab =</span> <span class="st">"Gross Industrial Output"</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">ylab =</span> <span class="st">"GDP per capita"</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">label.var =</span> County,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>               <span class="at">label.expression =</span> GIO <span class="sc">&gt;</span> <span class="dv">20000</span> <span class="sc">&amp;</span> GDPPC <span class="sc">&gt;</span> <span class="dv">50000</span>,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>               <span class="at">point.label.args =</span> <span class="fu">list</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">size =</span> <span class="dv">4</span>, <span class="at">color =</span> <span class="st">"grey50"</span>),</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>               <span class="at">xfill =</span> <span class="st">"#CC79A7"</span>,</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>               <span class="at">yfill =</span> <span class="st">"#009E73"</span>,</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>               <span class="at">title =</span> <span class="st">"Relationship between GDP per capita and Gross Industrial Output"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Pearson’s <em>r</em> = 0.77, clearly significant — a strong positive relationship, and the analysis would conventionally stop there.</p>
+</section>
+<section id="determining-the-bandwidth-1" class="level3">
+<h3 class="anchored" data-anchor-id="determining-the-bandwidth-1">Determining the bandwidth</h3>
+<p>The bandwidth for a two-variable statistic is selected from the corresponding regression, so the formula now carries <code>GIO</code> on the right-hand side:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>bw_corr <span class="ot">&lt;-</span> <span class="fu">bw.gwr</span>(GDPPC <span class="sc">~</span> GIO,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> hunan_sp,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">approach =</span> <span class="st">"AICc"</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">adaptive =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>bw_corr</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 84</code></pre>
+</div>
+</div>
+</section>
+<section id="computing-the-correlation-surface" class="level3">
+<h3 class="anchored" data-anchor-id="computing-the-correlation-surface">Computing the correlation surface</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>gwstats_corr <span class="ot">&lt;-</span> <span class="fu">gwss</span>(hunan_sp,</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"GDPPC"</span>, <span class="st">"GIO"</span>),</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">bw =</span> bw_corr,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Two variables produce the five univariate surfaces twice over, followed by three bivariate ones. They are selected by name rather than by column position, so that a change of <code>quantile</code> or of <code>vars</code> cannot silently shift the wrong columns into the map:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>gwcorr_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(gwstats_corr<span class="sc">$</span>SDF) <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">gwCorr =</span> Corr_GDPPC.GIO,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">gwSpearman =</span> Spearman_rho_GDPPC.GIO)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>hunan_corr <span class="ot">&lt;-</span> <span class="fu">cbind</span>(hunan_sf, gwcorr_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="visualising-the-local-spearman-coefficient" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-local-spearman-coefficient">Visualising the local Spearman coefficient</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(hunan_corr) <span class="sc">+</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"gwSpearman"</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"quantile"</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">n =</span> <span class="dv">5</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">title =</span> <span class="st">"Local Spearman's rho"</span>)) <span class="sc">+</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Geographically weighted correlation, GDPPC and GIO"</span>, <span class="at">size =</span> <span class="fl">1.1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Coefficient =</span> <span class="fu">c</span>(<span class="st">"Pearson"</span>, <span class="st">"Spearman"</span>),</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">Global =</span> <span class="fu">c</span>(<span class="fu">cor</span>(hunan_sf<span class="sc">$</span>GDPPC, hunan_sf<span class="sc">$</span>GIO),</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">cor</span>(hunan_sf<span class="sc">$</span>GDPPC, hunan_sf<span class="sc">$</span>GIO, <span class="at">method =</span> <span class="st">"spearman"</span>)),</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Local minimum</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">min</span>(hunan_corr<span class="sc">$</span>gwCorr), <span class="fu">min</span>(hunan_corr<span class="sc">$</span>gwSpearman)),</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Local maximum</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">max</span>(hunan_corr<span class="sc">$</span>gwCorr), <span class="fu">max</span>(hunan_corr<span class="sc">$</span>gwSpearman))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Coefficient</th>
+<th style="text-align: right;">Global</th>
+<th style="text-align: right;">Local minimum</th>
+<th style="text-align: right;">Local maximum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Pearson</td>
+<td style="text-align: right;">0.765</td>
+<td style="text-align: right;">0.682</td>
+<td style="text-align: right;">0.761</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Spearman</td>
+<td style="text-align: right;">0.732</td>
+<td style="text-align: right;">0.579</td>
+<td style="text-align: right;">0.733</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>The bandwidth has flattened the surface
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The selected bandwidth is <strong>84 of 88 counties</strong>. Every local correlation is therefore computed from almost the entire province, and the result is what that implies: local Pearson spans 0.682 to 0.761 around a global 0.765, local Spearman 0.579 to 0.733 around a global 0.732. The map above is close to a constant.</p>
+<p>This is not a null finding about Hunan. It is a consequence of where the bandwidth came from. <code>bw.gwr()</code> selected 84 as the bandwidth at which a <em>regression</em> of GDPPC on GIO is best supported, and a near-global bandwidth is the correct answer to that question when the relationship is genuinely strong everywhere. But the statistic being mapped is not that regression, and a criterion chosen for one is not automatically valid for the other.</p>
+</div>
+</div>
+<p>Recomputing on the bandwidth the data itself supported earlier — the 22 neighbours on which CV and AIC agreed — asks the intended question:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>gwstats_local <span class="ot">&lt;-</span> <span class="fu">gwss</span>(hunan_sp,</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"GDPPC"</span>, <span class="st">"GIO"</span>),</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">bw =</span> bw_AIC_adaptive,</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">kernel =</span> <span class="st">"bisquare"</span>,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>hunan_corr22 <span class="ot">&lt;-</span> <span class="fu">cbind</span>(hunan_sf,</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">as.data.frame</span>(gwstats_local<span class="sc">$</span>SDF) <span class="sc">%&gt;%</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">select</span>(<span class="at">gwCorr =</span> Corr_GDPPC.GIO,</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>                               <span class="at">gwSpearman =</span> Spearman_rho_GDPPC.GIO))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>corr84 <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_corr) <span class="sc">+</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"gwCorr"</span>,</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"fixed"</span>,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.6</span>, <span class="fl">0.8</span>, <span class="dv">1</span>),</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local r"</span>)) <span class="sc">+</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"bw = 84 neighbours"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>corr22 <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan_corr22) <span class="sc">+</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"gwCorr"</span>,</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>                <span class="at">style =</span> <span class="st">"fixed"</span>,</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>                <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.6</span>, <span class="fl">0.8</span>, <span class="dv">1</span>),</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="st">"brewer.blues"</span>),</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"Local r"</span>)) <span class="sc">+</span></span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"bw = 22 neighbours"</span>, <span class="at">size =</span> <span class="fl">1.0</span>)</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(corr84, corr22, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="in-class-ex4_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan_corr22<span class="sc">$</span>gwCorr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.1768  0.5631  0.6583  0.6351  0.7507  0.8744 </code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Interpretation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>On the same colour scale the left map is one shade and the right map is four. At 22 neighbours the local Pearson correlation runs from <strong>0.18 to 0.87</strong>, and local Spearman from 0.12 to 0.92 — the relationship the global coefficient reports as uniformly strong is strong in some parts of Hunan and close to absent in others.</p>
+<p>Both maps are correct at their own bandwidth; they answer different questions. The left one asks whether industrial output predicts GDP per capita across Hunan, and the answer is yes, consistently. The right one asks whether a county’s prosperity tracks its industry <em>among its own neighbours</em>, and the answer is that it depends where the county is: in the industrial north-east the two move together closely, while in the west a county’s GDP per capita owes comparatively little to its industrial output.</p>
+<p>The conclusion concerns method rather than Hunan. Bandwidth is not a nuisance parameter to be delegated to a selection routine — it declares the scale at which a question is being asked, and a bandwidth optimised for one statistic can suppress precisely the variation another statistic exists to reveal.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<ul>
+<li>Kam, T. S. <em>ISSS626 Geospatial Analytics and Applications</em>, Lesson 4 — Spatial Weights and Applications.</li>
+<li><a href="https://cran.r-project.org/package=GWmodel">GWmodel: Geographically-Weighted Models</a></li>
+<li>Gollini, I., Lu, B., Charlton, M., Brunsdon, C., Harris, P. (2015) <a href="https://www.jstatsoft.org/article/view/v063i17">“GWmodel: An R Package for Exploring Spatial Heterogeneity Using Geographically Weighted Models”</a>, <em>Journal of Statistical Software</em>, 63(17).</li>
+<li>Brunsdon, C., Fotheringham, A. S., Charlton, M. (2002) “Geographically weighted summary statistics — a framework for localised exploratory data analysis”, <em>Computers, Environment and Urban Systems</em>, 26(6), 501–524.</li>
+<li><a href="https://indrajeetpatil.github.io/ggstatsplot/">ggstatsplot</a></li>
+<li><a href="https://r-tmap.github.io/tmap/">tmap: Thematic Maps in R</a></li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<!-- =====================================================================
+     Language toggle (EN / 中文)
+     Take-home Exercise 1 | ISSS626
+
+     Both language versions of every prose block are present in the HTML;
+     this switch only changes which one is displayed, so switching is
+     instant and needs no server and no second render.
+
+     The choice is stored in localStorage under one key shared by the
+     technical report and the executive summary, so moving between the two
+     documents keeps the selected language.
+
+     Three things are NOT handled by the .en / .zh markup and are handled
+     here instead:
+
+       1. Placement. On the technical report the site navbar is fixed to the
+          top of the viewport, so a `position: fixed` switch would sit on top
+          of it. The switch is therefore moved into the navbar's own tool
+          slot (`.quarto-navbar-tools`), which is a sibling of the collapsing
+          menu and so stays visible at every width. On the slides there is no
+          navbar and the switch stays fixed in the corner.
+
+       2. Template chrome. Strings such as the table-of-contents heading and
+          the "Author" / "Published" labels are emitted by Quarto's template,
+          not by the document body, so no .en / .zh span can reach them. They
+          are swapped from the DICT table below.
+
+       3. Figures keep their English titles and axis labels: that text is
+          drawn into the PNG by R at render time.
+     ===================================================================== -->
+
+<div class="lang-switch" role="group" aria-label="Language / 语言">
+  <button type="button" data-lang="en" aria-pressed="true">EN</button>
+  <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+</div>
+
+<script>
+(function () {
+  var KEY = "isss626-th1-lang";
+  var VALID = { en: 1, zh: 1 };
+
+  // ---- 1. Move the switch into the navbar, where one exists ---------------
+  // Done before the first apply() so the switch never paints in the wrong
+  // place. `.quarto-navbar-tools` is a sibling of `#navbarCollapse`, not a
+  // child, so the switch is not swallowed by the mobile hamburger.
+  var sw = document.querySelector(".lang-switch");
+  var tools = document.querySelector("#quarto-header .quarto-navbar-tools");
+  if (sw && tools) {
+    tools.appendChild(sw);
+    sw.classList.add("in-navbar");
+  }
+
+  // ---- 2. Template chrome -------------------------------------------------
+  // Quarto writes these strings itself. Each entry is keyed by the English
+  // the template produces; the original is cached on first pass so that
+  // switching back to English restores it exactly.
+  var DICT = {
+    "Contents": "目录",
+    "Table of contents": "目录",
+    "Author": "作者",
+    "Authors": "作者",
+    "Published": "发布日期",
+    "Modified": "最后修改",
+    "Code": "代码",
+    "Show All Code": "展开全部代码",
+    "Hide All Code": "折叠全部代码",
+    "View Source": "查看源文件",
+    "Full Screen": "全屏",
+    "Close": "关闭",
+    "Note": "注",
+    "Tip": "提示",
+    "Warning": "注意",
+    "Important": "要点",
+    "Caution": "当心",
+    // Navbar. Most pages on this site are English-only in the body, so without
+    // these the switch would be present everywhere and do nothing on nine of
+    // the eleven pages. Translating the site chrome makes it meaningful on all
+    // of them, and keeps the chosen language visible while browsing.
+    "Home": "首页",
+    "About": "关于",
+    "Hands-on Exercise": "课堂练习",
+    "In-class Exercise": "堂上练习",
+    "Take-home Exercise": "课后作业",
+    "Search": "搜索",
+    "ISSS626-GAA": "ISSS626-GAA"
+  };
+
+  var CHROME_SEL = [
+    "#toc-title",
+    "nav[role=doc-toc] > h2",
+    ".quarto-title-meta-heading",
+    ".code-tools-button",
+    "#quarto-code-tools-menu",
+    ".dropdown-menu .dropdown-item",
+    ".callout-title-container",
+    ".callout-caption",
+    "#quarto-header .navbar .menu-text",
+    "#quarto-header .navbar .dropdown-item",
+    "#quarto-search .aa-DetachedSearchButtonPlaceholder",
+    "#quarto-search [title]"
+  ].join(",");
+
+  // Text nodes are collected once. Holding the nodes themselves (rather than
+  // re-querying) keeps the swap independent of how Quarto nests the labels,
+  // and avoids touching any markup inside them, such as the Bootstrap icon
+  // in the code-tools button.
+  var chrome = null;
+  function collectChrome() {
+    var out = [];
+    var hosts = document.querySelectorAll(CHROME_SEL);
+    for (var i = 0; i < hosts.length; i++) {
+      var walker = document.createTreeWalker(hosts[i], NodeFilter.SHOW_TEXT, null);
+      var n;
+      while ((n = walker.nextNode())) {
+        var t = n.nodeValue.trim();
+        if (DICT[t]) out.push({ node: n, en: n.nodeValue, zh: n.nodeValue.replace(t, DICT[t]) });
+      }
+    }
+    return out;
+  }
+
+  function applyChrome(lang) {
+    if (chrome === null) chrome = collectChrome();
+    for (var i = 0; i < chrome.length; i++) {
+      chrome[i].node.nodeValue = lang === "zh" ? chrome[i].zh : chrome[i].en;
+    }
+  }
+
+  // ---- 3. The switch itself ----------------------------------------------
+  function apply(lang, persist) {
+    if (!VALID[lang]) lang = "en";
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("lang", lang === "zh" ? "zh-Hans" : "en");
+    if (persist) {
+      try { localStorage.setItem(KEY, lang); } catch (e) { /* private mode */ }
+    }
+    applyChrome(lang);
+    var btns = document.querySelectorAll(".lang-switch button");
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute("data-lang") === lang;
+      btns[i].classList.toggle("active", on);
+      btns[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    // Reveal.js lays slides out once on load; a language change alters
+    // block heights, so ask it to re-measure if it is present.
+    if (window.Reveal && typeof window.Reveal.layout === "function") {
+      window.Reveal.layout();
+    }
+  }
+
+  var saved = "en";
+  try { saved = localStorage.getItem(KEY) || "en"; } catch (e) { /* ignore */ }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest(".lang-switch button") : null;
+    if (b) { ev.preventDefault(); apply(b.getAttribute("data-lang"), true); }
+  });
+
+  // Keyboard shortcut: Alt+L cycles the language.
+  document.addEventListener("keydown", function (ev) {
+    if (ev.altKey && (ev.key === "l" || ev.key === "L")) {
+      apply(document.documentElement.getAttribute("data-lang") === "zh" ? "en" : "zh", true);
+    }
+  });
+
+  apply(saved, false);
+
+  // The code-tools dropdown items exist from the start, but the callout
+  // labels of any lazily-rendered block may not. One re-collect after load
+  // is cheap insurance and keeps the swap correct.
+  window.addEventListener("load", function () {
+    chrome = null;
+    applyChrome(document.documentElement.getAttribute("data-lang"));
+  });
+})();
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
