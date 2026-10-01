@@ -291,6 +291,7 @@ body:has(.dash) main.content {
 .fill-blue   { background: var(--blue); }
 .fill-green  { background: var(--green); }
 .fill-teal   { background: var(--teal); }
+.fill-grey   { background: #a5a4bb; }
 
 /* ----- Exercise list ---------------------------------------------------- */
 

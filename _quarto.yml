@@ -47,6 +47,9 @@ website:
             href: hand-on-ex/hand-on-ex5/hand-on-ex5a.qmd
           - text: "Exercise 5b · Local Measures of Spatial Autocorrelation"
             href: hand-on-ex/hand-on-ex5/hand-on-ex5b.qmd
+          - text: "---"
+          - text: "Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering"
+            href: hand-on-ex/hand-on-ex6/hand-on-ex6.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"

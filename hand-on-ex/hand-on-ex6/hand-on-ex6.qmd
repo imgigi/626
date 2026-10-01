@@ -1,0 +1,1148 @@
+---
+title: "Hands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering"
+author: "Ji Guofang"
+date: "last-modified"
+date-modified: "last-modified"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-expand: true
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: auto
+editor: visual
+---
+
+## Overview
+
+Regionalisation is the problem of taking a large number of geographical units and grouping them into a smaller number of regions that are internally homogeneous *and* occupy contiguous territory. The first half of that requirement is ordinary multivariate cluster analysis. The second half is what makes the problem spatial, and it is the half a conventional clustering algorithm cannot see: `hclust()` is handed a distance matrix computed from attribute values and has no idea which units touch which.
+
+This exercise delineates homogeneous regions in Shan State, Myanmar, using measures of information and communication technology adoption at household level. Three routes to the same six-region target are run on the same data, so that the cost of the contiguity requirement can be read off directly:
+
+-   **hierarchical cluster analysis** with no spatial constraint at all, which maximises attribute homogeneity and produces regions that are not regions,
+-   **SKATER**, which prunes a minimum spanning tree built on the contiguity graph and so is contiguous by construction, and
+-   **ClustGeo**, which mixes an attribute dissimilarity matrix with a geographical one through a parameter α and lets the analyst choose where on the trade-off to sit.
+
+By the end of the exercise the following are in place:
+
+-   geospatial and aspatial data imported, joined, and converted from counts into rates,
+-   redundant clustering variables identified by correlation analysis and dropped,
+-   a hierarchical clustering solution with a defended number of clusters,
+-   spatially constrained solutions from both SKATER and ClustGeo, and
+-   a quantified comparison of how much attribute homogeneity each contiguity requirement costs.
+
+This is the first exercise in the course where the geometry enters as a *constraint* rather than as a weight. [Hands-on Exercise 4](../hand-on-ex4/hand-on-ex4.qmd) and [Exercise 5](../hand-on-ex5/hand-on-ex5a.qmd) used the neighbour list to compute a statistic; here it restricts which solutions are admissible at all.
+
+## Getting Started
+
+### The analytical question
+
+The task is set by a planner who has to allocate ICT infrastructure spending across Shan State and needs to do it by region rather than by township, because 55 separate programmes are not administrable. The requirement is a small number of groups that are
+
+1.  similar in their current ICT profile, so that one intervention suits every township in the group, and
+2.  geographically contiguous, so that a group is a place that can be staffed, reached and governed.
+
+A grouping that satisfies only the first is a typology, not a regionalisation. The point of the exercise is that the two requirements conflict, and that the conflict can be measured rather than argued about.
+
+### The Study Area and Data
+
+Two data sets are used:
+
+| Dataset | Description |
+|----|----|
+| `myanmar_township_boundaries` | Township boundary layer of Myanmar in ESRI shapefile format, from the Myanmar Information Management Unit |
+| `Shan-ICT.csv` | Household counts of ICT device ownership by township, from *The 2014 Myanmar Population and Housing Census* |
+
+Shan State is the largest of Myanmar's states by area and is administered as three sub-national units, Shan (East), Shan (North) and Shan (South). The boundary layer covers the whole country, so it is filtered down.
+
+### Setting the Analytical Tools
+
+| Package | Role |
+|----|----|
+| **sf** | Importing and handling geospatial data |
+| **spdep** | Contiguity neighbours, edge costs, minimum spanning tree and the SKATER procedure |
+| **ClustGeo** | Ward-like hierarchical clustering with a geographical constraint |
+| **tmap** | Cartographic quality thematic maps |
+| **tidyverse** | Data import, transformation and wrangling |
+| **cluster** | `agnes()` for the agglomerative coefficient, and `clusGap()` |
+| **factoextra** | Visualising the gap statistic |
+| **heatmaply** | Interactive cluster heatmap, and `normalize()` |
+| **corrplot** | Correlation matrix plot |
+| **psych** | `describe()`, for checking a standardisation |
+| **ggpubr**, **GGally** | Arranging plots, and parallel coordinate plots |
+
+```{r}
+pacman::p_load(spdep, tmap, sf, ClustGeo,
+               ggpubr, cluster, factoextra, NbClust,
+               heatmaply, corrplot, psych, tidyverse, GGally)
+```
+
+## Data Import and Preparation
+
+### Importing geospatial data into R environment
+
+`st_read()` of **sf** imports the township layer. The whole country is read, filtered to the three Shan units, and reduced to the identifier fields that matter:
+
+```{r}
+shan_sf <- st_read(dsn = "data/geospatial",
+                   layer = "myanmar_township_boundaries") %>%
+  filter(ST %in% c("Shan (East)", "Shan (North)", "Shan (South)")) %>%
+  select(c(2:7))
+```
+
+The file holds 330 townships with 14 attribute fields on WGS 84; the filter leaves 55, split 10 / 24 / 21 between Shan (East), Shan (North) and Shan (South) and spread over 13 districts. The `select(c(2:7))` keeps `ST`, `ST_PCODE`, `DT`, `DT_PCODE`, `TS` and `TS_PCODE`, which are the state, district and township names with their P-codes. Everything dropped is either an alternative transliteration of a name or an area figure, and none of it is used.
+
+```{r}
+shan_sf
+```
+
+```{r}
+glimpse(shan_sf)
+```
+
+### Importing aspatial data into R environment
+
+```{r}
+ict <- read_csv("data/aspatial/Shan-ICT.csv")
+```
+
+```{r}
+summary(ict)
+```
+
+The table has 55 rows and 11 columns: four identifier fields, a household count, and six device counts. The household count runs from 3,318 in the smallest township to 82,604 in Taunggyi, a factor of 25.
+
+### Derive new variables using dplyr package
+
+That factor of 25 is the problem with the six device columns. A township with 82,604 households will own more radios than a township with 3,318 households whatever its actual adoption rate, so clustering on counts would recover township size rather than ICT penetration. Each count is therefore converted into a rate per 1,000 households. The imported names, which contain spaces and so need back-ticking at every use, are renamed at the same time:
+
+```{r}
+ict_derived <- ict %>%
+  mutate(`RADIO_PR` = `Radio`/`Total households`*1000) %>%
+  mutate(`TV_PR` = `Television`/`Total households`*1000) %>%
+  mutate(`LLPHONE_PR` = `Land line phone`/`Total households`*1000) %>%
+  mutate(`MPHONE_PR` = `Mobile phone`/`Total households`*1000) %>%
+  mutate(`COMPUTER_PR` = `Computer`/`Total households`*1000) %>%
+  mutate(`INTERNET_PR` = `Internet at home`/`Total households`*1000) %>%
+  rename(`DT_PCODE` =`District Pcode`,`DT`=`District Name`,
+         `TS_PCODE`=`Township Pcode`, `TS`=`Township Name`,
+         `TT_HOUSEHOLDS`=`Total households`,
+         `RADIO`=`Radio`, `TV`=`Television`,
+         `LLPHONE`=`Land line phone`, `MPHONE`=`Mobile phone`,
+         `COMPUTER`=`Computer`, `INTERNET`=`Internet at home`)
+```
+
+```{r}
+summary(ict_derived)
+```
+
+Six new fields now sit at the end of the table. Television is the most widely held device at a median of 517 sets per 1,000 households, mobile phone follows at 305 and radio at 211, and the two computing variables are an order of magnitude rarer, at a median of 19 computers and 23 internet connections per 1,000 households. The rates are not bounded by 1,000 in principle, and `TV_PR` reaches 843, meaning some townships report more televisions than households.
+
+## Exploratory Data Analysis (EDA)
+
+### EDA using statistical graphics
+
+The reason for the rate conversion shows up immediately in the distribution of the raw radio count:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+ggplot(data=ict_derived,
+       aes(x=`RADIO`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+ggplot(data=ict_derived,
+       aes(x=`RADIO`)) +
+  geom_boxplot(color="black",
+               fill="light blue")
+```
+
+The count distribution is strongly right-skewed with a long tail of outliers, exactly as a size distribution is. The rate is better behaved:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+ggplot(data=ict_derived,
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+ggplot(data=ict_derived,
+       aes(x=`RADIO_PR`)) +
+  geom_boxplot(color="black",
+               fill="light blue")
+```
+
+The conversion also reorders the townships, which is the substantive point rather than a cosmetic one. Taunggyi has the most radios in absolute terms, 30,176, but at 365 per 1,000 households it is not the most radio-saturated township in the state. That is Ywangan, with 8,890 radios among 18,348 households, or 485 per 1,000. It is a township that is invisible on a count map, and one that will turn out to matter a great deal to SKATER.
+
+The six rates are then plotted together, since a clustering variable with no spread contributes nothing and one with a single extreme value will dominate:
+
+```{r}
+radio <- ggplot(data=ict_derived,
+             aes(x= `RADIO_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+
+tv <- ggplot(data=ict_derived,
+             aes(x= `TV_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+
+llphone <- ggplot(data=ict_derived,
+             aes(x= `LLPHONE_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+
+mphone <- ggplot(data=ict_derived,
+             aes(x= `MPHONE_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+
+computer <- ggplot(data=ict_derived,
+             aes(x= `COMPUTER_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+
+internet <- ggplot(data=ict_derived,
+             aes(x= `INTERNET_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
+ggarrange(radio, tv, llphone, mphone, computer, internet,
+          ncol = 3,
+          nrow = 2)
+```
+
+Radio, television and mobile phone are roughly symmetric and well spread. Land line phone and computer are both strongly right-skewed, with most townships near zero and a handful far out. That asymmetry matters twice below: once for the choice of standardisation, and once for SKATER, which spends its cuts isolating exactly these outlying townships.
+
+### EDA using choropleth map
+
+#### Joining geospatial data with aspatial data
+
+The join key is the township P-code, which is present in both tables and is stable in a way that township names are not:
+
+```{r}
+shan_sf <- left_join(shan_sf,
+                     ict_derived, by=c("TS_PCODE"="TS_PCODE"))
+
+write_rds(shan_sf, "data/rds/shan_sf.rds")
+```
+
+```{r}
+shan_sf <- read_rds("data/rds/shan_sf.rds")
+```
+
+All 55 townships match and no ICT field comes back `NA`. The result carries 22 attribute fields, three of them duplicated by the join: `DT`, `DT_PCODE` and `TS` arrive from both tables and are suffixed `.x` for the boundary layer and `.y` for the census table. `TS.x` is used from here on.
+
+#### Preparing a choropleth map
+
+A single rate mapped with `qtm()` is enough to see that ICT adoption in Shan State is not spatially random:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+qtm(shan_sf, "RADIO_PR")
+```
+
+The more useful map is the pair that justifies the rate conversion cartographically. Household count and radio count are drawn side by side under identical classification:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
+TT_HOUSEHOLDS.map <- tm_shape(shan_sf) +
+  tm_polygons(fill = "TT_HOUSEHOLDS",
+              fill.scale = tm_scale_intervals(
+                style = "jenks",
+                n = 5,
+                values = "brewer.blues"),
+              fill.legend = tm_legend(
+                title = "Total households",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Total households")
+
+RADIO.map <- tm_shape(shan_sf) +
+  tm_polygons(fill = "RADIO",
+              fill.scale = tm_scale_intervals(
+                style = "jenks",
+                n = 5,
+                values = "brewer.blues"),
+              fill.legend = tm_legend(
+                title = "Number of radios",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Radio count")
+
+tmap_arrange(TT_HOUSEHOLDS.map, RADIO.map,
+             asp=NA, ncol=2)
+```
+
+The two maps are nearly the same map. Townships with many households have many radios, which tells us about population distribution and nothing about radio ownership. Replacing the count with the rate breaks that correspondence:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
+tm_shape(shan_sf) +
+  tm_polygons(fill = c("TT_HOUSEHOLDS", "RADIO_PR"),
+              fill.scale = tm_scale_intervals(
+                style = "jenks",
+                n = 5,
+                values = "brewer.blues"),
+              fill.legend = tm_legend(
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_facets(sync = TRUE, ncol = 2)
+```
+
+`tm_facets(sync = TRUE)` holds the two panels on a common extent and zoom, which is what makes the visual comparison legitimate. The right panel is no longer a population map: several small western townships of Shan (South) are radio-saturated, and the populous northern corridor is only mid-range.
+
+## Correlation Analysis
+
+Cluster analysis treats every variable as an independent dimension of similarity. Two variables measuring the same underlying thing therefore enter the distance calculation twice and silently receive double weight, so the correlation structure has to be checked before any clustering:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 8
+cluster_vars.cor = cor(ict_derived[,12:17])
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse",
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+`COMPUTER_PR` and `INTERNET_PR` correlate at 0.870, which is the kind of value that means one variable rather than two: in 2014 a household internet connection in Shan State almost always came with a computer. `INTERNET_PR` is dropped and the clustering proceeds on five variables.
+
+Three other pairs deserve a note, because the rule is applied only to the strongest one. `MPHONE_PR` with `COMPUTER_PR` is 0.737 and `TV_PR` with `MPHONE_PR` is 0.722, both high enough to mean that the four non-radio variables substantially measure a single "modern device" gradient. `RADIO_PR` is the exception: 0.238 with television, −0.069 with mobile phone, −0.310 with land line. Radio is the one genuinely independent axis in this data, the technology that is most common where the others are least common, and that is why it drives so much of what follows.
+
+## Hierarchy Cluster Analysis
+
+### Extracting clustering variables
+
+Clustering works on a plain numeric table, so the geometry is dropped and the township name is kept only long enough to become the row name:
+
+```{r}
+cluster_vars <- shan_sf %>%
+  st_set_geometry(NULL) %>%
+  select("TS.x", "RADIO_PR", "TV_PR", "LLPHONE_PR", "MPHONE_PR", "COMPUTER_PR")
+head(cluster_vars,10)
+```
+
+```{r}
+row.names(cluster_vars) <- cluster_vars$"TS.x"
+head(cluster_vars,10)
+```
+
+```{r}
+shan_ict <- select(cluster_vars, c(2:6))
+head(shan_ict, 10)
+```
+
+```{r}
+write_rds(shan_ict, "data/rds/shan_ict.rds")
+shan_ict <- read_rds("data/rds/shan_ict.rds")
+```
+
+The row names are not decoration. Every object downstream identifies townships by them: the dendrogram labels, the `cutree()` output, the heatmap rows. Dropping the name column without first promoting it would leave the dendrogram labelled 1 to 55.
+
+### Data Standardisation
+
+The five variables are all rates per 1,000 households, so they share a unit, but they do not share a range. `TV_PR` runs to 843 and `COMPUTER_PR` to 92. Euclidean distance is a sum of squared differences across dimensions, so a dimension with a wide range contributes more to every distance than a narrow one, whatever its substantive importance.
+
+### Min-Max standardisation
+
+`normalize()` of **heatmaply** rescales each column onto [0, 1]:
+
+```{r}
+shan_ict.std <- normalize(shan_ict)
+summary(shan_ict.std)
+```
+
+Every column now has minimum 0 and maximum 1. The method is sensitive to outliers by construction: a single extreme township sets the upper anchor and compresses all the others into the lower part of the range. That is why the two right-skewed variables come out with means of 0.24 for `COMPUTER_PR` and 0.27 for `LLPHONE_PR`, well below the 0.5 midpoint, while the symmetric `TV_PR` sits at 0.54.
+
+### Z-score standardisation
+
+`scale()` of base R centres each column on zero and divides by its standard deviation:
+
+```{r}
+shan_ict.z <- scale(shan_ict)
+describe(shan_ict.z)
+```
+
+Mean 0 and standard deviation 1 for all five columns, as expected. `describe()` of **psych** is used rather than `summary()` because it reports the standard deviation, which is the quantity the transformation is supposed to have fixed.
+
+Z-score standardisation assumes the variables are roughly normal, and the skewness column shows that two of them are not: `LLPHONE_PR` at 1.37 and `COMPUTER_PR` at 1.80. Standardisation is a linear transformation, so it moves and rescales a distribution without changing its shape; the skew in the standardised data is identical to the skew in the raw data.
+
+### Visualising the standardised clustering variables
+
+```{r}
+#| fig-width: 12
+#| fig-height: 4
+r <- ggplot(data=ict_derived,
+             aes(x= `RADIO_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  ggtitle("Raw values without standardisation")
+
+shan_ict_s_df <- as.data.frame(shan_ict.std)
+s <- ggplot(data=shan_ict_s_df,
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+shan_ict_z_df <- as.data.frame(shan_ict.z)
+z <- ggplot(data=shan_ict_z_df,
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 3,
+          nrow = 1)
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 4
+r <- ggplot(data=ict_derived,
+             aes(x= `RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Raw values without standardisation")
+
+s <- ggplot(data=shan_ict_s_df,
+       aes(x=`RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+z <- ggplot(data=shan_ict_z_df,
+       aes(x=`RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 3,
+          nrow = 1)
+```
+
+The three distributions have the same shape and differ only in the numbers on the horizontal axis. That is the correct result and it is worth seeing once, because it rules out standardisation as a remedy for skewness; only a non-linear transformation would do that.
+
+### Computing proximity matrix
+
+`dist()` computes the matrix of pairwise distances. It supports six measures (Euclidean, maximum, Manhattan, Canberra, binary and Minkowski), and Euclidean is both the default and what Ward's method assumes:
+
+```{r}
+proxmat <- dist(shan_ict, method = 'euclidean')
+```
+
+```{r}
+proxmat
+```
+
+The 1,485 distinct pairwise distances run from 38.5 to 995.7.
+
+::: callout-warning
+## The proximity matrix is built from unstandardised data
+
+`proxmat` is computed from `shan_ict`, not from `shan_ict.std` or `shan_ict.z`. The two standardisations above were constructed, inspected and then not used; every clustering in this chapter, SKATER and ClustGeo included, runs on the raw rates.
+
+That is not a neutral choice. The share of the total sum of squares each variable contributes on the raw scale is:
+
+```{r}
+v <- apply(shan_ict, 2, function(x) sum((x - mean(x))^2))
+round(100 * v / sum(v), 1)
+```
+
+`MPHONE_PR` and `TV_PR` together account for 81% of the variance the distance matrix can see, and `COMPUTER_PR` for 0.6%. The five-variable clustering is in practice a two-variable clustering, and the computer rate, the variable the correlation analysis went to the trouble of de-duplicating, has almost no influence on the outcome.
+
+Clustering the z-scores instead gives noticeably more balanced groups and a better fit on the standardised scale:
+
+```{r}
+gz <- cutree(hclust(dist(scale(shan_ict)), method = "ward.D"), k = 6)
+gr <- cutree(hclust(proxmat, method = "ward.D"), k = 6)
+rbind(raw = table(gr), z = table(gz))
+```
+
+Sizes of 20, 4, 13, 6, 7, 5 on the raw scale against 11, 12, 9, 8, 9, 6 on the standardised one, and the standardised solution explains 67.1% of the standardised variance against 60.5% for the raw-based one. The raw matrix is kept below so that the results match the chapter, but for this data standardising first is the better analysis.
+:::
+
+### Computing hierarchical clustering
+
+`hclust()` agglomerates from 55 singleton clusters upwards. It offers eight agglomeration methods (`ward.D`, `ward.D2`, `single`, `complete`, `average`, `mcquitty`, `median` and `centroid`), and the choice between them is settled in the next section rather than assumed here. Ward's method merges the pair of clusters whose union adds least to the total within-cluster sum of squares:
+
+```{r}
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+plot(hclust_ward, cex = 0.6)
+```
+
+The height at which two townships join is the cost of merging them, so a tall join is a reluctant one and the structure worth reading is in the long vertical stems near the top.
+
+### Selecting the optimal clustering algorithm
+
+The choice of linkage is not a matter of taste. `agnes()` of **cluster** reports an agglomerative coefficient, the average over all observations of how early an observation joins its first cluster relative to the final merge, which measures how clear the structure a given linkage finds actually is:
+
+```{r}
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+
+ac <- function(x) {
+  agnes(shan_ict, method = x)$ac
+}
+
+map_dbl(m, ac)
+```
+
+Ward scores 0.943, complete 0.895, average 0.813 and single 0.663. Ward's method gives the strongest structure and is used from here on. Single linkage coming last is the expected result rather than a surprise: it merges on the nearest pair of points, so it chains outliers onto existing clusters one at a time and produces long straggly groups with no clear cut height.
+
+### Determining Optimal Clusters
+
+Ward's method produces a complete hierarchy, from 55 clusters down to one. Choosing where to cut it is a separate question, and the hardest one in the exercise. Three approaches are in common use: the elbow method, the average silhouette method and the gap statistic. Only the third is applied below.
+
+#### Gap Statistic Method
+
+The gap statistic compares the observed within-cluster dispersion at each k with the dispersion expected under a reference distribution that has no clustering at all, and prefers the k at which the observed dispersion falls furthest below that expectation:
+
+```{r}
+set.seed(12345)
+gap_stat <- clusGap(shan_ict,
+                    FUN = hcut,
+                    nstart = 25,
+                    K.max = 10,
+                    B = 50)
+# Print the result
+print(gap_stat, method = "firstmax")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+fviz_gap_stat(gap_stat)
+```
+
+The honest reading of this output is that the gap statistic does not support splitting the data at all. The largest gap, 0.274, is at k = 1, and `firstmax`, `firstSEmax` and `globalmax` all return 1. One cluster is not a regionalisation, so the question becomes which k is best among those that are usable, and there the answer is six: the gap rises from 0.210 at k = 3 through 0.218 and 0.222 to a local maximum of 0.2222 at k = 6, then falls away. The margin over k = 5 (0.2216) is far inside one standard error of 0.039, so k = 6 is a defensible choice rather than a demonstrated optimum, and the rest of the exercise should be read with that in mind.
+
+`B = 50` sets the number of Monte Carlo reference datasets and `set.seed()` makes the result reproducible; without the seed the gap values, and possibly the chosen k, would change on every render. `FUN = hcut` is **factoextra**'s hierarchical cutting function, so the reference comparison is made against the same family of clusterings used here rather than against k-means.
+
+The **NbClust** package loaded at the top offers a third route: it computes 30 separate indices over combinations of k, distance measure and linkage and reports the majority verdict. It is not run here, because one index that says 1 is already enough to show that the structure in this data is weak, and 30 indices disagreeing would not make k = 6 any better founded.
+
+### Interpreting the dendrograms
+
+With k = 6 settled, `rect.hclust()` draws the cut on the dendrogram:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+plot(hclust_ward, cex = 0.6)
+rect.hclust(hclust_ward,
+            k = 6,
+            border = 2:5)
+```
+
+The six boxes are badly unbalanced at 20, 4, 13, 6, 7 and 5 townships, which is the raw-scale variance problem of the callout above showing through in the structure itself.
+
+### Visually-driven hierarchical clustering analysis
+
+#### Transforming the data frame into a matrix
+
+A heatmap needs a matrix, not a data frame:
+
+```{r}
+shan_ict_mat <- data.matrix(shan_ict)
+```
+
+#### Plotting interactive cluster heatmap using heatmaply()
+
+```{r}
+#| fig-width: 10
+#| fig-height: 10
+heatmaply(normalize(shan_ict_mat),
+          Colv=NA,
+          dist_method = "euclidean",
+          hclust_method = "ward.D",
+          seriate = "OLO",
+          colors = Blues,
+          k_row = 6,
+          margins = c(NA,200,60,NA),
+          fontsize_row = 4,
+          fontsize_col = 5,
+          main="Geographic Segmentation of Shan State by ICT indicators",
+          xlab = "ICT Indicators",
+          ylab = "Townships of Shan State"
+          )
+```
+
+`Colv = NA` suppresses clustering of the columns, because the five variables are not a sample of anything and reordering them by similarity would only make it harder to find a given variable. `k_row = 6` cuts the row dendrogram at the chosen k and colours the branches accordingly, and `seriate = "OLO"` applies optimal leaf ordering, which picks between the two possible orientations of every branch so that adjacent rows are as similar as possible.
+
+The heatmap is the clearest single statement of what the six groups are, and it is the one output here worth hovering over: the township names are small, and the tooltip is how they are read. `normalize()` is for display only: it puts the five columns on a common colour scale so they are comparable by eye, and it does not affect the clustering being shown, which came from the raw matrix.
+
+### Mapping the clusters formed
+
+`cutree()` converts the hierarchy into a flat six-group membership vector:
+
+```{r}
+groups <- as.factor(cutree(hclust_ward, k=6))
+```
+
+```{r}
+shan_sf_cluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER`=`as.matrix.groups.`)
+```
+
+`cbind()` is safe here only because `groups` is in the same order as the rows of `shan_sf`. It is a positional join with no key, and nothing would warn if that order had changed.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+tm_shape(shan_sf_cluster) +
+  tm_polygons(fill = "CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Hierarchical clustering, k = 6, no spatial constraint")
+```
+
+This is the map the whole lesson is built around. The clusters are fragmented: each colour appears in several disconnected patches scattered across the state, and only one of the six is a single piece. Counting the connected components of each cluster on the contiguity graph puts a number on it: the six clusters occupy **24 separate pieces of territory**, and that figure is computed explicitly in the comparison at the end. A planner cannot administer cluster 3.
+
+The fragmentation is not an artefact or a bug. It is the correct answer to the question that was asked, and the question contained no reference to geography at all.
+
+## Spatially Constrained Clustering: SKATER approach
+
+SKATER, or Spatial 'K'luster Analysis by Tree Edge Removal, asks a different question. It builds the contiguity graph, weights each edge by how dissimilar the two townships it joins are, reduces the graph to its minimum spanning tree, and then cuts the tree. Because every cut of a tree yields connected subtrees, and because every edge of the tree is a contiguity edge, each cluster it produces is guaranteed contiguous.
+
+### Computing Neighbour List
+
+```{r}
+shan.nb <- poly2nb(shan_sf)
+summary(shan.nb)
+```
+
+The 55 townships have 264 non-zero links, an average of 4.8 neighbours each, from two for the five least connected townships to nine for the most connected. The graph is fully connected with no island, which matters: SKATER cannot span a disconnected graph.
+
+::: callout-note
+## Working in sf rather than converting to sp
+
+The chapter converts `shan_sf` to a `SpatialPolygonsDataFrame` with `as_Spatial()` before calling `poly2nb()`, on the grounds that the function does not accept an `sf` object. That restriction was lifted several versions ago. With **spdep** `r as.character(packageVersion("spdep"))`, `poly2nb()` takes the `sf` object directly, as above, and `nbcosts()`, `mstree()` and `skater()` need only the neighbour list and a plain data frame. The conversion step is omitted, which also avoids carrying a second copy of the geometry in memory.
+:::
+
+Plotting the graph requires coordinates for the nodes, and township centroids serve:
+
+```{r}
+coords <- st_coordinates(
+  st_centroid(st_geometry(shan_sf)))
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 8
+plot(st_geometry(shan_sf),
+     border=grey(.5))
+plot(shan.nb,
+     coords,
+     col="blue",
+     add=TRUE)
+```
+
+The centroids are taken from `st_geometry()` alone rather than from the whole `sf` object, which keeps `st_centroid()` from warning about attributes that are not constant over the geometry, the same point as in [Exercise 2](../hand-on-ex2/hand-on-ex2a.qmd).
+
+The boundaries are drawn before the graph rather than after. The plotting region is fixed by the first `plot()` call, and the boundary extent is the larger of the two, so plotting the network first would clip the edges of the state off the figure.
+
+### Computing minimum spanning tree
+
+#### Calculating edge costs
+
+`nbcosts()` gives each edge of the contiguity graph a cost: the attribute distance between the two townships it connects, in the same five-dimensional space the dendrogram used.
+
+```{r}
+lcosts <- nbcosts(shan.nb, shan_ict)
+```
+
+This is the line where attribute space and geographical space meet. The *existence* of an edge is purely geographical; its *cost* is purely attributive. Everything SKATER does afterwards follows from that division of labour.
+
+The costs are then attached to the neighbour list as weights, and `style = "B"` keeps them as they are:
+
+```{r}
+shan.w <- nb2listw(shan.nb,
+                   lcosts,
+                   style="B")
+summary(shan.w)
+```
+
+Row-standardising here, as `style = "W"` would, would divide each cost by the number of neighbours its township has and so make an edge look cheap merely because one of its endpoints is well connected. These weights are distances, not shares of influence, and they have to stay unnormalised.
+
+### Computing minimum spanning tree
+
+```{r}
+shan.mst <- mstree(shan.w)
+```
+
+```{r}
+class(shan.mst)
+```
+
+```{r}
+dim(shan.mst)
+```
+
+54 rows for 55 townships, which is the defining property of a spanning tree: it connects every node using the fewest possible edges and contains no cycle. The three columns are the two endpoint node numbers and the cost of the edge between them.
+
+```{r}
+head(shan.mst)
+```
+
+The retained edges cost between 47.8 and 432.1 and sum to 9,686.6. No other set of 54 contiguity edges connecting all 55 townships has a smaller total.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 8
+plot(st_geometry(shan_sf),
+                 border=gray(.5))
+plot.mst(shan.mst,
+         coords,
+         col="blue",
+         cex.lab=0.7,
+         cex.circles=0.005,
+         add=TRUE)
+```
+
+Against the contiguity graph above, 78 of its 132 distinct edges are gone; `summary()` counts every edge twice, once from either end, which is why it reported 264 links for 132 pairs. What is left is the cheapest skeleton of the state, and the most expensive edges still in it are the ones SKATER is about to cut.
+
+### Computing spatially constrained clusters using SKATER method
+
+`ncuts = 5` asks for five cuts, which leaves six subtrees and so six regions:
+
+```{r}
+clust6 <- spdep::skater(edges = shan.mst[,1:2],
+                 data = shan_ict,
+                 method = "euclidean",
+                 ncuts = 5)
+```
+
+```{r}
+str(clust6)
+```
+
+The object is large because it records the full state of the procedure, including the candidate cuts it evaluated and rejected. The membership vector is the part that is needed:
+
+```{r}
+ccs6 <- clust6$groups
+ccs6
+```
+
+```{r}
+table(ccs6)
+```
+
+The six regions hold 22, 18, 11, 2, 1 and 1 townships. `ssw` tracks the objective through the five cuts, from 12,612.5 before any cut to 8,735.2 after the fifth, a reduction of 30.7%.
+
+That size distribution deserves attention, because it is the characteristic behaviour of the method rather than a property of Shan State. SKATER cuts the most expensive remaining edge at each step, and the most expensive edge in a tree is usually the one attaching an outlier to its neighbour. So the procedure spends its cuts isolating extreme townships:
+
+```{r}
+shan_sf %>%
+  st_drop_geometry() %>%
+  mutate(SP_CLUSTER = clust6$groups) %>%
+  filter(SP_CLUSTER %in% c(4, 5, 6)) %>%
+  select(TS.x, ST, SP_CLUSTER, RADIO_PR, TV_PR, MPHONE_PR, COMPUTER_PR)
+```
+
+Cluster 6 is Ywangan alone, the township with the highest radio rate in the state, 485, and almost no computers, 4.4. Cluster 5 is Narphan alone, which has the *lowest* radio rate, 75, and the lowest computer rate, 3.3. Cluster 4 is Mongpan and Langkho, two southern townships with unusually high computer rates for their surroundings. Three of the six "regions" are outlier townships, and the substantive regionalisation is carried by the three large clusters. Asking SKATER for six regions produced three regions and three exceptions.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 8
+plot(st_geometry(shan_sf),
+     border=gray(.5))
+plot(clust6,
+     coords,
+     cex.lab=.7,
+     groups.colors=c("red","green","blue", "brown", "pink"),
+     cex.circles=0.005,
+     add=TRUE)
+```
+
+### Visualising the clusters in choropleth map
+
+```{r}
+groups_mat <- as.matrix(clust6$groups)
+shan_sf_spatialcluster <- cbind(shan_sf_cluster, as.factor(groups_mat)) %>%
+  rename(`SP_CLUSTER`=`as.factor.groups_mat.`)
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+hclust.map <- tm_shape(shan_sf_cluster) +
+  tm_polygons(fill = "CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Hierarchical clustering (no constraint)")
+
+shclust.map <- tm_shape(shan_sf_spatialcluster) +
+  tm_polygons(fill = "SP_CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("SKATER (spatially constrained)")
+
+tmap_arrange(hclust.map, shclust.map,
+             asp=NA, ncol=2)
+```
+
+The comparison is the result of the exercise. On the left, six colours in 24 patches. On the right, six colours in six patches: every region is one connected piece of territory, and the three large ones divide the state into a northern block, a southern-and-eastern block, and a third that cuts across both.
+
+Cross-tabulating the two memberships shows that the constraint did not merely tidy up the unconstrained solution, it rearranged it:
+
+```{r}
+table(hclust = shan_sf_cluster$CLUSTER,
+      skater = shan_sf_spatialcluster$SP_CLUSTER)
+```
+
+The 20 townships of unconstrained cluster 1 are split 14 / 2 / 4 across three SKATER regions, and SKATER region 2 draws on five of the six unconstrained clusters. Contiguity is not a filter applied after the fact; it changes which townships count as similar in the first place.
+
+## Spatially Constrained Clustering: ClustGeo Method
+
+### A short note about ClustGeo package
+
+ClustGeo reaches the same requirement by another route. Instead of restricting which merges are admissible, it modifies the dissimilarity being minimised. Two matrices are supplied: `D0`, the dissimilarity in feature space, and `D1`, the dissimilarity in constraint space, here geographical distance. At each step the Ward-like criterion minimised is a convex combination of the homogeneity computed from `D0` and the homogeneity computed from `D1`, weighted by a mixing parameter α ∈ [0, 1].
+
+At α = 0 geography is ignored and the result is ordinary Ward clustering. At α = 1 the attributes are ignored and the result is a partition of the map into compact blocks regardless of what is in them. The useful solutions are in between. Unlike SKATER, the method offers no contiguity guarantee at any α: it makes contiguity cheaper, not mandatory.
+
+### Ward-like hierarchical clustering: ClustGeo
+
+With `D0` alone, `hclustgeo()` is a plain Ward clustering:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+nongeo_cluster <- hclustgeo(proxmat)
+plot(nongeo_cluster, cex = 0.5)
+rect.hclust(nongeo_cluster,
+            k = 6,
+            border = 2:5)
+```
+
+::: callout-warning
+## `hclustgeo(D0)` is `ward.D2`, not `ward.D`
+
+This dendrogram is usually described as reproducing the `hclust()` result from earlier in the chapter, and it does not. `hclust()` was called with `method = "ward.D"`; `hclustgeo()` implements the Ward criterion the other way:
+
+```{r}
+identical(unname(hclustgeo(proxmat)$merge),
+          unname(hclust(proxmat, method = "ward.D2")$merge))
+```
+
+```{r}
+rbind(ward.D   = table(cutree(hclust(proxmat, method = "ward.D"), 6)),
+      clustgeo = table(cutree(nongeo_cluster, 6)))
+```
+
+The merge sequences of `hclustgeo(proxmat)` and `hclust(proxmat, method = "ward.D2")` are identical, and their six-group memberships agree exactly. Against `ward.D` they do not: the first cluster of 20 townships splits 16 / 4, and eight townships change group.
+
+The difference is that `ward.D` applies Ward's update formula to the distances it is given, while `ward.D2` squares them first, which is what Ward (1963) actually specified. So the α = 0 baseline in this section is not the same partition as the one mapped further up, and the α = 0 to α = 0.2 comparison below is internally consistent only because both sides of it come from `hclustgeo()`.
+:::
+
+#### Mapping the clusters formed
+
+```{r}
+groups <- as.factor(cutree(nongeo_cluster, k=6))
+```
+
+```{r}
+shan_sf_ngeo_cluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+tm_shape(shan_sf_ngeo_cluster) +
+  tm_polygons(fill = "CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("ClustGeo with D0 only (alpha = 0)")
+```
+
+Sizes of 16, 8, 13, 6, 7 and 5, and a map that is if anything more fragmented than the `ward.D` one, at 28 pieces of territory against 24. With α = 0 there is no reason for it to be otherwise.
+
+### Spatially Constrained Hierarchical Clustering
+
+`D1` is the geographical dissimilarity matrix. `st_distance()` returns the full matrix and `as.dist()` reduces it to the lower triangle that `hclustgeo()` expects:
+
+```{r}
+dist <- st_distance(shan_sf, shan_sf)
+distmat <- as.dist(dist)
+```
+
+::: callout-note
+## What `st_distance()` measures between polygons
+
+`st_distance()` on polygons returns the shortest distance between their boundaries, not between their centroids. Two townships that share a border are therefore separated by exactly zero:
+
+```{r}
+dnum <- units::drop_units(dist)
+c(pairs = sum(upper.tri(dnum)),
+  zeros = sum(dnum[upper.tri(dnum)] == 0),
+  adjacent_pairs = sum(card(shan.nb)) / 2)
+```
+
+132 of the 1,485 pairs sit at distance zero, and that is exactly the number of adjacent pairs in the contiguity list. So `D1` as built here is not quite "geographical distance". It is a hybrid that collapses all contiguity into a single tie at zero and then measures the gaps between non-neighbours, which run from 0.7 km to 444 km. Centroid distances, which run from 24 km to 509 km and are what the ClustGeo vignette uses, would spread the adjacent pairs out instead of tying them.
+
+For this problem the polygon version is arguably the better choice, since it is contiguity information expressed as a distance, but it is a different matrix from the one the lesson slides describe, and it is worth knowing which one is in play before reading α off a curve.
+:::
+
+`choicealpha()` runs the clustering at each α on a grid and reports two quality measures: `Q0`, the proportion of feature-space inertia the partition explains, and `Q1`, the same quantity computed in constraint space.
+
+```{r}
+#| fig-width: 12
+#| fig-height: 5
+cr <- choicealpha(proxmat, distmat, range.alpha = seq(0, 1, 0.1), K=6, graph = TRUE)
+```
+
+```{r}
+round(cr$Q, 3)
+```
+
+```{r}
+round(cr$Qnorm, 3)
+```
+
+The two curves do what the theory says they must. `Q0` is highest at α = 0, where it reaches 0.757, meaning the six-cluster partition explains 75.7% of the variance in the five ICT rates, and falls monotonically to 0.191 at α = 1. `Q1` runs the other way, from 0.131 at α = 0 to 0.941 at α = 1. `Qnorm` expresses each as a fraction of its own maximum, so the trade-off can be read directly as a percentage loss.
+
+α = 0.2 is the choice the lesson recommends, and the numbers support it. Feature homogeneity falls to 85.5% of its maximum, a loss of 14.5%, while geographical homogeneity climbs from 13.9% to 66.5% of its maximum, a gain of 52.6 points. It is also the last grid point before the two curves cross, which happens between 0.2 and 0.3; beyond the crossing, more is being given up in attribute space than is being bought in geographical space.
+
+```{r}
+clustG <- hclustgeo(proxmat, distmat, alpha = 0.2)
+```
+
+```{r}
+groups <- as.factor(cutree(clustG, k=6))
+```
+
+```{r}
+shan_sf_Gcluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+tm_shape(shan_sf_Gcluster) +
+  tm_polygons(fill = "CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("ClustGeo with alpha = 0.2")
+```
+
+The clusters are far more balanced than any solution so far, at 10, 9, 7, 9, 12 and 8 townships, and visibly more compact than the α = 0 map. They are not contiguous. The six clusters occupy 18 pieces of territory, down from 28 at α = 0 but a long way from the six that SKATER delivers, and one cluster alone is in seven pieces: the high-ICT group, which holds Taunggyi in the south, Tachileik in the east, and Muse and Lashio in the north. Those are the largest urban centres in the state and they are hundreds of kilometres apart. No value of α short of ignoring the attributes entirely will make them touch.
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+Gcluster.map <- tm_shape(shan_sf_Gcluster) +
+  tm_polygons(fill = "CLUSTER",
+              fill.scale = tm_scale_categorical(values = "brewer.set2"),
+              fill.legend = tm_legend(
+                title = "Cluster",
+                position = tm_pos_in("left", "bottom"))) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("ClustGeo, alpha = 0.2")
+
+tmap_arrange(shclust.map, Gcluster.map,
+             asp=NA, ncol=2)
+```
+
+The two spatially aware solutions answer different needs. SKATER guarantees administrable regions and pays for the guarantee with three single-township regions. ClustGeo returns six groups of workable size and admits a handful of exclaves.
+
+## Visual Interpretation of Clusters
+
+A membership vector is not an interpretation. The clusters have to be described in terms of the variables that produced them before they can be named, let alone acted on.
+
+### Visualising individual clustering variable
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+ggplot(data = shan_sf_ngeo_cluster,
+       aes(x = CLUSTER, y = RADIO_PR)) +
+  geom_boxplot()
+```
+
+Cluster 3 holds the highest radio rates. Ordered by mean the sequence runs 3, 2, 1, 4, 5, 6, so the lowest group is cluster 6 at 98.6 radios per 1,000 households, not cluster 5. One boxplot per variable is the right first look, but five of them cannot be compared by eye.
+
+### Multivariate Visualisation
+
+A parallel coordinates plot puts all five variables on one set of axes with one line per township, so a cluster's profile becomes the shape of its bundle of lines:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 5
+shan_pc <- shan_sf_ngeo_cluster %>%
+  st_drop_geometry() %>%
+  select(RADIO_PR, TV_PR, LLPHONE_PR, MPHONE_PR, COMPUTER_PR) %>%
+  mutate(CLUSTER = shan_sf_ngeo_cluster$CLUSTER)
+
+ggparcoord(data = shan_pc,
+           columns = 1:5,
+           scale = "globalminmax",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           title = "Multiple Parallel Coordinates Plots of ICT Variables by Cluster") +
+  facet_grid(~ CLUSTER) +
+  theme(axis.text.x = element_text(angle = 30))
+```
+
+`scale = "globalminmax"` is the argument that matters, and what it does is nothing: no scaling is applied, and the vertical range is set by the global minimum and maximum across all five variables. That keeps each cluster's absolute level readable and comparable between panels, at the price of flattening the two rare variables: `LLPHONE_PR` and `COMPUTER_PR` cannot rise far off the floor when the axis has to reach `TV_PR` at 843.
+
+The alternatives trade that off the other way. `std` centres each variable and divides by its standard deviation, `robust` does the same with the median and the median absolute deviation, `uniminmax` puts each variable on [0, 1], and `center` and `centerObs` standardise the height and then centre on a summary value or on one chosen observation. None of them is best in general; `globalminmax` is right here because the question is how well equipped each group is, which is a question about levels.
+
+`columns` is given as indices rather than names because `ggparcoord()` errors on a character vector, which is why the five variables are pulled into a small data frame of their own first.
+
+The group means make the profiles explicit:
+
+```{r}
+shan_sf_ngeo_cluster %>%
+  st_set_geometry(NULL) %>%
+  group_by(CLUSTER) %>%
+  summarise(n = n(),
+            mean_RADIO_PR = mean(RADIO_PR),
+            mean_TV_PR = mean(TV_PR),
+            mean_LLPHONE_PR = mean(LLPHONE_PR),
+            mean_MPHONE_PR = mean(MPHONE_PR),
+            mean_COMPUTER_PR = mean(COMPUTER_PR))
+```
+
+Read together with the parallel coordinates plot, the six groups have clear identities:
+
+| Cluster | n | Profile |
+|----|----|----|
+| 1 | 16 | Middling on everything; the state's unremarkable centre |
+| 2 | 8 | High radio, low on every modern device; the least connected group |
+| 3 | 13 | Highest radio, and above average on television and mobile too |
+| 4 | 6 | Far ahead on television, land line, mobile and computer; the urban group |
+| 5 | 7 | Lowest television, mobile and computer rates in the state; the poorest group |
+| 6 | 5 | Lowest radio but high land line and mobile; modern devices without the old one |
+
+Cluster 4 is the big towns and two of their neighbours, and its mean computer rate of 65 per 1,000 households is nearly three times the state average of 24. Cluster 5 is usually read as the lowest on all five variables, and it is not: cluster 6 has a lower radio rate, 98.6 against 124, and cluster 2 a lower land line rate, 23.9 against 38.0. Cluster 5 is lowest on television, mobile phone and computer, which is enough to make it the least equipped group overall but is not the same claim. Clusters 2 and 6 are the interesting pair: both are peripheral and neither is well equipped, but 2 is radio-rich and device-poor while 6 is the reverse. That contrast is the independent radio axis found in the correlation analysis, and it would have been lost had radio been dropped as an obsolete technology.
+
+### Comparing the three segmentations
+
+The three methods can be compared on exactly the two criteria the planner set. Attribute homogeneity is the share of the total sum of squares in the five ICT rates that falls between clusters rather than within them. Administrability is the number of connected pieces of territory the six clusters occupy: six is the ideal, and any more means at least one region comes in several parts.
+
+```{r}
+pieces <- function(groups) {
+  sum(sapply(sort(unique(groups)), function(g) {
+    idx <- which(groups == g)
+    if (length(idx) == 1) return(1L)
+    adj <- lapply(shan.nb[idx], function(v) {
+      m <- match(v, idx); m[!is.na(m)] })
+    seen <- rep(FALSE, length(idx)); comp <- 0L
+    for (i in seq_along(idx)) if (!seen[i]) {
+      comp <- comp + 1L; stack <- i
+      while (length(stack)) {
+        j <- stack[1]; stack <- stack[-1]
+        if (!seen[j]) {
+          seen[j] <- TRUE
+          stack <- c(stack, adj[[j]][!seen[adj[[j]]]])
+        }
+      }
+    }
+    comp
+  }))
+}
+
+explained <- function(groups) {
+  X <- as.data.frame(shan_ict)
+  within <- sum(sapply(split(X, groups),
+                       function(d) sum(scale(d, scale = FALSE)^2)))
+  100 * (1 - within / sum(scale(X, scale = FALSE)^2))
+}
+
+tibble(
+  method = c("hclust, ward.D", "ClustGeo, alpha = 0",
+             "ClustGeo, alpha = 0.2", "SKATER"),
+  explained_pct = round(c(explained(shan_sf_cluster$CLUSTER),
+                          explained(shan_sf_ngeo_cluster$CLUSTER),
+                          explained(shan_sf_Gcluster$CLUSTER),
+                          explained(clust6$groups)), 1),
+  territory_pieces = c(pieces(as.integer(shan_sf_cluster$CLUSTER)),
+                       pieces(as.integer(shan_sf_ngeo_cluster$CLUSTER)),
+                       pieces(as.integer(shan_sf_Gcluster$CLUSTER)),
+                       pieces(clust6$groups)))
+```
+
+The table is the exercise in four rows. Unconstrained Ward explains 76.1% of the variance across 24 pieces of territory. ClustGeo at α = 0.2 explains 64.7% across 18. SKATER explains 50.0% across 6. Contiguity costs 26 percentage points of attribute homogeneity on this data, and no method avoids paying it.
+
+Running ClustGeo across the α grid shows that the exchange rate is smooth rather than a threshold:
+
+```{r}
+map_dfr(c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7), function(a) {
+  g <- cutree(hclustgeo(proxmat, distmat, alpha = a), k = 6)
+  tibble(alpha = a,
+         explained_pct = round(explained(g), 1),
+         territory_pieces = pieces(g))
+})
+```
+
+Fragmentation falls from 28 pieces to 9 while explained variance falls from 75.7% to 48.0%, and the two move together at every step. The `explained_pct` column reproduces the `Q0` row of `choicealpha()` exactly, which is a useful confirmation that `Q0` is the explained pseudo-inertia and not something else. Notably, α never buys full contiguity: even at 0.7, with a third of the attribute homogeneity given away, the six clusters are still in nine pieces. If contiguity is a hard requirement rather than a preference, SKATER is the method; the α slider is for the case where it is a preference.
+
+Which solution to use follows from the decision it has to support. For describing ICT adoption in Shan State, which is a typology for a report, unconstrained Ward on standardised variables is the right analysis, and the fragmentation is not a defect in it. For allocating a programme budget to administrative regions, SKATER is the only one of the three that returns something a planner can actually administer, and its three single-township regions are an honest signal that six is more than this state's contiguity structure will support. Four cuts rather than five would be the next thing to try.
+
+## Reference
+
+-   Kam, T. S. *R for Geospatial Data Science and Analytics*, [Chapter 12: Geographical Segmentation with Spatially Constrained Clustering Techniques](https://r4gdsa.netlify.app/chap12).
+-   Assunção, R. M., Neves, M. C., Câmara, G. and da Costa Freitas, C. (2006) ["Efficient Regionalization Techniques for Socio-Economic Geographical Units Using Minimum Spanning Trees"](https://www.tandfonline.com/doi/abs/10.1080/13658810600665111), *International Journal of Geographical Information Science*, 20(7): 797-811.
+-   Chavent, M., Kuentz-Simonet, V., Labenne, A. and Saracco, J. (2018) ["ClustGeo: an R package for hierarchical clustering with spatial constraints"](https://link.springer.com/article/10.1007/s00180-018-0791-1), *Computational Statistics*, 33: 1799-1822.
+-   Guo, D. (2008) "Regionalization with dynamically constrained agglomerative clustering and partitioning (REDCAP)", *International Journal of Geographical Information Science*, 22(7): 801-823.
+-   Ward, J. H. (1963) "Hierarchical Grouping to Optimize an Objective Function", *Journal of the American Statistical Association*, 58(301): 236-244.
+-   Tibshirani, R., Walther, G. and Hastie, T. (2001) ["Estimating the number of clusters in a data set via the gap statistic"](https://rss.onlinelibrary.wiley.com/doi/10.1111/1467-9868.00293), *Journal of the Royal Statistical Society B*, 63(2): 411-423.
+-   [Introduction to ClustGeo](https://cran.r-project.org/web/packages/ClustGeo/vignettes/intro_ClustGeo.html), the package vignette.
+-   [`skater`](https://r-spatial.github.io/spdep/reference/skater.html) in the **spdep** reference.

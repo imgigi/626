@@ -16,15 +16,15 @@ toc: false
     </p>
 
     <p class="dash-eyebrow">Code chunks written</p>
-    <p class="dash-figure">331</p>
-    <p class="dash-figure-note">across ten published exercises</p>
+    <p class="dash-figure">414</p>
+    <p class="dash-figure-note">across eleven published exercises</p>
 
     <div class="dash-rows">
       <div class="dash-row">
         <div class="dash-tile tile-purple">◧</div>
         <div>
           <div class="dash-row-label">Hands-on exercises</div>
-          <div class="dash-row-value">8</div>
+          <div class="dash-row-value">9</div>
         </div>
       </div>
       <div class="dash-row">
@@ -38,7 +38,7 @@ toc: false
         <div class="dash-tile tile-green">◉</div>
         <div>
           <div class="dash-row-label">R packages applied</div>
-          <div class="dash-row-value">13</div>
+          <div class="dash-row-value">22</div>
         </div>
       </div>
     </div>
@@ -46,16 +46,16 @@ toc: false
 
       <div class="dash-card">
         <h3>Maps and plots produced</h3>
-        <p class="dash-card-figure">109</p>
+        <p class="dash-card-figure">136</p>
         <p class="dash-card-note">
-          Figures rendered across the ten exercises: choropleths, kernel density
+          Figures rendered across the eleven exercises: choropleths, kernel density
           surfaces, envelope plots and diagnostic charts
         </p>
       </div>
 
       <div class="dash-card">
         <h3>Words written</h3>
-        <p class="dash-card-figure">21,241</p>
+        <p class="dash-card-figure">27,915</p>
         <p class="dash-card-note">
           Method notes and interpretation accompanying the code, not counting the
           code itself
@@ -67,52 +67,57 @@ toc: false
         <div class="dash-chart">
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 1a</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:56.7%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:41.0%"></span></span>
             <span class="dash-chart-value">34</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 1b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:55.0%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-purple" style="width:39.8%"></span></span>
             <span class="dash-chart-value">33</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 2a</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:75.0%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:54.2%"></span></span>
             <span class="dash-chart-value">45</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 2b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:36.7%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-coral" style="width:26.5%"></span></span>
             <span class="dash-chart-value">22</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 3</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-amber" style="width:48.3%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-amber" style="width:34.9%"></span></span>
             <span class="dash-chart-value">29</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 4</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-green" style="width:100%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-green" style="width:72.3%"></span></span>
             <span class="dash-chart-value">60</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 5a</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:40.0%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:28.9%"></span></span>
             <span class="dash-chart-value">24</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 5b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:61.7%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:44.6%"></span></span>
             <span class="dash-chart-value">37</span>
           </div>
           <div class="dash-chart-row">
+            <span class="dash-chart-label">Ex 6</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-grey" style="width:100%"></span></span>
+            <span class="dash-chart-value">83</span>
+          </div>
+          <div class="dash-chart-row">
             <span class="dash-chart-label">In-cl 1</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:35.0%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:25.3%"></span></span>
             <span class="dash-chart-value">21</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">In-cl 4</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:43.3%"></span></span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:31.3%"></span></span>
             <span class="dash-chart-value">26</span>
           </div>
         </div>
@@ -219,6 +224,18 @@ toc: false
       scatterplot, a LISA cluster map of Hunan&#39;s north-eastern growth pole, and
       hot and cold spots on a fixed distance band</p>
       <div class="dash-xmeta"><span><b>37</b> chunks</span><span><b>13</b> figures</span></div>
+    </a>
+
+    <a class="dash-xcard" href="hand-on-ex/hand-on-ex6/hand-on-ex6.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-grey">6</span>
+        <span class="dash-xchip chip-grey">Lesson 6</span>
+      </div>
+      <h3>Geographical Segmentation with Spatially Constrained Clustering</h3>
+      <p>Ward clustering, SKATER and <b>ClustGeo</b> aimed at the same six-region
+      target for Shan State, Myanmar, with the price of contiguity measured: 76% of
+      the ICT variance in 24 pieces of territory against 50% in six</p>
+      <div class="dash-xmeta"><span><b>83</b> chunks</span><span><b>27</b> figures</span></div>
     </a>
 
   </div>
