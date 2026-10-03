@@ -16,8 +16,8 @@ toc: false
     </p>
 
     <p class="dash-eyebrow">Code chunks written</p>
-    <p class="dash-figure">414</p>
-    <p class="dash-figure-note">across eleven published exercises</p>
+    <p class="dash-figure">439</p>
+    <p class="dash-figure-note">across twelve published exercises</p>
 
     <div class="dash-rows">
       <div class="dash-row">
@@ -31,14 +31,14 @@ toc: false
         <div class="dash-tile tile-blue">◈</div>
         <div>
           <div class="dash-row-label">In-class exercises</div>
-          <div class="dash-row-value">2</div>
+          <div class="dash-row-value">3</div>
         </div>
       </div>
       <div class="dash-row">
         <div class="dash-tile tile-green">◉</div>
         <div>
           <div class="dash-row-label">R packages applied</div>
-          <div class="dash-row-value">22</div>
+          <div class="dash-row-value">24</div>
         </div>
       </div>
     </div>
@@ -46,16 +46,16 @@ toc: false
 
       <div class="dash-card">
         <h3>Maps and plots produced</h3>
-        <p class="dash-card-figure">136</p>
+        <p class="dash-card-figure">139</p>
         <p class="dash-card-note">
-          Figures rendered across the eleven exercises: choropleths, kernel density
+          Figures rendered across the twelve exercises: choropleths, kernel density
           surfaces, envelope plots and diagnostic charts
         </p>
       </div>
 
       <div class="dash-card">
         <h3>Words written</h3>
-        <p class="dash-card-figure">27,915</p>
+        <p class="dash-card-figure">30,508</p>
         <p class="dash-card-note">
           Method notes and interpretation accompanying the code, not counting the
           code itself
@@ -119,6 +119,11 @@ toc: false
             <span class="dash-chart-label">In-cl 4</span>
             <span class="dash-chart-track"><span class="dash-chart-bar fill-blue" style="width:31.3%"></span></span>
             <span class="dash-chart-value">26</span>
+          </div>
+          <div class="dash-chart-row">
+            <span class="dash-chart-label">In-cl 6</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-grey" style="width:30.1%"></span></span>
+            <span class="dash-chart-value">25</span>
           </div>
         </div>
       </div>
@@ -265,6 +270,18 @@ toc: false
       local mean and robust median surfaces with <b>GWmodel</b>, and a geographically
       weighted correlation read against its global counterpart</p>
       <div class="dash-xmeta"><span><b>26</b> chunks</span><span><b>6</b> figures</span></div>
+    </a>
+
+    <a class="dash-xcard" href="in-class-ex/in-class-ex6/in-class-ex6.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-grey">6</span>
+        <span class="dash-xchip chip-grey">Lesson 6</span>
+      </div>
+      <h3>Emerging Hot Spot Analysis</h3>
+      <p>Gi* run over a seventeen-year space-time cube with <b>sfdep</b>, each county&#39;s
+      trend tested by Mann-Kendall, and a check showing the hand-built trend and the
+      one <b>emerging_hotspot_analysis()</b> reports are different statistics</p>
+      <div class="dash-xmeta"><span><b>25</b> chunks</span><span><b>3</b> figures</span></div>
     </a>
 
   </div>

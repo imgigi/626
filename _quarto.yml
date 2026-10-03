@@ -57,6 +57,9 @@ website:
           - text: "---"
           - text: "Exercise 4 · Geographically Weighted Summary Statistics"
             href: in-class-ex/in-class-ex4/in-class-ex4.qmd
+          - text: "---"
+          - text: "Exercise 6 · Emerging Hot Spot Analysis"
+            href: in-class-ex/in-class-ex6/in-class-ex6.qmd
       - text: "Take-home Exercise"
         menu:
           # These point at the built .html, not at the .qmd. Quarto rewrites a
