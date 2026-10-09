@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-19">
+<meta name="dcterms.date" content="2026-10-08">
 
 <title>Hands-on Exercise 2b: 2nd Order Spatial Point Patterns Analysis – ISSS626-GAA</title>
 <style>
@@ -217,6 +217,11 @@ window.Quarto = {
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex6/hand-on-ex6.html">
  <span class="dropdown-text">Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex7/hand-on-ex7.html">
+ <span class="dropdown-text">Exercise 7 · Hedonic Pricing Model with GWR</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -333,14 +338,14 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 19, 2026</p>
+      <p class="date">October 8, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 19, 2026</p>
+      <p class="date-modified">October 8, 2026</p>
     </div>
   </div>
     
@@ -353,9 +358,16 @@ window.Quarto = {
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<div class="en">
 <p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">Hands-on Exercise 2a</a> used first-order methods, which describe how the <em>intensity</em> of a point process varies across space, meaning where events are dense and where they are sparse. Kernel density estimation answers “how many events per unit area, here?”</p>
 <p>Second-order methods ask a different question: given the intensity, do events attract or repel one another, and <strong>at what distance</strong>? The Clark-Evans test at the end of the previous exercise condensed the whole pattern into a single number and so could not say. The four summary functions in this exercise, G, F, K and L, are functions of distance, so they can.</p>
 <p>The null hypothesis tested throughout is <strong>complete spatial randomness (CSR)</strong>: the childcare centres are randomly distributed over the study area, following a homogeneous Poisson process. The significance level is 0.001.</p>
+</div>
+<div class="zh">
+<p><a href="../../hand-on-ex/hand-on-ex2/hand-on-ex2a.html">练习 2a</a> 用的是一阶方法，描述点过程的<em>强度</em>如何随空间变化，也就是哪里事件密、哪里事件疏。核密度估计回答的是”此处每单位面积有多少个事件”。</p>
+<p>二阶方法问的是另一个问题：在强度已给定的前提下，事件之间是相互吸引还是相互排斥，而且<strong>在什么距离上</strong>如此？上一份练习末尾的 Clark-Evans 检验把整个格局压成一个数，因此答不了这个问题。本练习的四个汇总函数 G、F、K、L 都是距离的函数，可以。</p>
+<p>全程检验的零假设是<strong>完全空间随机（CSR）</strong>：托儿中心在研究区内随机分布，服从齐性泊松过程。显著性水平取 0.001。</p>
+</div>
 </section>
 <section id="the-data" class="level2">
 <h2 class="anchored" data-anchor-id="the-data">The Data</h2>
@@ -386,11 +398,21 @@ window.Quarto = {
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, spatstat, tmap, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><strong>terra</strong> is not needed here, because no density surface is converted to a raster in this exercise.</p>
+</div>
+<div class="zh">
+<p>本练习不需要 <strong>terra</strong>，因为没有任何密度面要转成栅格。</p>
+</div>
 </section>
 <section id="data-import-and-preparation" class="level2">
 <h2 class="anchored" data-anchor-id="data-import-and-preparation">Data Import and Preparation</h2>
+<div class="en">
 <p>The cleaned subzone layer saved in the previous exercise is reused:</p>
+</div>
+<div class="zh">
+<p>沿用上一份练习保存下来的清理后分区图层：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mpsz_cl <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/mpsz_cl.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -409,7 +431,12 @@ Bounding box:  xmin: 103.6878 ymin: 1.247759 xmax: 103.9897 ymax: 1.462134
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Converting to a <code>ppp</code> and jittering the duplicates, exactly as in Hands-on Exercise 2a. <code>st_geometry()</code> is used so the pattern is unmarked; passing the whole <code>sf</code> object would turn the sixteen attribute columns into marks and stop <code>duplicated()</code> from seeing coincident locations. The summary functions below assume a simple point pattern, so removing the 187 duplicates is a precondition rather than a nicety:</p>
+</div>
+<div class="zh">
+<p>转成 <code>ppp</code> 并对重合点做抖动，做法与练习 2a 完全相同。这里传 <code>st_geometry()</code> 是为了得到无标记的点格局；若把整个 <code>sf</code> 对象传进去，十六个属性列会变成标记，<code>duplicated()</code> 就看不出坐标重合了。下面的汇总函数都假定点格局是简单的，所以去掉那 187 个重合点是前提条件，而不是锦上添花：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>childcare_ppp <span class="ot">&lt;-</span> <span class="fu">as.ppp</span>(<span class="fu">st_geometry</span>(childcare_sf))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -426,7 +453,12 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 <section id="the-two-study-areas" class="level3">
 <h3 class="anchored" data-anchor-id="the-two-study-areas">The two study areas</h3>
+<div class="en">
 <p>The analysis is run on two planning areas rather than the whole country. Second-order functions assume the process is homogeneous, meaning that intensity is roughly constant across the window, and that assumption is untenable for Singapore as a whole, where the centre and the outlying areas differ by an order of magnitude. Within one planning area it is defensible:</p>
+</div>
+<div class="zh">
+<p>分析放在两个规划区而不是全国做。二阶函数假定过程是齐性的，即强度在整个窗口内大致恒定；放在整个新加坡这个假定站不住，市中心与外围地区的强度差了一个数量级。限定在单个规划区内，这个假定才说得过去：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ck <span class="ot">&lt;-</span> mpsz_cl <span class="sc">%&gt;%</span> <span class="fu">filter</span>(PLN_AREA_N <span class="sc">==</span> <span class="st">"CHOA CHU KANG"</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>tm <span class="ot">&lt;-</span> mpsz_cl <span class="sc">%&gt;%</span> <span class="fu">filter</span>(PLN_AREA_N <span class="sc">==</span> <span class="st">"TAMPINES"</span>)</span>
@@ -472,12 +504,23 @@ Geodetic CRS:  WGS 84</code></pre>
 </section>
 <section id="second-order-spatial-point-patterns-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="second-order-spatial-point-patterns-analysis">Second-order Spatial Point Patterns Analysis</h2>
-<p>All four functions below are <em>distance-dependent</em> summaries of the same pattern, and each is tested against CSR with a Monte Carlo envelope. They differ in what they measure from, which is why the textbook works through all four rather than reporting one.</p>
+<div class="en">
+<p>All four functions below are <em>distance-dependent</em> summaries of the same pattern, and each is tested against CSR with a Monte Carlo envelope. They differ in what they measure from, which is why all four are worked through here rather than one being reported on its own.</p>
+</div>
+<div class="zh">
+<p>下面四个函数都是同一个点格局的<em>随距离变化</em>的汇总，每一个都用蒙特卡洛包络对照 CSR 检验。它们的差别在于从什么出发测量，所以这里四个全部走一遍，而不是只报其中一个。</p>
+</div>
 </section>
 <section id="analysing-spatial-point-process-using-g-function" class="level2">
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-g-function">Analysing Spatial Point Process Using G-Function</h2>
+<div class="en">
 <p>The G-function measures the distribution of distances from an event to its <strong>nearest neighbour</strong>. G(r) is the proportion of events whose nearest neighbour lies within distance <em>r</em>.</p>
 <p>A curve rising <strong>faster</strong> than expected under CSR means nearest neighbours are closer than chance allows, i.e.&nbsp;<strong>clustering</strong>. A curve rising more slowly means events keep their distance, i.e.&nbsp;<strong>regularity</strong>.</p>
+</div>
+<div class="zh">
+<p>G 函数度量的是每个事件到其<strong>最近邻</strong>的距离分布。G(r) 表示最近邻落在距离 <em>r</em> 以内的事件所占比例。</p>
+<p>曲线比 CSR 预期上升得<strong>更快</strong>，说明最近邻比随机情形更靠近，即<strong>聚集</strong>；上升得更慢，说明事件彼此保持距离，即<strong>规则分布</strong>。</p>
+</div>
 <section id="choa-chu-kang-planning-area" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area">Choa Chu Kang planning area</h3>
 <div class="cell">
@@ -491,7 +534,12 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>Testing against CSR with 999 simulations:</p>
+</div>
+<div class="zh">
+<p>用 999 次模拟对照 CSR 检验：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>G_CK.csr <span class="ot">&lt;-</span> <span class="fu">envelope</span>(childcare_ck_ppp, Gest, <span class="at">nsim =</span> <span class="dv">999</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -576,8 +624,14 @@ Done.</code></pre>
 </section>
 <section id="analysing-spatial-point-process-using-f-function" class="level2">
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-f-function">Analysing Spatial Point Process Using F-Function</h2>
+<div class="en">
 <p>The F-function is the complement of G. Instead of measuring from events, it measures from <strong>arbitrary locations</strong> in the window to the nearest event. F(r) is the proportion of such locations with an event within distance <em>r</em>.</p>
 <p>The two are sensitive to different things. G describes how events sit relative to each other; F describes how much empty space the pattern leaves. A clustered pattern leaves large gaps, so its F curve rises more slowly than under CSR, the opposite direction to its G curve. Reporting both guards against a conclusion that is an artefact of one measurement’s blind spot.</p>
+</div>
+<div class="zh">
+<p>F 函数是 G 的补。它不从事件出发，而是从窗口内<strong>任意位置</strong>量到最近的事件。F(r) 表示这类位置中，距离 <em>r</em> 以内有事件的比例。</p>
+<p>两者敏感的东西不同。G 描述事件彼此之间如何落位，F 描述格局留下了多少空白。聚集的格局会留下大片空隙，所以它的 F 曲线比 CSR 下上升得更慢，方向与 G 曲线相反。两个都报，可以避免结论只是某一种测量方式盲区造成的假象。</p>
+</div>
 <section id="choa-chu-kang-planning-area-1" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area-1">Choa Chu Kang planning area</h3>
 <div class="cell">
@@ -678,8 +732,14 @@ Done.</code></pre>
 </section>
 <section id="analysing-spatial-point-process-using-k-function" class="level2">
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-k-function">Analysing Spatial Point Process Using K-Function</h2>
+<div class="en">
 <p>G and F both look only at the nearest event, which throws away most of the pattern. Ripley’s K-function counts <strong>all</strong> events within distance <em>r</em> of each event, averaged over events and standardised by intensity. It therefore describes the pattern across the whole range of distances at once.</p>
 <p>The plots below are drawn as <code>K(d) - r</code> rather than K(d) itself. Under CSR, K(r) = πr², and subtracting the expectation flattens that curve onto the horizontal axis, which makes departures far easier to see than a comparison of two rising curves.</p>
+</div>
+<div class="zh">
+<p>G 和 F 都只看最近的那一个事件，把格局的大部分信息丢掉了。Ripley 的 K 函数统计每个事件在距离 <em>r</em> 以内的<strong>所有</strong>事件，对全部事件取平均并按强度标准化，因此能一次性描述整个距离范围上的格局。</p>
+<p>下面的图画的是 <code>K(d) - r</code> 而不是 K(d) 本身。CSR 下 K(r) = πr²，减去期望值可把该曲线压平到横轴上，比起对比两条上升曲线，偏离要容易看得多。</p>
+</div>
 <section id="choa-chu-kang-planning-area-2" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area-2">Choa Chu Kang planning area</h3>
 <div class="cell">
@@ -773,9 +833,19 @@ Done.</code></pre>
 </section>
 <section id="analysing-spatial-point-process-using-l-function" class="level2">
 <h2 class="anchored" data-anchor-id="analysing-spatial-point-process-using-l-function">Analysing Spatial Point Process Using L-Function</h2>
+<div class="en">
 <p>K(r) grows as r², so its variance grows with distance too, and the envelope fans out at larger <em>r</em> even when nothing is happening. The L-function is the square-root transformation that removes this:</p>
+</div>
+<div class="zh">
+<p>K(r) 随 r² 增长，它的方差也随距离增长，所以即便什么都没发生，包络在 <em>r</em> 较大处也会张开。L 函数就是消除这一点的平方根变换：</p>
+</div>
 <p><span class="math display">\[L(r) = \sqrt{\frac{K(r)}{\pi}}\]</span></p>
+<div class="en">
 <p>Under CSR, L(r) = r, so plotting <code>L(d) - r</code> again flattens the expectation onto the horizontal axis, but now with roughly constant variance across the whole range, which makes the envelope width comparable at every distance. This is why L is normally the function reported.</p>
+</div>
+<div class="zh">
+<p>CSR 下 L(r) = r，所以画 <code>L(d) - r</code> 同样把期望压平到横轴，但此时整个范围上的方差大致恒定，包络宽度在各距离上可比。这就是通常以 L 作为上报函数的原因。</p>
+</div>
 <section id="choa-chu-kang-planning-area-3" class="level3">
 <h3 class="anchored" data-anchor-id="choa-chu-kang-planning-area-3">Choa Chu Kang planning area</h3>
 <div class="cell">
@@ -891,8 +961,18 @@ Done.</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="en">
 <p>The direction reverses for F because it measures empty space rather than proximity: a clustered pattern leaves larger gaps, so a randomly chosen location is <em>further</em> from the nearest event than CSR predicts. Reading F in the same direction as G therefore inverts the conclusion.</p>
+</div>
+<div class="zh">
+<p>F 的方向之所以反过来，是因为它量的是空白而不是邻近：聚集的格局留下更大的空隙，于是随机取到的位置到最近事件的距离比 CSR 预期的<em>更远</em>。把 F 按 G 的方向去读，结论会正好读反。</p>
+</div>
+<div class="en">
 <p>All four are <strong>global</strong> statistics: they characterise the pattern as a whole and cannot say <em>where</em> any clustering sits. That question requires local methods, so none of the four supports a claim about a particular part of the map.</p>
+</div>
+<div class="zh">
+<p>这四个都是<strong>全局</strong>统计量：它们刻画的是整体格局，说不出聚集究竟<em>在哪里</em>。那个问题要靠局部方法，所以四者都不足以支撑关于地图上某一具体部位的论断。</p>
+</div>
 </section>
 <section id="reference" class="level2">
 <h2 class="anchored" data-anchor-id="reference">Reference</h2>

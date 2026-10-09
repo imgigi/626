@@ -17,6 +17,7 @@
   --coral:    #ff6b6b;
   --amber:    #ffa940;
   --teal:     #17b0c4;
+  --indigo:   #5a6ee0;
   --radius:   18px;
   --shadow:   0 6px 24px rgba(74, 68, 140, 0.08);
 
@@ -176,6 +177,7 @@ body:has(.dash) main.content {
 .tile-coral  { background: linear-gradient(140deg, #ff9090, var(--coral)); }
 .tile-amber  { background: linear-gradient(140deg, #ffc169, var(--amber)); }
 .tile-teal   { background: linear-gradient(140deg, #5fd7e4, var(--teal)); }
+.tile-indigo { background: linear-gradient(140deg, #8c9bf0, var(--indigo)); }
 
 .dash-row-label { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.3; }
 .dash-row-value { font-size: 1.26rem; font-weight: 700; line-height: 1.2; }
@@ -291,6 +293,7 @@ body:has(.dash) main.content {
 .fill-blue   { background: var(--blue); }
 .fill-green  { background: var(--green); }
 .fill-teal   { background: var(--teal); }
+.fill-indigo { background: var(--indigo); }
 .fill-grey   { background: #a5a4bb; }
 
 /* ----- Exercise list ---------------------------------------------------- */
@@ -900,6 +903,7 @@ body:not(:has(.dash)) nav[role="doc-toc"] ul > li > a.active {
 .chip-green { color: #14996a;      background: #e3faf1; }
 .chip-amber { color: #c47b0b;      background: #fff3e0; }
 .chip-teal  { color: #0e8496;      background: #e0f7fa; }
+.chip-indigo{ color: #3b4bbf;      background: #e8ebfd; }
 
 /* ----- Timeline --------------------------------------------------------- */
 

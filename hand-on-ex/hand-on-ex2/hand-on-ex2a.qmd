@@ -18,12 +18,23 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 Spatial Point Pattern Analysis evaluates the pattern or distribution of a set of points on a surface. The points may be the locations of events such as crimes, traffic accidents or disease onset, or of business services such as coffee shops and bus stops.
 
 This exercise uses the **spatstat** package to discover the spatial point processes of childcare centres in Singapore. The questions driving the analysis are:
 
 - Are the childcare centres in Singapore randomly distributed across the country?
 - If not, where are the locations with a higher concentration of childcare centres?
+:::
+
+::: {.zh}
+空间点格局分析考察一组点在某个面上的格局或分布。这些点可以是犯罪、交通事故、疾病发病这类事件的位置，也可以是咖啡店、公交站这类商业服务设施的位置。
+
+本练习用 **spatstat** 包探究新加坡托儿中心的空间点过程，驱动分析的问题是：
+
+- 新加坡的托儿中心在全国范围内是否随机分布？
+- 若不是，托儿中心较为集中的位置在哪里？
+:::
 
 ## The Data
 
@@ -46,7 +57,13 @@ pacman::p_load(sf, terra, spatstat, tmap, tidyverse)
 | **tmap** | Plotting the point map and the density surfaces |
 | **tidyverse** | Data import and wrangling |
 
+::: {.en}
 `spatstat` is a meta-package. Loading it pulls in `spatstat.geom` (the `ppp` and `owin` classes), `spatstat.random` (simulation), `spatstat.explore` (density estimation and the summary functions used in Hands-on Exercise 2b), and others. Everything below comes from one of these.
+:::
+
+::: {.zh}
+`spatstat` 是一个元包。载入它会一并带进 `spatstat.geom`（提供 `ppp` 与 `owin` 两个类）、`spatstat.random`（模拟）、`spatstat.explore`（密度估计，以及练习 2b 用到的汇总函数）等。下文用到的函数都出自其中之一。
+:::
 
 ## Importing and Wrangling Geospatial Data Sets
 
@@ -57,9 +74,21 @@ mpsz_sf <- st_read("data/geospatial/MasterPlan2019SubzoneBoundaryNoSea.geojson")
   st_transform(crs = 3414)
 ```
 
-The GeoJSON release of this layer is used rather than the KML one the textbook imports. KML stores every attribute inside a single `Description` field as an HTML table, so parsing them out needs **rvest** and a custom `extract_kml_field()` helper. The GeoJSON release carries `REGION_N`, `PLN_AREA_N`, `SUBZONE_N` and `SUBZONE_C` as ordinary columns, so that step is not required here and **rvest** is not loaded.
+::: {.en}
+The GeoJSON release of this layer is used because it carries `REGION_N`, `PLN_AREA_N`, `SUBZONE_N` and `SUBZONE_C` as ordinary columns. The KML release of the same layer packs every attribute into a single `Description` field as an HTML table, which would need **rvest** and a parsing helper to unpack before any of those fields could be filtered on.
+:::
 
+::: {.zh}
+这里用的是该图层的 GeoJSON 版本，因为它把 `REGION_N`、`PLN_AREA_N`、`SUBZONE_N`、`SUBZONE_C` 存成规整的列。同一图层的 KML 版本把所有属性塞进一个 `Description` 字段、写成 HTML 表格，要先用 **rvest** 和解析函数拆开，才能对这些字段做筛选。
+:::
+
+::: {.en}
 The offshore islands are excluded. They are separated from the mainland by open water, and leaving them in would stretch the observation window across areas no childcare centre could occupy, distorting every density estimate that follows:
+:::
+
+::: {.zh}
+离岸岛屿被排除在外。它们与本岛之间隔着开阔水域，若保留下来，观测窗口会被拉伸到托儿中心根本不可能存在的区域，后续每一个密度估计都会因此失真：
+:::
 
 ```{r}
 mpsz_cl <- mpsz_sf %>%
@@ -70,7 +99,13 @@ mpsz_cl <- mpsz_sf %>%
 c(before = nrow(mpsz_sf), after = nrow(mpsz_cl))
 ```
 
+::: {.en}
 Saving the cleaned layer so that Hands-on Exercise 2b can reuse it:
+:::
+
+::: {.zh}
+把清理后的图层存下来，供练习 2b 复用：
+:::
 
 ```{r}
 write_rds(mpsz_cl, "data/rds/mpsz_cl.rds")
@@ -84,9 +119,21 @@ childcare_sf <- st_read("data/geospatial/ChildCareServices.geojson") %>%
   st_transform(crs = 3414)
 ```
 
+::: {.en}
 The import reports 1925 point features with proper attribute columns, among them `NAME`, the address fields and `DESCRIPTION`, so as with the subzone layer no HTML parsing is needed.
+:::
 
+::: {.zh}
+导入结果是 1925 个点要素，属性列规整，其中包括 `NAME`、地址各字段和 `DESCRIPTION`，所以和分区图层一样，不需要解析 HTML。
+:::
+
+::: {.en}
 `st_zm()` drops any Z (and M) dimension. This GeoJSON release is already plain XY, so the call does nothing here, but it is kept as a guard: the KML release of the same dataset carries a Z coordinate fixed at 0, and spatstat's `ppp` class is strictly two-dimensional, so the conversion below fails if a third coordinate survives. Keeping the call means the document works with either download format.
+:::
+
+::: {.zh}
+`st_zm()` 去掉 Z（以及 M）维。这个 GeoJSON 版本本来就是纯 XY，所以这行在此并无作用，保留是作为保险：同一数据集的 KML 版本带着一个恒为 0 的 Z 坐标，而 spatstat 的 `ppp` 类严格是二维的，第三个坐标若留下来，下面的转换就会失败。留着这行，两种下载格式都能跑通。
+:::
 
 ### Mapping the geospatial data sets
 
@@ -100,7 +147,13 @@ tm_shape(mpsz_cl) +
   tm_title("Childcare centres in Singapore")
 ```
 
+::: {.en}
 The same map in interactive mode, which allows zooming into individual centres:
+:::
+
+::: {.zh}
+同一幅地图的交互版本，可以放大到单个托儿中心：
+:::
 
 ```{r}
 tmap_mode("view")
@@ -116,7 +169,13 @@ tmap_mode("plot")
 
 ## Geospatial Data Wrangling
 
+::: {.en}
 spatstat does not work with `sf` objects. A point pattern must be a `ppp` object, which bundles the event coordinates together with an observation window (`owin`) describing the region within which the events could have occurred.
+:::
+
+::: {.zh}
+spatstat 不接受 `sf` 对象。点格局必须是 `ppp` 对象，它把事件坐标和一个观测窗口（`owin`）捆在一起，窗口描述的是事件有可能出现的区域。
+:::
 
 ### Converting sf data frames to ppp class
 
@@ -147,21 +206,45 @@ summary(childcare_ppp)
 
 #### Handling duplicated points
 
+::: {.en}
 Duplicates are a genuine problem rather than a formality. Much of point pattern theory assumes a *simple* point pattern, in which no two events share a location; where duplicates exist, several statistical methods either ignore the repeats or fail outright.
+:::
+
+::: {.zh}
+重合点是实实在在的问题，不是走过场。点格局理论的大部分内容都假定格局是*简单的*，即没有两个事件落在同一位置；一旦存在重合，若干统计方法要么忽略重复、要么直接报错。
+:::
 
 ```{r}
 any(duplicated(childcare_ppp))
 ```
 
+::: {.en}
 `multiplicity()` reports how many times each point is repeated, so the number of points involved can be counted:
+:::
+
+::: {.zh}
+`multiplicity()` 给出每个点重复了多少次，据此可以数出涉及重合的点有多少：
+:::
 
 ```{r}
 sum(multiplicity(childcare_ppp) > 1)
 ```
 
+::: {.en}
 The duplication is substantial: 187 points sit on a location already occupied, and 338 points are involved in a coincidence, so the 1925 centres occupy only 1738 distinct locations. Multiple centres registered at the same block or the same mall share one address point.
+:::
 
+::: {.zh}
+重合的规模不小：有 187 个点落在已被占用的位置上，共 338 个点牵涉其中，因此 1925 家中心实际只占据 1738 个不同位置。注册在同一座组屋或同一家商场的多个中心共用一个地址点。
+:::
+
+::: {.en}
 There are three ways to deal with duplicates. Deleting them is simplest but discards real centres. Attaching weights to the retained points keeps the information but complicates every subsequent analysis. Jittering, which displaces each duplicate by a tiny random amount so that no two points coincide, keeps all the events and is the approach used here:
+:::
+
+::: {.zh}
+处理重合点有三条路。直接删除最省事，但会丢掉真实存在的中心；给保留下来的点加权能留住信息，但后续每一步分析都会变复杂；抖动则是把每个重合点做微小的随机位移，使任意两点不再重合，这样所有事件都保住，本练习采用的就是这一种：
+:::
 
 ```{r}
 set.seed(1234)
@@ -173,19 +256,31 @@ childcare_ppp_jit <- rjitter(childcare_ppp,
 any(duplicated(childcare_ppp_jit))
 ```
 
+::: {.en}
 `retry = TRUE` makes the function try again if a displacement happens to land on another point, so the result is guaranteed duplicate-free.
+:::
+
+::: {.zh}
+`retry = TRUE` 让函数在位移恰好又落到别的点上时重试，因此结果保证没有重合。
+:::
 
 ::: callout-warning
 ## Seed the jitter, not just the envelopes
 
-`set.seed()` is called before `rjitter()`, which the textbook does not do, since it seeds only before the simulation envelopes. That is not enough, because `rjitter()` displaces every point by a random amount, not merely the duplicated ones. Without a seed, every re-render produces a slightly different pattern, and with it different Clark-Evans statistics, different selected bandwidths, and different G, F, K and L curves.
+`set.seed()` is called before `rjitter()`, not only before the simulation envelopes later on. `rjitter()` displaces every point by a random amount rather than only the duplicated ones, so without a seed here every re-render produces a slightly different pattern, and with it different Clark-Evans statistics, different selected bandwidths, and different G, F, K and L curves.
 
-Rendering this document twice without the seed gave *R* = 0.55568 and then *R* = 0.55431 from identical code. The conclusions are unaffected at that magnitude, but any number quoted in the text stops matching the output beneath it. Hands-on Exercise 2b seeds the same call with the same value, so both documents work from the identical jittered pattern.
+Rendering this document twice without that seed gave *R* = 0.55568 and then *R* = 0.55431 from identical code. The conclusions are unaffected at that magnitude, but any number quoted in the text stops matching the output beneath it. Hands-on Exercise 2b seeds the same call with the same value, so both documents work from the identical jittered pattern.
 :::
 
 ### Creating owin object
 
+::: {.en}
 An `owin` confines the analysis to the region where events could actually occur. Without one, spatstat uses the bounding box of the points, which for Singapore would include a large amount of sea and Malaysian territory. Density is events divided by area, so the wrong window gives the wrong answer everywhere.
+:::
+
+::: {.zh}
+`owin` 把分析限定在事件真有可能出现的区域内。没有它，spatstat 会拿点的外接矩形当窗口，对新加坡而言那会纳入大片海域和马来西亚的陆地。密度是事件数除以面积，窗口错了，到处都会算错。
+:::
 
 ```{r}
 sg_owin <- as.owin(mpsz_cl)
@@ -199,7 +294,13 @@ plot(sg_owin)
 
 ### Combining point events object and owin object
 
+::: {.en}
 Subsetting a `ppp` by an `owin` keeps only the events inside it and, more importantly, records that window as the pattern's domain:
+:::
+
+::: {.zh}
+用 `owin` 对 `ppp` 取子集，一方面只保留窗口内的事件，更要紧的是把这个窗口登记为该格局的定义域：
+:::
 
 ```{r}
 childcareSG_ppp <- childcare_ppp_jit[sg_owin]
@@ -213,6 +314,7 @@ plot(childcareSG_ppp)
 
 ## Clark-Evans Test for Nearest Neighbour Analysis
 
+::: {.en}
 The Clark-Evans test gives a single-number summary of whether the pattern is clustered, random or regular. It compares the observed mean nearest-neighbour distance against the value expected under complete spatial randomness (CSR).
 
 The test statistic *R* is that ratio: **R < 1** indicates clustering, **R ≈ 1** randomness, and **R > 1** regularity.
@@ -223,6 +325,20 @@ The hypotheses are:
 - **H₁**: the distribution of childcare services is not randomly distributed.
 
 The null hypothesis is rejected if the p-value is smaller than 0.001.
+:::
+
+::: {.zh}
+Clark-Evans 检验用一个数概括格局是聚集、随机还是规则。它把观测到的平均最近邻距离与完全空间随机（CSR）下的期望值相比。
+
+检验统计量 *R* 就是这个比值：**R < 1** 表示聚集，**R ≈ 1** 表示随机，**R > 1** 表示规则。
+
+假设为：
+
+- **H₀**：托儿服务的分布是随机的；
+- **H₁**：托儿服务的分布不是随机的。
+
+p 值小于 0.001 时拒绝零假设。
+:::
 
 ### Performing the Clark-Evans test without CSR
 
@@ -234,18 +350,36 @@ clarkevans.test(childcareSG_ppp,
                 nsim = 99)
 ```
 
+::: {.en}
 The header of that output reports a Z-test rather than a Monte Carlo test, even though `nsim = 99` was passed. The signature explains why:
+:::
+
+::: {.zh}
+尽管传了 `nsim = 99`，上面输出的表头报的却是 Z 检验而非蒙特卡洛检验。函数签名能说明原因：
+:::
 
 ```
 clarkevans.test(X, ..., correction, clipregion = NULL, alternative = ...,
                 method = c("asymptotic", "MonteCarlo"), nsim = 999)
 ```
 
+::: {.en}
 `method` defaults to `"asymptotic"`, so `nsim` does nothing unless `method = "MonteCarlo"` is set explicitly, and no warning is raised. The `clipregion` argument is likewise inert with `correction = "none"`, since it is only consulted by the guard-area correction.
+:::
+
+::: {.zh}
+`method` 默认取 `"asymptotic"`，所以除非显式写上 `method = "MonteCarlo"`，`nsim` 不起任何作用，而且不会给出警告。`clipregion` 同理：在 `correction = "none"` 下它也是空转的，只有保护区校正才会用到它。
+:::
 
 ### Performing the Clark-Evans test with CSR
 
+::: {.en}
 Asking for the simulated test gives the same *R* but a different p-value, because the asymptotic approximation is not reliable for a strongly clustered pattern:
+:::
+
+::: {.zh}
+改用模拟检验得到的 *R* 相同，p 值却不同，因为对强聚集的格局而言渐近近似并不可靠：
+:::
 
 ```{r}
 set.seed(1234)
@@ -256,19 +390,49 @@ clarkevans.test(childcareSG_ppp,
                 nsim = 999)
 ```
 
+::: {.en}
 Both tests reject H₀. *R* = 0.552 is well below 1, so the childcare centres are clustered rather than randomly distributed across Singapore.
+:::
 
+::: {.zh}
+两个检验都拒绝 H₀。*R* = 0.552 远小于 1，所以托儿中心在新加坡是聚集分布，而非随机分布。
+:::
+
+::: {.en}
 The two p-values are not comparable at face value. The Z-test reports *p* < 2.2e-16 while the Monte Carlo test reports *p* = 0.001, which is not weaker evidence but the smallest value 999 simulations can produce, since the p-value is (1 + number of simulations at least as extreme) / (1 + nsim). Not one of the 999 CSR simulations came close to the observed *R*. Increasing `nsim` would lower that floor without changing the conclusion.
+:::
+
+::: {.zh}
+两个 p 值不能照字面比较。Z 检验报 *p* < 2.2e-16，蒙特卡洛检验报 *p* = 0.001，后者并不是证据更弱，而是 999 次模拟所能给出的最小值——p 值的算法是（不低于观测值的模拟次数 + 1）/（nsim + 1）。999 次 CSR 模拟中没有一次接近观测到的 *R*。提高 `nsim` 只会把这个下限压得更低，不会改变结论。
+:::
 
 ## Kernel Density Estimation Method
 
+::: {.en}
 KDE estimates the intensity of the point process, meaning the expected number of events per unit area, as a smooth surface, by centring a kernel function on each event and summing the contributions.
+:::
 
+::: {.zh}
+核密度估计把点过程的强度（即每单位面积的期望事件数）估成一张光滑的面：在每个事件上放一个核函数，再把各自的贡献加总。
+:::
+
+::: {.en}
 The single most consequential choice is the **bandwidth** (`sigma`), the width of that kernel. Too small and the surface degenerates into a spike at every event; too large and every local structure is smoothed away.
+:::
+
+::: {.zh}
+其中后果最重的一个选择是**带宽**（`sigma`），也就是核的宽度。取得过小，面会退化成每个事件处的一根尖峰；取得过大，所有局部结构都会被抹平。
+:::
 
 ### Working with automatic bandwidth selection method
 
+::: {.en}
 `density()` accepts a bandwidth selection function in place of a number. `bw.diggle()` chooses the bandwidth by cross-validation, minimising a mean-square-error criterion:
+:::
+
+::: {.zh}
+`density()` 的带宽位置可以不给数值，而给一个带宽选择函数。`bw.diggle()` 用交叉验证选带宽，最小化均方误差准则：
+:::
 
 ```{r}
 kde_childcareSG_bw <- density(childcareSG_ppp,
@@ -282,26 +446,56 @@ kde_childcareSG_bw <- density(childcareSG_ppp,
 plot(kde_childcareSG_bw)
 ```
 
+::: {.en}
 `edge = TRUE` applies an edge correction. Without it, events near the coastline appear artificially sparse, because part of their kernel falls outside the window and is simply lost.
+:::
 
+::: {.zh}
+`edge = TRUE` 启用边界校正。不加的话，靠近海岸线的事件会显得偏稀疏，因为它们的核有一部分落在窗口之外、直接丢失了。
+:::
+
+::: {.en}
 The chosen bandwidth can be retrieved directly:
+:::
+
+::: {.zh}
+选出的带宽可以直接取出来看：
+:::
 
 ```{r}
 bw.diggle(childcareSG_ppp)
 ```
 
+::: {.en}
 Note the density values on the colour bar. The layer is in svy21, so the coordinate unit is the metre and the intensity is reported as events per square metre, in numbers so small they are awkward to read.
+:::
+
+::: {.zh}
+注意色条上的密度数值。图层处于 svy21，坐标单位是米，所以强度是以每平方米事件数报出的，数值小到很难读。
+:::
 
 ### Rescaling KDE values
 
+::: {.en}
 `rescale.ppp()` converts the pattern to kilometres, which puts the intensity on a readable scale. This changes the *units*, not the geometry: the pattern is identical, only reported differently.
+:::
+
+::: {.zh}
+`rescale.ppp()` 把格局换算成以公里为单位，强度的量级就好读了。改的是*单位*而不是几何：格局本身一模一样，只是报出的方式不同。
+:::
 
 ```{r}
 childcareSG_ppp.km <- rescale.ppp(childcareSG_ppp, 1000, "km")
 childcareSG_ppp.km
 ```
 
+::: {.en}
 Re-running the same estimation on the rescaled pattern produces an identical surface with sensible numbers on the legend:
+:::
+
+::: {.zh}
+在换算后的格局上重跑同样的估计，得到的是同一张面，但图例上的数值正常了：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -316,7 +510,13 @@ plot(kde_childcareSG.bw)
 
 ### Working with different automatic bandwidth methods
 
+::: {.en}
 spatstat offers four selectors, and they do not agree:
+:::
+
+::: {.zh}
+spatstat 提供四个带宽选择器，它们给出的答案并不一致：
+:::
 
 ```{r}
 c(bw.diggle = bw.diggle(childcareSG_ppp.km),
@@ -328,9 +528,21 @@ c(bw.diggle = bw.diggle(childcareSG_ppp.km),
 bw.scott(childcareSG_ppp.km)
 ```
 
+::: {.en}
 `bw.CvL` returns a far larger bandwidth than the other two, and `bw.scott` returns one value per axis. Baddeley and colleagues recommend `bw.ppl` when the pattern consists predominantly of tight clusters, on the grounds that it tends to produce more sensible results in that case, while `bw.diggle` is preferable when the aim is to detect a single tight cluster against a sparse background.
+:::
 
+::: {.zh}
+`bw.CvL` 给出的带宽远大于另外两个，`bw.scott` 则是每个坐标轴各给一个值。Baddeley 等人建议：当格局主要由紧密的簇构成时用 `bw.ppl`，理由是这种情形下它给出的结果更合理；而若目标是在稀疏背景中识别出单个紧密的簇，则 `bw.diggle` 更合适。
+:::
+
+::: {.en}
 Comparing the two most commonly used selectors side by side:
+:::
+
+::: {.zh}
+把最常用的两个选择器并排比较：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -348,7 +560,13 @@ plot(kde_childcareSG.ppl, main = "bw.ppl")
 
 ### Working with different kernel methods
 
+::: {.en}
 The Gaussian kernel is the default, but not the only option. The kernel determines how an event's influence decays with distance:
+:::
+
+::: {.zh}
+高斯核是默认选项，但并非唯一。核决定了一个事件的影响如何随距离衰减：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -364,13 +582,25 @@ for (k in c("gaussian", "epanechnikov", "quartic", "disc")) {
 }
 ```
 
+::: {.en}
 The four surfaces are strikingly similar. This is the standard finding in density estimation: the bandwidth matters a great deal, the kernel shape hardly at all.
+:::
+
+::: {.zh}
+四张面惊人地相似。这正是密度估计里的通行结论：带宽影响很大，核的形状几乎没有影响。
+:::
 
 ## Fixed and Adaptive KDE
 
 ### Computing KDE by using fixed bandwidth
 
+::: {.en}
 Instead of a selector, `sigma` can be given a number. Because the pattern was rescaled to kilometres, `sigma = 0.6` means a 600-metre kernel:
+:::
+
+::: {.zh}
+`sigma` 也可以不给选择器而直接给数值。由于格局已换算成公里，`sigma = 0.6` 指的是 600 米的核：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -383,11 +613,23 @@ kde_childcareSG_600 <- density(childcareSG_ppp.km,
 plot(kde_childcareSG_600, main = "Fixed bandwidth, sigma = 0.6 km")
 ```
 
+::: {.en}
 This is where the earlier rescaling matters. Had the pattern stayed in metres, `sigma = 0.6` would mean a 60-centimetre kernel and the surface would be meaningless. The number is always in the pattern's current units.
+:::
+
+::: {.zh}
+前面那次单位换算的意义就在这里。若格局仍以米为单位，`sigma = 0.6` 指的就是 60 厘米的核，画出的面毫无意义。这个数值永远按格局当前的单位解释。
+:::
 
 ### Computing KDE by using adaptive bandwidth
 
+::: {.en}
 A fixed bandwidth is a poor fit for Singapore, where density varies enormously between the city centre and the outlying areas. Adaptive estimation varies the bandwidth with the local intensity, narrow where events are dense and wide where they are sparse:
+:::
+
+::: {.zh}
+固定带宽并不适合新加坡，这里市中心与外围地区的密度差距极大。自适应估计让带宽随局部强度变化：事件密处取窄，事件疏处取宽：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -405,9 +647,21 @@ plot(kde_childcareSG_adaptive, main = "Adaptive bandwidth")
 
 ### Converting gridded output into raster
 
+::: {.en}
 spatstat returns an `im` (pixel image) object, which base `plot()` renders but **tmap** cannot. `terra::rast()` converts it to a `SpatRaster`.
+:::
 
+::: {.zh}
+spatstat 返回的是 `im`（像素影像）对象，base 的 `plot()` 画得出来，**tmap** 却不认。`terra::rast()` 把它转成 `SpatRaster`。
+:::
+
+::: {.en}
 The **unrescaled** estimate is used here, not `kde_childcareSG.bw`:
+:::
+
+::: {.zh}
+这里用的是**未换算单位**的那个估计，而不是 `kde_childcareSG.bw`：
+:::
 
 ```{r}
 kde_childcareSG_raster <- rast(kde_childcareSG_bw)
@@ -424,7 +678,13 @@ Rescaling is useful for reading intensity values off a legend, but the raster ha
 
 ### Assigning projection systems
 
+::: {.en}
 The conversion carries the pixel values and the extent but not the coordinate reference system, which has to be assigned:
+:::
+
+::: {.zh}
+转换会带上像元值和范围，但不带坐标参考系统，需要另行指定：
+:::
 
 ```{r}
 crs(kde_childcareSG_raster) <- "EPSG:3414"
@@ -447,7 +707,13 @@ tm_shape(kde_childcareSG_raster) +
 
 ## First Order SPPA at the Planning Area Level
 
+::: {.en}
 A national density surface is dominated by the overall settlement pattern. Restricting the analysis to individual planning areas makes local differences visible.
+:::
+
+::: {.zh}
+全国尺度的密度面会被整体聚落格局主导。把分析限定到单个规划区，局部差异才显得出来。
+:::
 
 ### Geospatial data wrangling
 
@@ -489,7 +755,13 @@ childcare_ck_ppp <- childcare_ppp_jit[ck_owin]
 childcare_jw_ppp <- childcare_ppp_jit[jw_owin]
 ```
 
+::: {.en}
 Rescaling each to kilometres:
+:::
+
+::: {.zh}
+各自换算成公里：
+:::
 
 ```{r}
 childcare_pg_ppp.km <- rescale.ppp(childcare_pg_ppp, 1000, "km")
@@ -498,7 +770,13 @@ childcare_ck_ppp.km <- rescale.ppp(childcare_ck_ppp, 1000, "km")
 childcare_jw_ppp.km <- rescale.ppp(childcare_jw_ppp, 1000, "km")
 ```
 
+::: {.en}
 The number of centres in each:
+:::
+
+::: {.zh}
+各区内的中心数量：
+:::
 
 ```{r}
 c(Punggol         = npoints(childcare_pg_ppp),
@@ -540,22 +818,52 @@ clarkevans.test(childcare_tm_ppp,
                 nsim = 999)
 ```
 
+::: {.en}
 The two areas do not give the same answer.
+:::
+
+::: {.zh}
+两个区给出的答案并不相同。
+:::
 
 | Planning area | *R* | *p* | At α = 0.001 |
 |----|----|----|----|
 | Choa Chu Kang | 0.868 | 0.0293 | fail to reject H₀ |
 | Tampines | 0.679 | 2.9e-11 | reject H₀, clustered |
 
+::: {.en}
 Tampines is clearly clustered. Choa Chu Kang is the more interesting case. Its *R* of 0.868 is below 1, and at the conventional α = 0.05 the result would count as significant, but the threshold stated for this exercise is 0.001 and 0.0293 does not meet it. On the stated criterion the Choa Chu Kang pattern cannot be distinguished from complete spatial randomness.
+:::
 
+::: {.zh}
+Tampines 明显是聚集的。Choa Chu Kang 则更值得琢磨：它的 *R* = 0.868 小于 1，若按通行的 α = 0.05，这个结果算显著；但本练习设定的阈值是 0.001，而 0.0293 达不到。按既定标准，Choa Chu Kang 的格局与完全空间随机无法区分。
+:::
+
+::: {.en}
 These two calls also use the default `method = "asymptotic"`, so both are Z-tests and the `nsim = 999` argument is doing nothing, exactly as in the national test above.
+:::
 
+::: {.zh}
+这两次调用同样用的是默认的 `method = "asymptotic"`，所以都是 Z 检验，`nsim = 999` 不起作用，和上面全国尺度的那次检验一样。
+:::
+
+::: {.en}
 The Clark-Evans statistic condenses the whole pattern into one number, so it says *whether* the pattern departs from randomness but not *at what distance* it does so. A pattern can be clustered at 200 m and regular at 2 km, and *R* will report only the net effect. That is precisely the limitation the Choa Chu Kang result runs into. Answering the distance question requires the summary functions G, F, K and L, which are the subject of [Hands-on Exercise 2b](hand-on-ex2b.qmd).
+:::
+
+::: {.zh}
+Clark-Evans 统计量把整个格局压成一个数，因此它只能说明格局*是否*偏离随机，说不出*在什么距离上*偏离。一个格局完全可能在 200 米处聚集、在 2 公里处规则，而 *R* 只报净效应。Choa Chu Kang 的结果撞上的正是这个局限。要回答距离的问题，得用 G、F、K、L 这几个汇总函数，那是[练习 2b](hand-on-ex2b.qmd) 的内容。
+:::
 
 ### Computing KDE surfaces by planning area
 
+::: {.en}
 `bw.diggle` is used throughout so the four surfaces are produced by the same rule, even though the bandwidth it selects differs from area to area:
+:::
+
+::: {.zh}
+四张面统一用 `bw.diggle`，使它们出自同一条规则，尽管它为各区选出的带宽并不相同：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -572,7 +880,13 @@ plot(density(childcare_jw_ppp.km, sigma = bw.diggle,
              edge = TRUE, kernel = "gaussian"), main = "Jurong West")
 ```
 
+::: {.en}
 For a fair visual comparison, the same fixed bandwidth is applied to all four. A given colour then means the same intensity in every panel:
+:::
+
+::: {.zh}
+为了让视觉比较公平，四张面改用同一个固定带宽。这样同一种颜色在每一幅里代表的强度就是一致的：
+:::
 
 ```{r}
 #| fig-width: 12

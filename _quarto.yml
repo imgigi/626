@@ -50,6 +50,9 @@ website:
           - text: "---"
           - text: "Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering"
             href: hand-on-ex/hand-on-ex6/hand-on-ex6.qmd
+          - text: "---"
+          - text: "Exercise 7 · Hedonic Pricing Model with GWR"
+            href: hand-on-ex/hand-on-ex7/hand-on-ex7.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"

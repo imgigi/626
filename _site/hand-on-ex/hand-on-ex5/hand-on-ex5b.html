@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-19">
+<meta name="dcterms.date" content="2026-10-09">
 
 <title>Hands-on Exercise 5b: Local Measures of Spatial Autocorrelation – ISSS626-GAA</title>
 <style>
@@ -188,6 +188,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex6/hand-on-ex6.html">
  <span class="dropdown-text">Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex7/hand-on-ex7.html">
+ <span class="dropdown-text">Exercise 7 · Hedonic Pricing Model with GWR</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -322,14 +327,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 19, 2026</p>
+      <p class="date">October 9, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 19, 2026</p>
+      <p class="date-modified">October 9, 2026</p>
     </div>
   </div>
     
@@ -342,6 +347,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<div class="en">
 <p><a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">Hands-on Exercise 5a</a> established that GDP per capita in Hunan is spatially clustered, with a Moran’s I of 0.30 and a p-value of 1.1 × 10<sup>-6</sup>. That is the whole of what a global statistic can say. One number for 88 counties answers <em>whether</em>, not <em>where</em>, and it cannot distinguish a province with two compact clusters from a province with a smooth gradient, since both produce the same I.</p>
 <p>Local measures of spatial autocorrelation decompose that single number back into the 88 contributions it was assembled from. They are not summary statistics but scores, one per county, and their intuition is the same as the global measures’. Some are mathematically connected to them. A Local Indicator of Spatial Association, or LISA, is by Anselin’s definition a statistic whose sum over all observations is proportional to the global statistic, so local Moran’s I literally adds up to global Moran’s I. Alongside LISA, the Getis-Ord Gi* statistic is introduced as a complementary measure that answers a related but distinct question.</p>
 <p>This exercise uses the <strong>sfdep</strong> package rather than <strong>spdep</strong>. The two wrap the same computations, since <strong>sfdep</strong> calls <strong>spdep</strong> internally, but <strong>sfdep</strong> returns neighbour lists and weights as list columns inside an <code>sf</code> data frame. The whole analysis therefore stays in one table and one pipeline, instead of moving between a spatial object and a set of parallel <code>nb</code> and <code>listw</code> objects. By the end of the exercise the following are in place:</p>
@@ -353,11 +359,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Getis-Ord Gi* statistics computed with <strong>sfdep</strong> to detect hot and cold spots, and</li>
 <li>both sets of results visualised with <strong>tmap</strong>.</li>
 </ul>
+</div>
+<div class="zh">
+<p><a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">练习 5a</a> 已确认湖南的人均 GDP 在空间上聚集：Moran’s I 为 0.30，p 值 1.1 × 10<sup>-6</sup>。这也就是全局统计量能说的全部。88 个县只给一个数，回答的是<em>是否</em>而不是<em>在哪里</em>；而且它无法区分「两块紧凑的聚集」与「一条平缓的梯度」，因为两者给出的 I 相同。</p>
+<p>局部空间自相关测度把那一个数拆回它所由来的 88 份贡献。它们不是汇总统计量，而是每县一个的得分，直觉与全局测度相同。其中有些与全局量有数学联系：按 Anselin 的定义，局部空间关联指标（LISA）是一类统计量，其在全部观测上的和与全局统计量成正比，所以局部 Moran’s I 字面意义上加总就等于全局 Moran’s I。除 LISA 之外，这里还引入 Getis-Ord Gi* 作为互补测度，它回答的是一个相关但不同的问题。</p>
+<p>本练习用 <strong>sfdep</strong> 而不是 <strong>spdep</strong>。两者包裹的计算是同一套（<strong>sfdep</strong> 内部就在调用 <strong>spdep</strong>），但 <strong>sfdep</strong> 把邻居列表和权重作为列表列返回在 <code>sf</code> 数据框里。于是整个分析留在一张表、一条管线里，不必在空间对象与一组平行的 <code>nb</code>、<code>listw</code> 对象之间来回切换。练习结束时应当完成：</p>
+<ul>
+<li>用 <strong>sf</strong> 的相应函数导入地理空间数据；</li>
+<li>用 <strong>readr</strong> 的相应函数导入 csv 文件；</li>
+<li>用 <strong>dplyr</strong> 的相应函数做关系连接；</li>
+<li>用 <strong>sfdep</strong> 计算 LISA 统计量以识别聚集与离群；</li>
+<li>用 <strong>sfdep</strong> 计算 Getis-Ord Gi* 统计量以识别热点与冷点；</li>
+<li>用 <strong>tmap</strong> 把两套结果都可视化。</li>
+</ul>
+</div>
 </section>
 <section id="getting-started" class="level2">
 <h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
 <section id="the-analytical-question" class="level3">
 <h3 class="anchored" data-anchor-id="the-analytical-question">The analytical question</h3>
+<div class="en">
 <p>The chain of questions opened in <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">Exercise 5a</a> reached its third link and stopped there:</p>
 <ol type="1">
 <li>Is development evenly distributed geographically? <strong>No.</strong></li>
@@ -365,10 +386,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Where are those clusters?</li>
 </ol>
 <p>Question 3 is what this exercise answers, again for GDP per capita in Hunan province, People’s Republic of China.</p>
+</div>
+<div class="zh">
+<p><a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">练习 5a</a> 开出的那串问题走到第三环就停住了：</p>
+<ol type="1">
+<li>发展在地理上是否均衡分布？<strong>否。</strong></li>
+<li>是否有空间聚集的迹象？<strong>是。</strong></li>
+<li>这些聚集在哪里？</li>
+</ol>
+<p>第三问就是本练习要回答的，对象仍是中国湖南省的人均 GDP。</p>
+</div>
 </section>
 <section id="the-study-area-and-data" class="level3">
 <h3 class="anchored" data-anchor-id="the-study-area-and-data">The Study Area and Data</h3>
+<div class="en">
 <p>The same two data sets are used:</p>
+</div>
+<div class="zh">
+<p>使用同样的两个数据集：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -394,7 +430,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="setting-the-analytical-tools" class="level3">
 <h3 class="anchored" data-anchor-id="setting-the-analytical-tools">Setting the Analytical Tools</h3>
+<div class="en">
 <p>Four packages are used:</p>
+</div>
+<div class="zh">
+<p>用到四个包：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -432,7 +473,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="getting-the-data-into-r-environment" class="level2">
 <h2 class="anchored" data-anchor-id="getting-the-data-into-r-environment">Getting the Data Into R Environment</h2>
+<div class="en">
 <p>The import repeats the sequence of <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">Exercise 5a</a> with one change, noted below, so it is presented compactly here.</p>
+</div>
+<div class="zh">
+<p>导入过程与<a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">练习 5a</a> 相同，只有一处改动（见下），所以这里从简。</p>
+</div>
 <section id="import-shapefile-into-r-environment" class="level3">
 <h3 class="anchored" data-anchor-id="import-shapefile-into-r-environment">Import shapefile into R environment</h3>
 <div class="cell">
@@ -460,8 +506,14 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
+<div class="en">
 <p>The raw shapefile is in WGS 84 geographic coordinates. <code>st_transform()</code> reprojects it to UTM zone 50N, EPSG 32650, whose unit is the metre.</p>
 <p>Exercise 5a left the layer unprojected because everything in it followed from contiguity, and whether two counties share a boundary is a topological fact that no coordinate system can change. The hot and cold spot analysis in the second half of this document defines neighbours by <em>distance</em> instead, and a distance band is only meaningful in a projected system. In degrees of longitude a fixed numeric radius covers a different ground distance at the north and south edges of the province. The reprojection is a requirement of the method, not tidiness.</p>
+</div>
+<div class="zh">
+<p>原始 shapefile 是 WGS 84 地理坐标。<code>st_transform()</code> 把它投影到 UTM zone 50N，EPSG 32650，单位是米。</p>
+<p>练习 5a 没有投影该图层，因为那里的一切都由邻接关系推出，而两县是否共边是拓扑事实，任何坐标系统都改不了它。本文后半的热点冷点分析改用<em>距离</em>来定义邻居，而距离带只有在投影坐标系下才有意义：以经度的度为单位，同一个数值半径在该省北缘与南缘覆盖的地面距离并不相同。所以这次重投影是方法的要求，不是为了整齐。</p>
+</div>
 </div>
 </div>
 </section>
@@ -480,7 +532,12 @@ Geodetic CRS:  WGS 84</code></pre>
 </section>
 <section id="visualising-regional-development-indicator" class="level3">
 <h3 class="anchored" data-anchor-id="visualising-regional-development-indicator">Visualising Regional Development Indicator</h3>
+<div class="en">
 <p>The equal interval and quantile choropleths are drawn again, now on the projected layer:</p>
+</div>
+<div class="zh">
+<p>等间距与分位数两幅分级统计图再画一次，这次画在投影后的图层上：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>equal <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan) <span class="sc">+</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"GDPPC"</span>,</span>
@@ -515,32 +572,86 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>Two questions can be put to these maps before any statistic is computed, so that the statistics can later be checked against the expectation the maps create.</p>
+</div>
+<div class="zh">
+<p>在计算任何统计量之前，可以先向这两幅图提两个问题，之后再用统计量来对照地图所造成的预期。</p>
+</div>
+<div class="en">
 <p>The first is whether the maps reveal outliers or clusters. The quantile map shows a dark north-eastern corner around Changsha and a broad light band across the west and south, which is the visual impression of clustering. What it cannot show is an outlier, meaning a county that differs sharply from its own surroundings, because a choropleth encodes each county’s value and not its relation to its neighbours. A poor county with rich neighbours is drawn in a light colour indistinguishable from a poor county in a poor region.</p>
+</div>
+<div class="zh">
+<p>第一个问题是：地图是否揭示出离群或聚集？分位数那幅图显示长沙一带有一个深色的东北角，西部和南部则是一大片浅色，这就是聚集的视觉印象。它显示不出来的是离群——即与自身周边差异明显的县——因为分级统计图编码的是各县自己的取值，不是它与邻居的关系。一个穷县若被富邻居环绕，画出来的浅色与「穷县在穷区」毫无分别。</p>
+</div>
+<div class="en">
 <p>The second is whether they indicate hot or cold spots. They suggest candidates but establish nothing. A hot spot is a statistically significant concentration, and significance is exactly what a choropleth cannot display. Both questions are the reason the rest of this document exists.</p>
+</div>
+<div class="zh">
+<p>第二个问题是：它们是否指示出热点或冷点？它们只能提示候选，不能确立任何结论。热点是统计显著的集中，而显著性恰恰是分级统计图无法呈现的。这两个问题正是本文余下部分存在的理由。</p>
+</div>
 </section>
 </section>
 <section id="local-indicators-of-spatial-association-lisa" class="level2">
 <h2 class="anchored" data-anchor-id="local-indicators-of-spatial-association-lisa">Local Indicators of Spatial Association (LISA)</h2>
+<div class="en">
 <p>LISA statistics evaluate the existence of clusters and outliers in the spatial arrangement of a variable. For GDP per capita in Hunan, a local cluster means a county whose value and whose neighbours’ values are jointly higher, or jointly lower, than chance alone would produce.</p>
+</div>
+<div class="zh">
+<p>LISA 统计量用于判定某个变量的空间排布中是否存在聚集与离群。对湖南的人均 GDP 而言，局部聚集指的是这样的县：它自身的取值与其邻居的取值共同偏高、或共同偏低，超出单凭偶然所能造成的程度。</p>
+</div>
+<div class="en">
 <p>The decomposition is easier to follow if stated before the computation. Local Moran’s I for county <em>i</em> is the product of that county’s standardised deviation from the provincial mean and the weighted average of its neighbours’ standardised deviations. Two consequences follow directly from that product. A positive <em>I<sub>i</sub></em> means county and neighbourhood fall on the same side of the mean, both high or both low, which is a cluster. A negative <em>I<sub>i</sub></em> means they fall on opposite sides, which is a spatial outlier.</p>
+</div>
+<div class="zh">
+<p>先把分解讲清楚，后面的计算就好跟。县 <em>i</em> 的局部 Moran’s I，等于该县相对全省均值的标准化偏差，乘以其邻居标准化偏差的加权平均。从这个乘积直接可得两个推论：<em>I<sub>i</sub></em> 为正，说明该县与其邻域落在均值的同一侧，要么都高、要么都低，这是聚集；<em>I<sub>i</sub></em> 为负，说明两者落在相反两侧，这是空间离群。</p>
+</div>
+<div class="en">
 <p>The four combinations are the four quadrants of the Moran scatterplot drawn later: High-High, Low-Low, Low-High and High-Low, where the first term is the county’s own value and the second its neighbourhood’s.</p>
+</div>
+<div class="zh">
+<p>四种组合就是后面要画的 Moran 散点图的四个象限：High-High、Low-Low、Low-High、High-Low；其中前一项指该县自身的取值，后一项指其邻域的取值。</p>
+</div>
 <section id="computing-contiguity-spatial-weights" class="level3">
 <h3 class="anchored" data-anchor-id="computing-contiguity-spatial-weights">Computing Contiguity Spatial Weights</h3>
+<div class="en">
 <p><code>st_contiguity()</code> of <strong>sfdep</strong> builds a neighbours list from regions with contiguous boundaries, with the same <code>queen</code> argument and the same default of <code>TRUE</code> as <code>poly2nb()</code> of <strong>spdep</strong>. <code>st_weights()</code> then derives the weights from that list, taking three arguments:</p>
+</div>
+<div class="zh">
+<p><strong>sfdep</strong> 的 <code>st_contiguity()</code> 从边界相接的区域构建邻居列表，<code>queen</code> 参数及其 <code>TRUE</code> 默认值与 <strong>spdep</strong> 的 <code>poly2nb()</code> 相同。接着 <code>st_weights()</code> 从该列表导出权重，它接受三个参数：</p>
+</div>
+<div class="en">
 <ul>
 <li><code>nb</code>, a neighbour list,</li>
 <li><code>style</code>, defaulting to <code>"W"</code> for row-standardised weights and also accepting <code>"B"</code>, <code>"C"</code>, <code>"U"</code>, <code>"minmax"</code> and <code>"S"</code> with the meanings set out in <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html#row-standardised-weights-matrix">Exercise 5a</a>, and</li>
 <li><code>allow_zero</code>, which assigns a lagged value of zero to zones with no neighbours when <code>TRUE</code>.</li>
 </ul>
+</div>
+<div class="zh">
+<ul>
+<li><code>nb</code>，邻居列表；</li>
+<li><code>style</code>，默认 <code>"W"</code> 即行标准化权重，也接受 <code>"B"</code>、<code>"C"</code>、<code>"U"</code>、<code>"minmax"</code>、<code>"S"</code>，含义见<a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html#row-standardised-weights-matrix">练习 5a</a>；</li>
+<li><code>allow_zero</code>，设为 <code>TRUE</code> 时给没有邻居的区域赋滞后值零。</li>
+</ul>
+</div>
+<div class="en">
 <p>Both are computed inside a single <code>mutate()</code>, so the neighbour list and the weights become list columns of the <code>hunan</code> table rather than separate objects. <code>.before = 1</code> places them at the front:</p>
+</div>
+<div class="zh">
+<p>两者在同一个 <code>mutate()</code> 里算出，于是邻居列表与权重成为 <code>hunan</code> 表的列表列，而不是独立对象。<code>.before = 1</code> 把它们放到最前面：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>wm_q <span class="ot">&lt;-</span> hunan <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">st_contiguity</span>(geometry),</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">wt =</span> <span class="fu">st_weights</span>(nb, <span class="at">style =</span> <span class="st">"W"</span>),</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">.before =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The neighbour list is revealed in the usual way:</p>
+</div>
+<div class="zh">
+<p>按常规方式查看邻居列表：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(wm_q<span class="sc">$</span>nb)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -559,16 +670,36 @@ Link number distribution:
 85 with 11 links</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The report is identical to the one <code>poly2nb()</code> produced in <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">Exercise 5a</a>: 88 area units, 448 links, an average of 5.09, a most connected unit with 11 neighbours and two units with one neighbour each. That is the expected result, since <strong>sfdep</strong> is calling <strong>spdep</strong> underneath, and confirming it matters because everything below is computed on this structure.</p>
+</div>
+<div class="zh">
+<p>这份报告与<a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">练习 5a</a> 中 <code>poly2nb()</code> 给出的完全一致：88 个面单元、448 条连边、平均 5.09、连通度最高的单元有 11 个邻居、两个单元各只有一个邻居。这是预期的结果，因为 <strong>sfdep</strong> 底层就在调用 <strong>spdep</strong>；而核对这一点有意义，因为下面所有计算都建立在这个结构上。</p>
+</div>
 </section>
 <section id="row-standardised-weights-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="row-standardised-weights-matrix">Row-standardised weights matrix</h3>
+<div class="en">
 <p>No further code is needed here. <code>style = "W"</code> in the call above has already row-standardised the weights, assigning each of a county’s neighbours the fraction 1/(number of neighbours) so that each row sums to one. The trade-off is the one described in <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html#row-standardised-weights-matrix">Exercise 5a</a>: counties on the provincial edge base their lagged values on fewer neighbours, each of which is therefore given more weight. It bears more directly on a local statistic than on a global one, since here each county produces its own score rather than contributing to a single average.</p>
+</div>
+<div class="zh">
+<p>这里不需要再写代码。上面调用里的 <code>style = "W"</code> 已经完成行标准化：一个县的每个邻居各得 1 /（邻居个数）的份额，于是每行之和为 1。代价就是<a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html#row-standardised-weights-matrix">练习 5a</a> 说过的那一条：省界上的县依据更少的邻居算滞后值，因而每个邻居占的权重更大。这件事对局部统计量的影响比对全局统计量更直接，因为这里每个县各出一个得分，而不是共同汇入一个平均值。</p>
+</div>
 </section>
 <section id="computing-local-morans-i" class="level3">
 <h3 class="anchored" data-anchor-id="computing-local-morans-i">Computing local Moran’s I</h3>
+<div class="en">
 <p><code>local_moran()</code> of <strong>sfdep</strong> computes <em>I<sub>i</sub></em> for every county from the variable, the neighbour list and the weights. The <code>nsim</code> argument adds a conditional permutation test: for each county in turn, the values of all <em>other</em> counties are reshuffled and <em>I<sub>i</sub></em> recomputed, which builds a reference distribution for that county specifically.</p>
+</div>
+<div class="zh">
+<p><strong>sfdep</strong> 的 <code>local_moran()</code> 依据变量、邻居列表和权重，为每个县计算 <em>I<sub>i</sub></em>。<code>nsim</code> 参数加上一个条件置换检验：对每个县依次把<em>其他所有</em>县的取值重新洗牌、重算 <em>I<sub>i</sub></em>，从而为该县单独建立一个参照分布。</p>
+</div>
+<div class="en">
 <p>The seed is set first, since the permutation p-values would otherwise change on every render:</p>
+</div>
+<div class="zh">
+<p>先设随机种子，否则置换 p 值每次渲染都会变：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -579,7 +710,12 @@ Link number distribution:
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(local_moran)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>local_moran()</code> returns a data frame, which <code>mutate()</code> stores as a single packed column, and <code>unnest()</code> unpacks it into ordinary columns of <code>lisa</code>:</p>
+</div>
+<div class="zh">
+<p><code>local_moran()</code> 返回一个数据框，<code>mutate()</code> 把它存成一个打包的列，<code>unnest()</code> 再把它展开成 <code>lisa</code> 的普通列：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(lisa)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -608,7 +744,12 @@ $ GDPPC        &lt;dbl&gt; 23667, 20981, 34592, 24473, 25554, 27137, 63118, 6220
 $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((35522.9…</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The columns are:</p>
+</div>
+<div class="zh">
+<p>各列含义如下：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -659,10 +800,20 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </tr>
 </tbody>
 </table>
-<p>Two of these need care. <code>eii</code> is not the same for every county, unlike the global case where the expectation is −1/(<em>n</em>−1) for all, because a local expectation depends on how many neighbours the county has. And <code>p_ii</code> and <code>p_ii_sim</code> are different tests rather than two printings of the same one. The first assumes local normality; the second assumes nothing but is granular to 1/(<code>nsim</code> + 1) = 0.01 with 99 simulations. The textbook maps <code>p_ii</code>, and that choice is examined where the LISA map is built.</p>
+<div class="en">
+<p>Two of these need care. <code>eii</code> is not the same for every county, unlike the global case where the expectation is −1/(<em>n</em>−1) for all, because a local expectation depends on how many neighbours the county has. And <code>p_ii</code> and <code>p_ii_sim</code> are different tests rather than two printings of the same one. The first assumes local normality; the second assumes nothing but is granular to 1/(<code>nsim</code> + 1) = 0.01 with 99 simulations. <code>p_ii</code> is the one mapped below, and the two are compared where the LISA map is built.</p>
+</div>
+<div class="zh">
+<p>其中两列需要留意。<code>eii</code> 并非每县相同——不像全局情形下期望对所有县都是 −1/(<em>n</em>−1)——因为局部期望取决于该县有多少个邻居。另外 <code>p_ii</code> 与 <code>p_ii_sim</code> 是两个不同的检验，不是同一结果的两种打印：前者假定局部正态；后者不作任何假定，但在 99 次模拟下其粒度只有 1/(<code>nsim</code> + 1) = 0.01。下面画图用的是 <code>p_ii</code>，两者的比较放在构建 LISA 图的那一节。</p>
+</div>
 <section id="mapping-the-local-morans-i" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-the-local-morans-i">Mapping the local Moran’s I</h4>
+<div class="en">
 <p>Three maps follow: the statistic, its p-values, and the two side by side. The statistic alone is not interpretable, since a large <em>I<sub>i</sub></em> in a county whose permutation distribution is wide means nothing, so the pair is what carries the result.</p>
+</div>
+<div class="zh">
+<p>接下来三幅图：统计量本身、它的 p 值、以及两者并排。单看统计量无法解读——若某县的置换分布很宽，一个大的 <em>I<sub>i</sub></em> 什么都说明不了——所以真正承载结论的是这一对图。</p>
+</div>
 </section>
 <section id="mapping-local-morans-i-values" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-local-morans-i-values">Mapping local Moran’s I values</h4>
@@ -686,11 +837,21 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>Values run from −1.79 to 4.90. The diverging red-blue scale suits a statistic with a meaningful zero: red counties have positive <em>I<sub>i</sub></em> and belong to clusters, blue counties have negative <em>I<sub>i</sub></em> and are candidate outliers. Most of the province sits in the pale middle class, which is what the decomposition of a moderate global I looks like, with a few counties carrying most of it.</p>
+</div>
+<div class="zh">
+<p>取值范围是 −1.79 到 4.90。红蓝发散配色适合有实质零点的统计量：红色县 <em>I<sub>i</sub></em> 为正、属于聚集；蓝色县 <em>I<sub>i</sub></em> 为负、是候选离群。全省大部分落在浅色的中间一级，这正是一个中等的全局 I 被分解后的样子——少数几个县承担了其中大部分。</p>
+</div>
 </section>
 <section id="mapping-local-morans-i-p-values" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-local-morans-i-p-values">Mapping local Moran’s I p-values</h4>
+<div class="en">
 <p>The map above shows evidence of both positive and negative <em>I<sub>i</sub></em>, but nothing about which of those values could have arisen by chance. The p-values answer that:</p>
+</div>
+<div class="zh">
+<p>上图显示 <em>I<sub>i</sub></em> 既有正也有负，但说不出其中哪些可能是偶然造成的。p 值回答这个问题：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(lisa) <span class="sc">+</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"p_ii"</span>,</span>
@@ -710,11 +871,21 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The breaks are set explicitly at the conventional thresholds rather than left to an algorithm, and the palette is reversed with the leading minus in <code>"-brewer.Reds"</code> so that the smallest p-values are the darkest. Only 13 of the 88 counties fall below 0.05.</p>
+</div>
+<div class="zh">
+<p>断点显式设在通行的阈值上，而不是交给算法；配色名前加减号 <code>"-brewer.Reds"</code> 反转色序，使最小的 p 值颜色最深。88 个县中只有 13 个低于 0.05。</p>
+</div>
 </section>
 <section id="mapping-both-local-morans-i-values-and-p-values" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-both-local-morans-i-values-and-p-values">Mapping both local Moran’s I values and p-values</h4>
+<div class="en">
 <p>Neither map is readable alone, so they are drawn together:</p>
+</div>
+<div class="zh">
+<p>两幅图单看都读不出结论，所以并排画出来：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ii.map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(lisa) <span class="sc">+</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"ii"</span>,</span>
@@ -748,15 +919,30 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>Together the pair shows that magnitude and significance do not coincide. The strongly red counties in the north-east are also strongly dark on the right, so those results stand. Several counties with visible <em>I<sub>i</sub></em> elsewhere on the map are pale on the right, and those are not findings. The LISA map built below keeps only the counties that are dark in both.</p>
+</div>
+<div class="zh">
+<p>这一对图合起来说明：量级与显著性并不重合。东北部那些强红色的县在右图里也很深，所以那些结果立得住；地图其他位置上若干 <em>I<sub>i</sub></em> 看得见的县在右图里却是浅色，那些就不算发现。下面构建的 LISA 图只保留在两幅图里都深的县。</p>
+</div>
 </section>
 </section>
 <section id="preparing-and-visualising-lisa-map" class="level3">
 <h3 class="anchored" data-anchor-id="preparing-and-visualising-lisa-map">Preparing and Visualising LISA Map</h3>
+<div class="en">
 <p>A LISA cluster map colours the significant counties by the <em>type</em> of association they exhibit, combining the sign of <em>I<sub>i</sub></em> with the county’s position relative to its neighbourhood. The Moran scatterplot is where that combination is defined, so it comes first.</p>
+</div>
+<div class="zh">
+<p>LISA 聚类图按显著县所体现的关联<em>类型</em>上色，把 <em>I<sub>i</sub></em> 的符号与该县相对其邻域的位置结合起来。这个组合是在 Moran 散点图里定义的，所以先画它。</p>
+</div>
 <section id="plotting-moran-scatterplot" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-moran-scatterplot">Plotting Moran scatterplot</h4>
+<div class="en">
 <p>The scatterplot puts each county’s value on the horizontal axis and the average of its neighbours’ values, the spatial lag, on the vertical. <code>st_lag()</code> of <strong>sfdep</strong> computes the lag from the neighbour list and weights:</p>
+</div>
+<div class="zh">
+<p>散点图把各县自身的取值放在横轴，其邻居取值的平均（即空间滞后）放在纵轴。<strong>sfdep</strong> 的 <code>st_lag()</code> 依据邻居列表与权重算出滞后值：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>lisa <span class="ot">&lt;-</span> lisa <span class="sc">%&gt;%</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">lag_GDPPC =</span> <span class="fu">st_lag</span>(</span>
@@ -784,7 +970,12 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The slope of that fitted line is Moran’s I itself, the 0.3007 of <a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">Exercise 5a</a> recovered as a regression coefficient. The plot is otherwise not very informative, because the quadrants that give it its meaning are not drawn. Adding the two means as reference lines and colouring by the quadrant label fixes that:</p>
+</div>
+<div class="zh">
+<p>那条拟合线的斜率就是 Moran’s I 本身，也就是<a href="../../hand-on-ex/hand-on-ex5/hand-on-ex5a.html">练习 5a</a> 里的 0.3007，在这里以回归系数的形式再现。除此之外这幅图信息不多，因为赋予它意义的那四个象限还没画出来。把两个均值加成参考线、再按象限标签上色，就补上了：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> lisa,</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> GDPPC,</span>
@@ -813,13 +1004,33 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The dashed lines split the plot at the mean of each axis, and each quadrant is a type of local association. The upper right holds counties with high GDPPC whose neighbours also have high GDPPC, the High-High locations, which are the cluster of prosperity. The lower left is its mirror, Low-Low. The two off-diagonal quadrants hold spatial outliers: Low-High is a poor county among rich neighbours, High-Low a rich county among poor ones.</p>
+</div>
+<div class="zh">
+<p>虚线按两轴各自的均值把图切开，每个象限对应一种局部关联类型。右上是 GDPPC 高、邻居 GDPPC 也高的县，即 High-High，是富庶的聚集；左下是它的镜像 Low-Low。两个非对角象限装的是空间离群：Low-High 是穷县在富邻居之中，High-Low 是富县在穷邻居之中。</p>
+</div>
+<div class="en">
 <p>Across all 88 counties the quadrants hold 43 Low-Low, 21 High-High, 13 Low-High and 11 High-Low. Every county falls into one of them, so quadrant membership on its own is not a result; significance has still to be applied.</p>
+</div>
+<div class="zh">
+<p>88 个县在四个象限的分布是：Low-Low 43 个、High-High 21 个、Low-High 13 个、High-Low 11 个。每个县都必然落在某一象限里，所以单凭象限归属并不构成结论，还得叠加显著性。</p>
+</div>
+<div class="en">
 <p>The High-High points also show why the plot is hard to read at this scale. Changsha at 88,656 sits far to the right of everything else, compressing the remaining 87 counties into the left third of the panel. The standardised version below is the remedy.</p>
+</div>
+<div class="zh">
+<p>High-High 那些点也暴露了这幅图在当前尺度下难读的原因：长沙以 88,656 远在其他所有点的右侧，把余下 87 个县挤进了面板左边三分之一。下面的标准化版本是解决办法。</p>
+</div>
 </section>
 <section id="plotting-moran-scatterplot-with-standardised-variable" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-moran-scatterplot-with-standardised-variable">Plotting Moran scatterplot with standardised variable</h4>
+<div class="en">
 <p><code>scale()</code> centres a variable by subtracting its mean, omitting NAs, and scales it by dividing by its standard deviation. <code>as.vector()</code> is wrapped around the result because <code>scale()</code> returns a one-column matrix, which does not map cleanly into a data frame column:</p>
+</div>
+<div class="zh">
+<p><code>scale()</code> 先减去均值做中心化（忽略 NA），再除以标准差做缩放。结果外面套一层 <code>as.vector()</code>，因为 <code>scale()</code> 返回的是单列矩阵，直接放进数据框的列里并不干净：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>lisa <span class="ot">&lt;-</span> lisa <span class="sc">%&gt;%</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">z_GDPPC =</span> <span class="fu">as.vector</span>(<span class="fu">scale</span>(GDPPC)),</span>
@@ -854,19 +1065,39 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>Standardising puts both axes in units of standard deviations and moves the dividing lines to zero, so the quadrant boundaries now coincide with the axes and distance from the origin becomes readable as unusualness. Changsha is revealed as roughly four standard deviations out on both axes, the single most influential observation in the whole analysis, local and global alike.</p>
+</div>
+<div class="zh">
+<p>标准化把两轴换成标准差单位，并把分界线移到零，于是象限边界与坐标轴重合，离原点的距离可以直接读作「异常程度」。长沙在两个轴上都约为四个标准差，是整个分析里影响最大的单一观测，局部与全局皆然。</p>
+</div>
 </section>
 <section id="preparing-lisa-map-classes" class="level4">
 <h4 class="anchored" data-anchor-id="preparing-lisa-map-classes">Preparing LISA map classes</h4>
+<div class="en">
 <p>The ingredients of a LISA cluster map are now all present: the spatially lagged variable, centred on its mean; the local Moran’s I, centred on its own; and a significance level at which to cut. Only the last has still to be chosen:</p>
+</div>
+<div class="zh">
+<p>至此 LISA 聚类图的材料都齐了：中心化到自身均值的空间滞后变量、中心化到自身均值的局部 Moran’s I，以及一个用来切分的显著性水平。只剩最后这一项要定：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>signif <span class="ot">&lt;-</span> <span class="fl">0.05</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Five per cent is the conventional threshold and is used here, with one caveat worth recording. Eighty-eight tests are being read from one table, so at a nominal 5% roughly four counties would be expected to clear the bar by chance alone. Thirteen do. The strongest results survive any correction comfortably, with Changsha at 2.0 × 10<sup>-5</sup> and Xiangtan at 1.5 × 10<sup>-5</sup>, but the counties sitting just under 0.05 should be read as suggestive rather than established.</p>
+</div>
+<div class="zh">
+<p>5% 是通行阈值，这里就用它，但有一点值得记下来：同一张表里要读 88 个检验，在名义 5% 的水平下，单凭偶然大约就会有四个县越过这条线，而实际有十三个。最强的那几个结果经得起任何校正——长沙为 2.0 × 10<sup>-5</sup>、湘潭为 1.5 × 10<sup>-5</sup>——但那些刚好压在 0.05 以下的县，只能当作提示性的，而不是已经确立的。</p>
+</div>
 </section>
 <section id="plotting-and-visualising-lisa-map" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-and-visualising-lisa-map">Plotting and visualising LISA map</h4>
+<div class="en">
 <p>The quadrant labels are already stored in the <code>mean</code>, <code>median</code> and <code>pysal</code> fields of <code>lisa</code>. A new field is derived from one of them, replacing the label with <code>Insignificant</code> wherever the p-value fails the threshold:</p>
+</div>
+<div class="zh">
+<p>象限标签已经存在 <code>lisa</code> 的 <code>mean</code>、<code>median</code>、<code>pysal</code> 三个字段里。从其中之一导出一个新字段，凡 p 值未过阈值的就把标签换成 <code>Insignificant</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>lisa <span class="ot">&lt;-</span> lisa <span class="sc">%&gt;%</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -880,7 +1111,12 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The levels are set explicitly rather than left to alphabetical order, so that the legend reads from insignificant through the two outlier types to the two cluster types, and so that the colours assigned below line up with the labels they are meant to carry.</p>
+</div>
+<div class="zh">
+<p>因子水平显式指定而不交给字母序，这样图例的顺序是从「不显著」经两种离群类型到两种聚集类型，而且下面指定的颜色能与各自要承载的标签对上。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>lisa_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(lisa) <span class="sc">+</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(</span>
@@ -909,33 +1145,107 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>Thirteen of the 88 counties are significant at 5%, and they fall into three of the four classes.</p>
+</div>
+<div class="zh">
+<p>88 个县中有 13 个在 5% 水平上显著，分布在四类中的三类。</p>
+</div>
+<div class="en">
 <p>Eight High-High counties form a single contiguous block in the north-east: Changsha (GDPPC 88,656), Wangcheng (70,666), Liuyang (63,118), Miluo (42,497), Liling (41,491), Xiangyin (33,983), Zhuzhou (27,589) and Xiangtan (27,060). This is the answer to question 3. The cluster is not a scatter of rich counties across the province but one economic region centred on the provincial capital, and it accounts for most of the global Moran’s I found in Exercise 5a.</p>
+</div>
+<div class="zh">
+<p>八个 High-High 县在东北部构成一整块连片区域：长沙（GDPPC 88,656）、望城（70,666）、浏阳（63,118）、汨罗（42,497）、醴陵（41,491）、湘阴（33,983）、株洲（27,589）、湘潭（27,060）。这就是第三问的答案。这个聚集不是富县散落全省，而是一个以省会为中心的经济区域，练习 5a 中那个全局 Moran’s I 的大部分就来自这里。</p>
+</div>
+<div class="en">
 <p>Three Low-Low counties, Suining (16,069), Wugang (12,112) and Longhui (9,572), sit together in the south-west. Poverty clusters as well as wealth does, but the evidence for it here is weaker: all three have p-values between 0.03 and 0.04, against six of the eight High-High counties below 0.01.</p>
+</div>
+<div class="zh">
+<p>三个 Low-Low 县——绥宁（16,069）、武冈（12,112）、隆回（9,572）——相邻位于西南部。贫困和财富一样会聚集，但此处的证据更弱：这三个县的 p 值都在 0.03 到 0.04 之间，而八个 High-High 县中有六个低于 0.01。</p>
+</div>
+<div class="en">
 <p>Two Low-High outliers appear, and they are the most interesting cases on the map. Pingjiang (17,252, p = 1.15 × 10<sup>-4</sup>) and Taojiang (19,509, p = 0.044) are poor counties adjacent to the rich north-eastern block. They are invisible on the choropleths at the top of this document, because a choropleth cannot encode a county’s relation to its surroundings, and Pingjiang’s is the fourth strongest p-value on the whole map.</p>
+</div>
+<div class="zh">
+<p>出现两个 Low-High 离群，它们是整幅图上最值得留意的例子。平江（17,252，p = 1.15 × 10<sup>-4</sup>）与桃江（19,509，p = 0.044）都是紧邻东北富庶区块的穷县。它们在本文开头那两幅分级统计图上是看不见的，因为分级统计图无法编码一个县与其周边的关系；而平江的 p 值在整幅图上排第四强。</p>
+</div>
+<div class="en">
 <p>No High-Low outlier is significant. Eleven counties fall in that quadrant, but not one survives the test, so Hunan has no isolated rich county surrounded by poor neighbours strong enough to register.</p>
+</div>
+<div class="zh">
+<p>没有任何 High-Low 离群达到显著。该象限里有十一个县，但没有一个通过检验，所以湖南不存在强到能被检出的「被穷邻居环绕的孤立富县」。</p>
+</div>
+<div class="en">
 <p>The asymmetry between the two ends is the substantive finding. Wealth in Hunan is concentrated and sharply bounded, with the High-High block ending abruptly and two of its immediate neighbours appearing as significant Low-High outliers. Poverty is diffuse by comparison, with only three counties in a broad, generally poor west and south rising to significance. That is the pattern of a capital-centred growth pole rather than of an even gradient.</p>
+</div>
+<div class="zh">
+<p>两端之间的不对称才是实质发现。湖南的财富是集中且边界分明的：High-High 区块到边就断，紧邻它的两个县直接以显著的 Low-High 离群出现。相比之下贫困是弥散的：在广阔而整体偏穷的西部和南部，只有三个县升到显著。这是以省会为中心的增长极格局，而不是一条均匀的梯度。</p>
+</div>
+<div class="en">
 <p>One choice in the recipe above deserves a second look. <code>p_ii</code> is the analytical p-value, derived by referring <code>z_ii</code> to a normal distribution, which assumes each county’s local statistic is normally distributed. The <code>skewness</code> column shows that assumption to be doubtful for many counties. The permutation p-value <code>p_ii_sim</code> makes no such assumption, and with <code>nsim = 99</code> it classifies 16 counties as significant instead of 13, with a different composition: 8 Low-Low, 6 High-High, 1 Low-High and 1 High-Low. The two agree on the core of the north-eastern cluster and disagree at the margins, which is where a p-value near 0.05 should be expected to be fragile.</p>
+</div>
+<div class="zh">
+<p>上面做法里有一个选择值得再看一眼。<code>p_ii</code> 是解析 p 值，由 <code>z_ii</code> 对照正态分布得出，这假定每个县的局部统计量服从正态分布，而 <code>skewness</code> 一列显示这个假定对不少县是可疑的。置换 p 值 <code>p_ii_sim</code> 不作此假定，在 <code>nsim = 99</code> 下它判定 16 个县显著而不是 13 个，构成也不同：Low-Low 8 个、High-High 6 个、Low-High 1 个、High-Low 1 个。两者在东北聚集的核心上一致，在边缘处分歧——而 p 值接近 0.05 的地方本来就该预期是脆弱的。</p>
+</div>
+<div class="en">
 <p>Two things drive the difference. <code>p_ii_sim</code> can only take values that are multiples of 1/(99 + 1) = 0.01, so it is a coarse instrument, and the analytical test is the more powerful of the two when its assumptions hold. Raising <code>nsim</code> to 499 or 999 would settle the disagreement, at a cost in render time. The stable conclusion is the one both tests support: a significant High-High block in the north-east, and significant Low-Low counties in the south-west.</p>
+</div>
+<div class="zh">
+<p>造成差异的有两点：<code>p_ii_sim</code> 只能取 1/(99 + 1) = 0.01 的倍数，是个粗糙的量具；而解析检验在其假定成立时是两者中更有效的。把 <code>nsim</code> 提到 499 或 999 可以解决这个分歧，代价是渲染时间。稳定的结论是两个检验都支持的那部分：东北部有一个显著的 High-High 区块，西南部有显著的 Low-Low 县。</p>
+</div>
 </section>
 </section>
 </section>
 <section id="hot-spots-and-cold-spots-analysis-hcsa" class="level2">
 <h2 class="anchored" data-anchor-id="hot-spots-and-cold-spots-analysis-hcsa">Hot Spots and Cold Spots Analysis (HCSA)</h2>
+<div class="en">
 <p>Hot and cold spot analysis identifies statistically significant concentrations of high values and of low values. A hot spot is an area where high values are concentrated and surrounded by other high values, and a cold spot is its opposite. HCSA uses the Getis-Ord Gi* statistic to decide whether an observed concentration is significant or could have arisen by chance.</p>
+</div>
+<div class="zh">
+<p>热点冷点分析识别的是高值与低值在统计上显著的集中。热点指高值集中、且周围也是高值的区域，冷点则相反。HCSA 用 Getis-Ord Gi* 统计量来判断观测到的集中是显著的，还是可能由偶然造成。</p>
+</div>
+<div class="en">
 <p>The difference from LISA lies in what the statistic sums. Local Moran’s I is a product of deviations, so it detects both clusters and outliers and distinguishes them by sign. Gi* is a ratio of the sum of values in a neighbourhood to the sum over the whole study area, so it has no way of expressing an outlier and measures only whether a neighbourhood’s total is unusually high or unusually low. The star in Gi* marks the variant that includes the county itself in its own neighbourhood, which is required if the statistic is to describe the place rather than only its surroundings.</p>
+</div>
+<div class="zh">
+<p>与 LISA 的差别在于统计量求和的对象。局部 Moran’s I 是偏差的乘积，所以它既能检出聚集也能检出离群，并以符号区分二者。Gi* 是某邻域内取值之和与整个研究区之和的比，因此它无法表达离群，只能衡量某邻域的总量是异常高还是异常低。Gi* 的那个星号标示的是把该县自身计入其邻域的版本——若要让统计量描述「这个地方」而不只是「它周边」，这是必需的。</p>
+</div>
+<div class="en">
 <p>The analysis has four steps: derive a spatial weight matrix, compute the Gi* statistics, map them, and communicate the results.</p>
+</div>
+<div class="zh">
+<p>分析分四步：导出空间权重矩阵、计算 Gi* 统计量、把它们画成图、传达结果。</p>
+</div>
 <section id="deriving-distance-weight-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="deriving-distance-weight-matrix">Deriving distance weight matrix</h3>
+<div class="en">
 <p>Where spatial autocorrelation was computed on units sharing a border, Gi* is defined here on neighbours identified by distance. Three kinds of distance-based proximity matrix are in common use:</p>
+</div>
+<div class="zh">
+<p>前面的空间自相关是在共边的单元上计算的，这里 Gi* 则定义在按距离确定的邻居上。基于距离的邻近矩阵常用的有三种：</p>
+</div>
+<div class="en">
 <ul>
 <li>a fixed distance weight matrix, where every county’s neighbours are those within a fixed radius,</li>
 <li>an adaptive distance weight matrix, where every county has the same number of neighbours regardless of distance, and</li>
 <li>inverse distance weights, where all neighbours count but nearer ones count for more.</li>
 </ul>
+</div>
+<div class="zh">
+<ul>
+<li>固定距离权重矩阵：每个县的邻居就是落在固定半径内的那些；</li>
+<li>自适应距离权重矩阵：每个县的邻居个数相同，不论距离远近；</li>
+<li>反距离权重：所有邻居都算，但越近的算得越重。</li>
+</ul>
+</div>
 <section id="computing-fixed-distance-weights" class="level4">
 <h4 class="anchored" data-anchor-id="computing-fixed-distance-weights">Computing fixed distance weights</h4>
+<div class="en">
 <p>A fixed radius has to be chosen, and the defensible choice is the smallest radius at which no county is left without a neighbour. <code>critical_threshold()</code> of <strong>sfdep</strong> computes exactly that, the largest first-nearest-neighbour distance in the layer:</p>
+</div>
+<div class="zh">
+<p>固定半径需要选定，站得住的选法是取使得没有任何县失去邻居的最小半径。<strong>sfdep</strong> 的 <code>critical_threshold()</code> 算的正是这个值，即该图层中最大的第一最近邻距离：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ct <span class="ot">&lt;-</span> <span class="fu">critical_threshold</span>(<span class="fu">st_geometry</span>(hunan))</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>ct</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -943,9 +1253,24 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 <pre><code>[1] 60799.91</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The threshold is 60,799.91 metres, so the largest distance from any county to its nearest neighbour is about 60.8 km. Using it as the upper bound of the distance band guarantees that every unit has at least one neighbour.</p>
+</div>
+<div class="zh">
+<p>阈值是 60,799.91 米，即任一县到其最近邻的最大距离约 60.8 公里。以它作距离带的上界，可保证每个单元至少有一个邻居。</p>
+</div>
+<div class="en">
 <p>Run interactively, <code>critical_threshold()</code> also emits a warning that the first-nearest-neighbour object it builds internally has 25 sub-graphs; the document’s <code>warning: false</code> setting keeps it out of the output above. It is expected rather than a defect, since linking every county only to its single closest partner produces mutual pairs and short chains instead of one connected network. That graph serves purely as a ruler for measuring distances, never as a weights matrix, so its disconnection has no consequence. <a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">Exercise 4</a> makes the same point.</p>
+</div>
+<div class="zh">
+<p>交互运行时，<code>critical_threshold()</code> 还会给出一条警告，说它内部构建的第一最近邻对象含 25 个子图；本文的 <code>warning: false</code> 设置把它挡在上面的输出之外。这是预期之中而非缺陷：只把每个县连到它最近的那一个伙伴，得到的是互为最近邻的点对和短链，而不是一个连通网络。那张图只当量距离的尺子用，绝不作权重矩阵，所以它不连通并无后果。<a href="../../hand-on-ex/hand-on-ex4/hand-on-ex4.html">练习 4</a> 说的是同一件事。</p>
+</div>
+<div class="en">
 <p><code>st_dist_band()</code> builds the neighbour list within that radius, <code>include_self()</code> adds each county to its own list, and <code>st_weights()</code> row-standardises:</p>
+</div>
+<div class="zh">
+<p><code>st_dist_band()</code> 在该半径内构建邻居列表，<code>include_self()</code> 把每个县加进它自己的列表，<code>st_weights()</code> 做行标准化：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>hunan_fdw <span class="ot">&lt;-</span> hunan <span class="sc">%&gt;%</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">include_self</span>(</span>
@@ -956,8 +1281,18 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 <span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>                    <span class="at">style =</span> <span class="st">"W"</span>),</span>
 <span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.before =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>include_self()</code> is not optional for Gi*. Without it the statistic computed would be plain Gi, which describes a county’s surroundings while excluding the county itself, so a rich county with poor neighbours would score low. That is not what a hot spot map is meant to show.</p>
+</div>
+<div class="zh">
+<p>对 Gi* 而言 <code>include_self()</code> 不是可选项。不加它算出来的就是普通的 Gi：它描述一个县的周边而把该县本身排除在外，于是「富县被穷邻居环绕」会得到低分。那不是热点图要呈现的东西。</p>
+</div>
+<div class="en">
 <p><code>st_dist_band()</code> also notes, in a console message suppressed here, that it was given polygons and is using a point on surface. A distance band needs points, and <strong>sfdep</strong> derives them with <code>st_point_on_surface()</code> rather than <code>st_centroid()</code>. The representative point is then guaranteed to lie inside its own polygon, as a centroid need not for the concave shapes some of these counties have.</p>
+</div>
+<div class="zh">
+<p><code>st_dist_band()</code> 还会在一条此处被抑制的控制台消息里说明：输入的是多边形，它用的是面上取点。距离带需要点，而 <strong>sfdep</strong> 用 <code>st_point_on_surface()</code> 而不是 <code>st_centroid()</code> 来导出：这样代表点一定落在它自己的多边形内部，而质心对这些县中某些凹形轮廓来说并不保证如此。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan_fdw<span class="sc">$</span>nb)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -976,12 +1311,27 @@ Link number distribution:
 12 28 45 50 52 with 7 links</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The list has 396 links and an average of 4.5 per county, including each county itself, so the average county has 3.5 true neighbours within 60.8 km. That is well below the 5.09 of Queen contiguity. Ten counties have the minimum of two links, meaning a single genuine neighbour, and the most connected have seven. The variation is the defining property of a fixed distance rule: a radius generous enough to reach the most isolated county is still sparse where the counties are large.</p>
+</div>
+<div class="zh">
+<p>该列表共 396 条连边，每县平均 4.5 条（含自身），也就是说平均每县在 60.8 公里内有 3.5 个真正的邻居，远低于 Queen 邻接的 5.09。有十个县只有最少的两条连边，即只有一个真邻居；连通度最高的有七条。这种不均正是固定距离规则的定义性特征：一个足以覆盖到最孤立那个县的半径，在县域面积大的地方仍然稀疏。</p>
+</div>
 </section>
 <section id="computing-adaptive-distance-weights" class="level4">
 <h4 class="anchored" data-anchor-id="computing-adaptive-distance-weights">Computing adaptive distance weights</h4>
+<div class="en">
 <p>A fixed distance matrix gives densely settled areas, usually urban, more neighbours than sparsely settled ones, usually rural. Having many neighbours smooths the neighbour relationship over more units, so the degree of smoothing varies across the map for reasons unrelated to the variable being studied. For Gi*, which sums values over a neighbourhood, an unequal count also means unequal variance in the statistic itself.</p>
+</div>
+<div class="zh">
+<p>固定距离矩阵会让人口稠密区（通常是城区）的邻居多于稀疏区（通常是农村）。邻居多意味着邻接关系被摊到更多单元上平滑，于是平滑程度在地图各处不一，而原因与所研究的变量无关。对 Gi* 这种在邻域上求和的统计量来说，邻居个数不等还意味着统计量自身的方差不等。</p>
+</div>
+<div class="en">
 <p><code>st_knn()</code> fixes the count instead of the radius:</p>
+</div>
+<div class="zh">
+<p><code>st_knn()</code> 固定的是个数而不是半径：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>hunan_adw <span class="ot">&lt;-</span> hunan <span class="sc">%&gt;%</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">include_self</span>(</span>
@@ -1011,11 +1361,21 @@ Link number distribution:
 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 with 7 links</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Every county now has exactly seven links, six nearest neighbours plus itself, for 616 in total. The report notes that the list is non-symmetric: county <em>i</em> being among the six closest to <em>j</em> does not oblige <em>j</em> to be among the six closest to <em>i</em>. That is the price of a fixed count.</p>
+</div>
+<div class="zh">
+<p>现在每个县恰好七条连边，即六个最近邻加自身，合计 616 条。报告指出该列表非对称：县 <em>i</em> 属于离 <em>j</em> 最近的六个之一，并不意味着 <em>j</em> 也属于离 <em>i</em> 最近的六个之一。这是固定个数的代价。</p>
+</div>
 </section>
 <section id="computing-inverse-distance-weights" class="level4">
 <h4 class="anchored" data-anchor-id="computing-inverse-distance-weights">Computing inverse distance weights</h4>
+<div class="en">
 <p>The third kind keeps all neighbours but weights each by the reciprocal of the distance between them, so that influence decays with separation instead of stopping at a boundary. <code>st_inverse_distance()</code> of <strong>sfdep</strong> computes these from a neighbour list and the geometry, with <code>scale</code> fixing the units:</p>
+</div>
+<div class="zh">
+<p>第三种保留所有邻居，但按彼此距离的倒数赋权，于是影响随间隔衰减，而不是到某条边界就截断。<strong>sfdep</strong> 的 <code>st_inverse_distance()</code> 依据邻居列表和几何算出这些权重，<code>scale</code> 用来定单位：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>hunan_idw <span class="ot">&lt;-</span> hunan <span class="sc">%&gt;%</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">include_self</span>(</span>
@@ -1028,12 +1388,22 @@ Link number distribution:
 <span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>                             <span class="at">alpha =</span> <span class="dv">1</span>),</span>
 <span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.before =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>alpha = 1</code> makes the decay linear in distance, and a larger exponent concentrates weight on the closest neighbours. The fixed distance list is used below, so this object is built for completeness rather than carried forward. For Gi* it would need adjusting first: the self-link added by <code>include_self()</code> has a distance of zero, and <code>st_inverse_distance()</code> returns a weight of zero for it, so a county would contribute nothing to its own statistic. That is the opposite of what the star in Gi* is for.</p>
+</div>
+<div class="zh">
+<p><code>alpha = 1</code> 使衰减对距离呈线性，指数越大则权重越集中在最近的邻居上。下面用的是固定距离列表，所以这个对象只为完整起见而建，不往下传。若要用于 Gi*，还得先调整：<code>include_self()</code> 加进来的自连边距离为零，而 <code>st_inverse_distance()</code> 给它返回的权重是零，于是该县对自己的统计量毫无贡献——这与 Gi* 那个星号的用意正好相反。</p>
+</div>
 </section>
 </section>
 <section id="computing-local-gi" class="level3">
 <h3 class="anchored" data-anchor-id="computing-local-gi">Computing local Gi*</h3>
+<div class="en">
 <p><code>local_gstar_perm()</code> of <strong>sfdep</strong> computes the statistic with a conditional permutation test, in the same form as <code>local_moran()</code> above. The seed is set again for reproducibility:</p>
+</div>
+<div class="zh">
+<p><strong>sfdep</strong> 的 <code>local_gstar_perm()</code> 带条件置换检验计算该统计量，形式与上面的 <code>local_moran()</code> 相同。为可复现，再设一次种子：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -1071,7 +1441,12 @@ $ GDPPC        &lt;dbl&gt; 23667, 20981, 34592, 24473, 25554, 27137, 63118, 6220
 $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((35522.9…</code></pre>
 </div>
 </div>
-<p>The <code>gi_star</code> column holds the statistic in standardised form, so it is read like a z-score: values well above zero mark high-value concentrations, values well below zero mark low-value ones. It ranges here from −1.83 to 5.81. <code>p_sim</code> is the permutation p-value and <code>p_value</code> its analytical counterpart. The <code>cluster</code> column is examined below, where it matters.</p>
+<div class="en">
+<p>The <code>gi_star</code> column holds the statistic in standardised form, so it is read like a z-score: values well above zero mark high-value concentrations, values well below zero mark low-value ones. It ranges here from −1.83 to 5.81. <code>p_sim</code> is the permutation p-value and <code>p_value</code> its analytical counterpart.</p>
+</div>
+<div class="zh">
+<p><code>gi_star</code> 一列存的是标准化形式的统计量，所以可以按 z 分数来读：远高于零标示高值集中，远低于零标示低值集中。此处取值范围是 −1.83 到 5.81。<code>p_sim</code> 是置换 p 值，<code>p_value</code> 是其解析对应物。</p>
+</div>
 </section>
 <section id="preparing-and-visualising-hcsa-map" class="level3">
 <h3 class="anchored" data-anchor-id="preparing-and-visualising-hcsa-map">Preparing and Visualising HCSA Map</h3>
@@ -1097,11 +1472,21 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The high values concentrate in the north-east, in the same place local Moran’s I put its High-High block. The map is smoother than the LISA statistic map, because Gi* sums over a neighbourhood rather than multiplying deviations, so it averages local contrast rather than amplifying it.</p>
+</div>
+<div class="zh">
+<p>高值集中在东北部，与局部 Moran’s I 给出 High-High 区块的位置相同。这幅图比 LISA 统计量那幅更平滑，因为 Gi* 是在邻域上求和而不是把偏差相乘，所以它把局部反差平均掉，而不是放大。</p>
+</div>
 </section>
 <section id="mapping-local-gi-p-values" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-local-gi-p-values">Mapping local Gi* p-values</h4>
+<div class="en">
 <p>The choropleth above shows both high and low Gi*, but as before the values have to be read against their significance:</p>
+</div>
+<div class="zh">
+<p>上面的分级统计图里 Gi* 既有高也有低，但和前面一样，这些值要对照显著性来读：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(HCSA_fdw) <span class="sc">+</span></span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"p_sim"</span>,</span>
@@ -1121,7 +1506,12 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The map has only two occupied classes, for a mechanical rather than a substantive reason. With <code>nsim = 99</code> the smallest attainable p-value is 1/(99 + 1) = 0.01, so the class below 0.001 is empty by construction and every significant county falls into the 0.01 to 0.05 band. The breaks are kept as written for comparability with the LISA map, but on this data set they carry less information than they appear to. Raising <code>nsim</code> would be the fix.</p>
+</div>
+<div class="zh">
+<p>图上只有两个级别有要素，原因是机械的而非实质的：<code>nsim = 99</code> 时可达到的最小 p 值是 1/(99 + 1) = 0.01，所以低于 0.001 那一级按构造就是空的，所有显著县都落进 0.01 到 0.05 这一段。断点保持原样是为了与 LISA 图可比，但在本数据集上它们承载的信息比看起来要少。解决办法是提高 <code>nsim</code>。</p>
+</div>
 </section>
 <section id="mapping-both-gi-values-and-p-values" class="level4">
 <h4 class="anchored" data-anchor-id="mapping-both-gi-values-and-p-values">Mapping both Gi* values and p-values</h4>
@@ -1158,24 +1548,33 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>The palette on the left is reversed relative to the previous map, <code>"-brewer.rd_bu"</code> rather than <code>"brewer.rd_bu"</code>, so high Gi* now reads blue rather than red. The pair shows that the dark cells on the right, the significant ones, sit at both ends of the left-hand scale. There are significant low-value neighbourhoods in the west as well as significant high-value ones in the north-east.</p>
+</div>
+<div class="zh">
+<p>左图的配色相对上一幅是反转的，用的是 <code>"-brewer.rd_bu"</code> 而不是 <code>"brewer.rd_bu"</code>，所以现在高 Gi* 显示为蓝而不是红。这一对图说明：右图里颜色深的那些（即显著的）分布在左图标尺的两端——西部有显著的低值邻域，东北部有显著的高值邻域。</p>
+</div>
 </section>
 <section id="plotting-and-visualising-hcsa-map" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-and-visualising-hcsa-map">Plotting and visualising HCSA Map</h4>
-<p>The classes are derived from the <code>cluster</code> field, with everything failing the 5% threshold reassigned to <code>Insignificant</code>:</p>
+<div class="en">
+<p>A hot spot is a significantly high Gi*, a cold spot a significantly low one, so the classes follow the sign of <code>gi_star</code> among the counties that clear the 5% threshold:</p>
+</div>
+<div class="zh">
+<p>热点就是显著偏高的 Gi*，冷点就是显著偏低的，所以在通过 5% 阈值的县当中，分类依据 <code>gi_star</code> 的符号：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>HCSA_fdw <span class="ot">&lt;-</span> HCSA_fdw <span class="sc">%&gt;%</span></span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HCSA_cluster =</span> <span class="fu">case_when</span>(</span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    p_sim <span class="sc">&gt;</span> <span class="fl">0.05</span> <span class="sc">~</span> <span class="st">"Insignificant"</span>,</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    p_sim <span class="sc">&lt;=</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> cluster <span class="sc">==</span> <span class="st">"High"</span> <span class="sc">~</span> <span class="st">"Hot spot"</span>,</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    p_sim <span class="sc">&lt;=</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> cluster <span class="sc">==</span> <span class="st">"Low"</span> <span class="sc">~</span> <span class="st">"Cold spot"</span>,</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Other"</span>),</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">HCSA_cluster =</span> <span class="fu">factor</span>(</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>      HCSA_cluster,</span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Insignificant"</span>, <span class="st">"Hot spot"</span>, <span class="st">"Cold spot"</span>)</span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">.before =</span> <span class="dv">1</span></span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    gi_star <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Hot spot"</span>,</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Cold spot"</span>),</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">HCSA_cluster =</span> <span class="fu">factor</span>(</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>      HCSA_cluster,</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Insignificant"</span>, <span class="st">"Hot spot"</span>, <span class="st">"Cold spot"</span>)</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.before =</span> <span class="dv">1</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>HCSA_map <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(HCSA_fdw) <span class="sc">+</span></span>
@@ -1203,7 +1602,12 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
+<div class="en">
 <p>Placing the statistic and the classification side by side shows how the continuous surface has been reduced to three classes:</p>
+</div>
+<div class="zh">
+<p>把统计量与分类结果并排放，可以看出连续的面是如何被归并成三类的：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(Gi_star_map, HCSA_map, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -1214,45 +1618,41 @@ $ geometry     &lt;POLYGON [m]&gt; POLYGON ((22320.48 3301894,..., POLYGON ((355
 </div>
 </div>
 </div>
-<p>Twelve of the 88 counties are significant at 5%, and they divide into five hot spots and seven cold spots.</p>
-<p>The hot spots are Wangcheng (Gi* = 5.81), Changsha (5.71), Liuyang (4.91) and Shaoshan (3.77). Three of the four are also in the LISA High-High block. Shaoshan is an addition, and the outer ring of that block, meaning Miluo, Liling, Xiangyin, Zhuzhou and Xiangtan, drops out. The fifth significant county, Jishou, is discussed below.</p>
-<p>The cold spots are Dongan (Gi* = −1.22), Longshan (−1.41), Wugang (−1.55), Dongkou (−1.64), Suining (−1.72), Yongshun (−1.78) and Longhui (−1.83), spread across the west and south-west. Three of them, Wugang, Suining and Longhui, are the same counties the LISA map identified as Low-Low, and the other four are additions.</p>
+<div class="en">
+<p>Twelve of the 88 counties are significant at 5%, and they divide into four hot spots and eight cold spots.</p>
+</div>
+<div class="zh">
+<p>88 个县中有 12 个在 5% 水平上显著，分为四个热点和八个冷点。</p>
+</div>
+<div class="en">
+<p>The hot spots are Wangcheng (Gi* = 5.81), Changsha (5.71), Liuyang (4.91) and Shaoshan (3.77). Three of them are also in the LISA High-High block. Shaoshan is an addition, and the outer ring of that block, meaning Miluo, Liling, Xiangyin, Zhuzhou and Xiangtan, drops out.</p>
+</div>
+<div class="zh">
+<p>热点是望城（Gi* = 5.81）、长沙（5.71）、浏阳（4.91）、韶山（3.77）。其中三个同时也在 LISA 的 High-High 区块里；韶山是新增的，而那个区块的外圈——汨罗、醴陵、湘阴、株洲、湘潭——则掉了出去。</p>
+</div>
+<div class="en">
+<p>The cold spots are Dongan (Gi* = −1.22), Jishou (−1.27), Longshan (−1.41), Wugang (−1.55), Dongkou (−1.64), Suining (−1.72), Yongshun (−1.78) and Longhui (−1.83), spread across the west and south-west. Three of them, Wugang, Suining and Longhui, are the same counties the LISA map identified as Low-Low. Jishou is the most interesting of the additions: its own GDPPC of 31,537 is above the provincial mean of 24,405, but it sits in the poor west and its neighbourhood total is significantly low, so a statistic that sums over a neighbourhood places it with the cold spots.</p>
+</div>
+<div class="zh">
+<p>冷点是东安（Gi* = −1.22）、吉首（−1.27）、龙山（−1.41）、武冈（−1.55）、洞口（−1.64）、绥宁（−1.72）、永顺（−1.78）、隆回（−1.83），散布在西部和西南部。其中武冈、绥宁、隆回三个正是 LISA 图判为 Low-Low 的那三个。新增者里最值得一说的是吉首：它自身的 GDPPC 为 31,537，高于全省均值 24,405，但它位于偏穷的西部，其邻域总量显著偏低，所以一个在邻域上求和的统计量把它归入冷点。</p>
+</div>
+<div class="en">
 <p>Two structural points come out of the comparison with the LISA map. The first is that the magnitudes are asymmetric: the strongest hot spot scores 5.81 while the strongest cold spot reaches only −1.83. Gi* is bounded below in a way it is not bounded above, because the sum of a neighbourhood of low values can fall only so far short of the study-area mean, while a single very large value can push it arbitrarily high. The province has one extreme concentration of wealth and no comparably extreme concentration of poverty.</p>
-<p>The second is that Gi* finds more cold spots than LISA did, seven against three, while finding fewer counties in the hot core. This follows from the neighbourhood definition rather than from the statistic. The fixed 60.8 km band links the large, sparsely settled western counties differently from Queen contiguity, and averaging over a wider low-value area produces a stronger low signal than the contiguity-based product does.</p>
+</div>
+<div class="zh">
+<p>与 LISA 图相比，有两点结构性的东西显现出来。第一是量级不对称：最强的热点是 5.81，最强的冷点只到 −1.83。Gi* 在下方有界、在上方没有同样的界，因为一个低值邻域的总和低于研究区均值的程度终究有限，而单个极大的值却能把它推到任意高。该省有一处极端的财富集中，却没有与之相当的极端贫困集中。</p>
+</div>
+<div class="en">
+<p>The second is that Gi* finds more cold spots than LISA did, eight against three, while finding fewer counties in the hot core. This follows from the neighbourhood definition rather than from the statistic. The fixed 60.8 km band links the large, sparsely settled western counties differently from Queen contiguity, and averaging over a wider low-value area produces a stronger low signal than the contiguity-based product does.</p>
+</div>
+<div class="zh">
+<p>第二是 Gi* 找到的冷点比 LISA 多，八个对三个，而在热核里找到的县反而更少。这源自邻域定义而非统计量本身：固定 60.8 公里的距离带对西部那些面积大、人口稀的县的连接方式与 Queen 邻接不同，而在更宽的低值区域上做平均，给出的低值信号比基于邻接的乘积更强。</p>
+</div>
+<div class="en">
 <p>The two methods also answer different questions. Pingjiang and Taojiang, the two significant Low-High outliers on the LISA map, are simply insignificant here, because Gi* has no class for a county that differs from its surroundings. LISA finds clusters and outliers; HCSA finds concentrations. Neither supersedes the other.</p>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
 </div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>What the <code>cluster</code> field actually records
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The classification above follows the chapter in reading the <code>cluster</code> field returned by <code>local_gstar_perm()</code>, and that field does not mean what its use here implies. It is inherited from <code>spdep::localG_perm()</code>, which sets it by comparing each county’s own value with the mean of the variable, not by the sign of its Gi* statistic.</p>
-<p>For 87 of the 88 counties the two coincide. The exception is Jishou, whose GDPPC of 31,537 is above the provincial mean of 24,405, so <code>cluster</code> reads <code>High</code>, while its Gi* is −1.27. Jishou is a moderately prosperous county sitting in the poor west, whose neighbourhood total is significantly low. The <code>case_when()</code> above therefore paints it red as a hot spot, when the statistic being mapped says the opposite.</p>
-<p>Classifying on the sign of <code>gi_star</code> instead gives four hot spots and eight cold spots, moving Jishou from one class to the other:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>HCSA_fdw <span class="sc">%&gt;%</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">by_sign =</span> <span class="fu">case_when</span>(</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>    p_sim <span class="sc">&gt;</span> <span class="fl">0.05</span> <span class="sc">~</span> <span class="st">"Insignificant"</span>,</span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    gi_star <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Hot spot"</span>,</span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Cold spot"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(HCSA_cluster, by_sign)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 4 × 3
-  HCSA_cluster  by_sign           n
-  &lt;fct&gt;         &lt;chr&gt;         &lt;int&gt;
-1 Insignificant Insignificant    76
-2 Hot spot      Cold spot         1
-3 Hot spot      Hot spot          4
-4 Cold spot     Cold spot         7</code></pre>
-</div>
-</div>
-<p>Jishou is the single disagreeing row. It is also a substantively interesting county in its own right: a prefecture seat with a comparatively high income embedded in a significantly low-value neighbourhood, which is a Gi* description of the same kind of place the LISA map called a High-Low outlier.</p>
-</div>
+<div class="zh">
+<p>两种方法回答的也是不同的问题。LISA 图上那两个显著的 Low-High 离群——平江与桃江——在这里只是不显著，因为 Gi* 没有「与周边相异的县」这个类别。LISA 找的是聚集与离群，HCSA 找的是集中。两者谁也不取代谁。</p>
 </div>
 </section>
 </section>

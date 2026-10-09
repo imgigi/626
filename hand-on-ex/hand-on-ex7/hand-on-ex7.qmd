@@ -1,0 +1,1299 @@
+---
+title: "Hands-on Exercise 7: Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method"
+author: "Ji Guofang"
+date: "last-modified"
+date-modified: "last-modified"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-expand: true
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: auto
+editor: visual
+---
+
+## Overview
+
+::: {.en}
+A hedonic pricing model explains the price of a good by the attributes that make it up. For housing those attributes divide into two kinds: structural ones such as floor area, age and tenure, and locational ones such as distance to the central business district, to a park or to an MRT station. Fitting a single regression to them yields one coefficient per attribute for the whole study area, which asserts that an extra square metre, or a kilometre closer to the CBD, is worth the same amount everywhere.
+
+That assertion is a modelling assumption rather than a finding, and for a city it is usually false. **Geographically weighted regression** drops it. Instead of one global model GWR fits a separate regression at every observation, weighting the neighbouring observations by a kernel whose width is set by a bandwidth, so that each coefficient becomes a surface rather than a number.
+
+This exercise builds both models on 1,436 private condominium resale transactions in Singapore in 2015. The ordinary least squares half comes first, not as a formality but because its diagnostics are what justify moving to GWR: the global model's residuals turn out to be spatially autocorrelated, which is precisely the symptom GWR exists to address. By the end of the exercise the following are in place:
+
+- geospatial and aspatial data imported and converted into a single `sf` object,
+- exploratory analysis of the dependent variable and of the eighteen candidate predictors,
+- a hedonic pricing model calibrated by multiple linear regression, with its collinearity, linearity, normality and spatial autocorrelation diagnostics,
+- the same model calibrated by GWR under both a fixed and an adaptive bandwidth, and
+- the local R² and local coefficient surfaces mapped with **tmap**.
+:::
+
+::: {.zh}
+特征价格模型用构成商品的各项属性来解释它的价格。对住房而言，这些属性分两类：结构类，如面积、房龄、产权；位置类，如到中央商务区、到公园、到地铁站的距离。对它们拟合一个单一回归，得到的是整个研究区内每项属性各一个系数——这等于断言：多一平方米，或离 CBD 近一公里，在任何地方都值同样的钱。
+
+这个断言是建模假定而不是发现，而对一座城市来说它通常不成立。**地理加权回归**放弃了这个假定：GWR 不做一个全局模型，而是在每一个观测点各拟合一个回归，用一个由带宽决定宽度的核给邻近观测加权，于是每个系数都变成一张面而不是一个数。
+
+本练习在 2015 年新加坡 1,436 笔私人公寓转售交易上同时建这两种模型。普通最小二乘那一半放在前面，不是走形式，而是因为它的诊断结果才是转向 GWR 的理由：全局模型的残差被证明存在空间自相关，而这恰恰是 GWR 所要应对的症状。练习结束时应当完成：
+
+- 导入地理空间与非空间数据，并转换成单一的 `sf` 对象；
+- 对因变量和十八个候选自变量做探索性分析；
+- 用多元线性回归标定一个特征价格模型，并做共线性、线性、正态性、空间自相关四项诊断；
+- 在固定带宽与自适应带宽下分别用 GWR 标定同一个模型；
+- 用 **tmap** 绘制局部 R² 与局部系数面。
+:::
+
+## The Data
+
+::: {.en}
+Two data sets are used:
+:::
+
+::: {.zh}
+使用两个数据集：
+:::
+
+| Dataset | Description |
+|----|----|
+| `MP14_SUBZONE_WEB_PL` | URA Master Plan 2014 subzone boundary, in ESRI shapefile format |
+| `Condo_resale_2015.csv` | 2015 condominium resale transactions with structural and locational attributes |
+
+## Getting Started
+
+::: {.en}
+Ten packages are used, which is more than any earlier exercise in this portfolio, because the regression half draws on a different toolchain from the spatial half:
+:::
+
+::: {.zh}
+用到十个包，比本作品集中任何一份先前的练习都多，原因是回归那一半依赖的工具链与空间那一半不同：
+:::
+
+| Package | Role |
+|----|----|
+| **sf** | Importing and handling the vector layers |
+| **sfdep** | The distance band and the permutation Moran's I test on the OLS residuals |
+| **GWmodel** | Bandwidth selection and geographically weighted regression |
+| **tmap** | The point maps, residual map and coefficient surfaces |
+| **tidyverse** | Data import, wrangling and **ggplot2** for the exploratory charts |
+| **performance** | Collinearity, linearity and normality checks on the fitted model |
+| **corrplot** | The correlation matrix of the candidate predictors |
+| **ggpubr** | `ggarrange()` for the twelve-panel histogram grid |
+| **gtsummary** | Publication quality regression tables |
+| **RColorBrewer** | The diverging palette for the residual map |
+
+```{r}
+pacman::p_load(corrplot, ggpubr,
+               sf, sfdep, GWmodel, tmap,
+               tidyverse, gtsummary,
+               performance, RColorBrewer)
+```
+
+## A short note about GWmodel
+
+::: {.en}
+**GWmodel** provides a collection of localised spatial statistical methods: GW summary statistics, GW principal components analysis, GW discriminant analysis and several forms of GW regression, some of them robust to outliers. The outputs are typically mapped, which makes the package a tool for exploratory analysis as much as for inference, and often a useful precursor to more conventional modelling.
+:::
+
+::: {.zh}
+**GWmodel** 提供一组局部化的空间统计方法：地理加权汇总统计、地理加权主成分分析、地理加权判别分析，以及若干形式的地理加权回归（其中一些对离群值稳健）。它的输出通常以地图呈现，这使该包既是推断工具、也同样是探索性分析工具，往往可以作为更常规建模之前的有用准备。
+:::
+
+::: {.en}
+The GW summary statistics side of the package was used in [In-class Exercise 4](../../in-class-ex/in-class-ex4/in-class-ex4.qmd). What is new here is the regression side, `gwr.basic()`, and the role the bandwidth plays in it. In the summary statistics case the bandwidth decided how local a mean was. Here it decides how many observations are available to estimate fifteen coefficients at once, which turns the same parameter into a much sharper constraint.
+:::
+
+::: {.zh}
+该包的地理加权汇总统计一侧已在[课堂练习 4](../../in-class-ex/in-class-ex4/in-class-ex4.qmd) 用过。这里新出现的是回归一侧的 `gwr.basic()`，以及带宽在其中扮演的角色。在汇总统计那里，带宽决定一个均值有多「局部」；在这里，它决定有多少观测可供同时估计十五个系数——同一个参数因此变成一个严厉得多的约束。
+:::
+
+## Geospatial Data Wrangling
+
+### Importing geospatial data
+
+::: {.en}
+`st_read()` of **sf** imports the Master Plan 2014 subzone boundary:
+:::
+
+::: {.zh}
+**sf** 的 `st_read()` 导入 2014 总体规划分区边界：
+:::
+
+```{r}
+mpsz <- st_read(dsn = "data/geospatial",
+                layer = "MP14_SUBZONE_WEB_PL")
+```
+
+::: {.en}
+The header reports 323 multipolygon features with 15 attribute fields. The layer serves only as a backdrop for the point maps below, so none of those attributes is used.
+:::
+
+::: {.zh}
+表头显示 323 个多重多边形要素、15 个属性字段。该图层只作下文点图的底图，这些属性一个也不用。
+:::
+
+### Updating CRS information
+
+::: {.en}
+The import header names the projected CRS as SVY21, but the shapefile carries no EPSG code, so `st_crs(mpsz)$epsg` returns `NA`. A CRS without a code is awkward: **tmap** and **sf** can still draw the layer, but any operation that has to match it against another layer by code will fail. `st_transform()` resolves this by reprojecting to EPSG 3414, the registered code for SVY21:
+:::
+
+::: {.zh}
+导入表头把投影坐标系命名为 SVY21，但该 shapefile 不带 EPSG 代码，所以 `st_crs(mpsz)$epsg` 返回 `NA`。没有代码的坐标系很麻烦：**tmap** 与 **sf** 仍画得出这个图层，但任何需要按代码与另一图层匹配的操作都会失败。`st_transform()` 把它重投影到 EPSG 3414——SVY21 的注册代码——从而解决这个问题：
+:::
+
+```{r}
+mpsz_svy21 <- st_transform(mpsz, 3414)
+```
+
+```{r}
+st_crs(mpsz_svy21)
+```
+
+::: {.en}
+The EPSG code now reads 3414. Because the layer was already in SVY21, the transformation moves no coordinates; its effect is to attach the code. The bounding box confirms that the geometry is unchanged and in metres:
+:::
+
+::: {.zh}
+现在 EPSG 代码显示为 3414。由于该图层本来就在 SVY21 下，这次变换并未移动任何坐标，作用只是把代码挂上去。边界框可以确认几何未变、单位是米：
+:::
+
+```{r}
+st_bbox(mpsz_svy21)
+```
+
+::: {.en}
+The extent runs from 2,668 to 56,396 metres east and 15,749 to 50,256 metres north, which is the whole of Singapore on the SVY21 grid.
+:::
+
+::: {.zh}
+范围东向从 2,668 米到 56,396 米，北向从 15,749 米到 50,256 米，这就是 SVY21 网格上的整个新加坡。
+:::
+
+## Aspatial Data Wrangling
+
+### Importing the aspatial data
+
+::: {.en}
+`read_csv()` of **readr** imports the transaction table:
+:::
+
+::: {.zh}
+**readr** 的 `read_csv()` 导入交易表：
+:::
+
+```{r}
+condo_resale <- read_csv(
+  "data/aspatial/Condo_resale_2015.csv")
+```
+
+```{r}
+glimpse(condo_resale)
+```
+
+::: {.en}
+There are 1,436 transactions and 23 columns: the selling price, the two coordinate columns, the structural attributes `AREA_SQM`, `AGE`, `NO_Of_UNITS`, `FAMILY_FRIENDLY` and `FREEHOLD`, and fifteen `PROX_` columns giving the distance in kilometres from each unit to a particular kind of amenity.
+:::
+
+::: {.zh}
+共 1,436 笔交易、23 列：成交价、两个坐标列、结构类属性 `AREA_SQM`、`AGE`、`NO_Of_UNITS`、`FAMILY_FRIENDLY`、`FREEHOLD`，以及十五个 `PROX_` 列，给出各单位到某一类设施的距离（公里）。
+:::
+
+::: {.en}
+The two coordinate columns are worth inspecting before they are used, since whether they hold degrees or metres determines the CRS they have to be given:
+:::
+
+::: {.zh}
+两个坐标列在使用前值得先看一眼，因为它们装的是度还是米，决定了必须给它们指定哪个坐标系：
+:::
+
+```{r}
+head(condo_resale$LONGITUDE)
+```
+
+```{r}
+head(condo_resale$LATITUDE)
+```
+
+::: {.en}
+Both are in decimal degrees, around 103.8 E and 1.3 N, so the table is in WGS 84 rather than in SVY21.
+:::
+
+::: {.zh}
+两者都是十进制度数，约为东经 103.8 度、北纬 1.3 度，所以该表处于 WGS 84 而不是 SVY21。
+:::
+
+```{r}
+summary(condo_resale)
+```
+
+::: {.en}
+Three features of this summary shape everything that follows. Selling prices run from 540,000 to 18,000,000 Singapore dollars with a median of 1,383,222 and a mean of 1,751,211, so the distribution is strongly right-skewed. Floor area runs from 34 to 619 square metres with a median of 121. And distance to the CBD runs from 0.39 to 19.18 km, which is as wide a range as a city of this size allows.
+:::
+
+::: {.zh}
+这份摘要里有三点决定了后面的一切。成交价从 540,000 到 18,000,000 新元，中位数 1,383,222、均值 1,751,211，分布严重右偏；面积从 34 到 619 平方米，中位数 121；到 CBD 的距离从 0.39 到 19.18 公里，这已是这个规模的城市所能有的最大跨度。
+:::
+
+### Converting aspatial data frame into a sf object
+
+::: {.en}
+`st_as_sf()` builds point geometries from the coordinate columns. The `coords` argument takes longitude first and latitude second, `crs = 4326` declares that those numbers are WGS 84 degrees, and `st_transform()` then reprojects them to SVY21 so that the points share a CRS with the subzone layer:
+:::
+
+::: {.zh}
+`st_as_sf()` 用坐标列构造点几何。`coords` 的顺序是先经度后纬度，`crs = 4326` 声明这些数字是 WGS 84 的度数，随后 `st_transform()` 把它们投影到 SVY21，使这些点与分区图层共用一个坐标系：
+:::
+
+```{r}
+condo_resale.sf <- st_as_sf(condo_resale,
+                            coords = c("LONGITUDE", "LATITUDE"),
+                            crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
+::: {.en}
+Declaring the CRS and transforming it are two separate operations here, and conflating them is the usual error. `crs = 4326` asserts what the numbers already are; `st_transform(3414)` computes new ones. Passing `crs = 3414` to `st_as_sf()` would have labelled degrees as metres and placed every condominium within 104 metres of the SVY21 origin.
+:::
+
+::: {.zh}
+这里「声明坐标系」与「变换坐标系」是两件独立的事，把两者混为一谈是常见错误。`crs = 4326` 断言这些数字本来是什么；`st_transform(3414)` 才真的算出新的数字。若把 `crs = 3414` 传给 `st_as_sf()`，就等于把度数当成米来标注，会把每一处公寓都放到距 SVY21 原点 104 米以内。
+:::
+
+```{r}
+head(condo_resale.sf)
+```
+
+::: {.en}
+The `LONGITUDE` and `LATITUDE` columns are gone, replaced by a `geometry` column whose coordinates are now in metres.
+:::
+
+::: {.zh}
+`LONGITUDE` 与 `LATITUDE` 两列已消失，取而代之的是 `geometry` 列，其坐标现在以米为单位。
+:::
+
+## Exploratory Data Analysis (EDA)
+
+### EDA using statistical graphics
+
+::: {.en}
+The dependent variable comes first:
+:::
+
+::: {.zh}
+先看因变量：
+:::
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+ggplot(data = condo_resale.sf,
+       aes(x = `SELLING_PRICE`)) +
+  geom_histogram(bins = 20,
+                 color = "black",
+                 fill = "light blue")
+```
+
+::: {.en}
+The distribution is right-skewed, as the summary implied. Most transactions cluster between one and two million dollars and a thin tail reaches 18 million, with only four transactions above ten million.
+:::
+
+::: {.zh}
+如摘要所示，分布右偏。多数交易集中在一百万到两百万新元之间，一条细长的尾巴伸到一千八百万，而超过一千万的只有四笔。
+:::
+
+::: {.en}
+Skew of this kind matters for a linear model in a specific way. It is not that the dependent variable has to be normally distributed, which is not an assumption of OLS, but that a multiplicative price structure fitted additively will produce heteroskedastic residuals and will be dominated by the few largest transactions. A log transformation addresses both:
+:::
+
+::: {.zh}
+这种偏态对线性模型的影响是具体而特定的。问题不在于因变量必须正态——那并不是 OLS 的假定——而在于：若价格结构本质是乘性的，却用加性方式去拟合，残差会呈异方差，而且结果会被少数几笔最大交易主导。取对数能同时缓解这两点：
+:::
+
+```{r}
+condo_resale.sf <- condo_resale.sf %>%
+  mutate(`LOG_SELLING_PRICE` = log(SELLING_PRICE))
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+ggplot(data = condo_resale.sf,
+       aes(x = `LOG_SELLING_PRICE`)) +
+  geom_histogram(bins = 20,
+                 color = "black",
+                 fill = "light blue")
+```
+
+::: {.en}
+The logged variable is far closer to symmetric, running from 13.20 to 16.71 around a median of 14.14. The regressions that follow model the untransformed price, so that the coefficients stay in dollars and can be read directly as the price of an attribute. The cost of that choice appears in the normality diagnostic further down, where the untransformed dependent variable is one reason the test fails.
+:::
+
+::: {.zh}
+取对数后的变量对称得多，从 13.20 到 16.71，中位数 14.14。后面的回归建模用的是未取对数的价格，这样系数保持以元为单位、可以直接读作某项属性的价格。这个选择的代价出现在后面的正态性诊断里——未取对数的因变量正是检验不通过的原因之一。
+:::
+
+### Multiple Histogram Plots distribution of variables
+
+::: {.en}
+Twelve of the candidate predictors are drawn in one figure. Each panel is built separately and `ggarrange()` of **ggpubr** assembles them on a three-by-four grid:
+:::
+
+::: {.zh}
+把十二个候选自变量画在同一幅图里。各面板分别构建，再由 **ggpubr** 的 `ggarrange()` 排成三列四行：
+:::
+
+```{r}
+#| fig-width: 12
+#| fig-height: 12
+AREA_SQM <- ggplot(data = condo_resale.sf,
+                   aes(x = `AREA_SQM`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+AGE <- ggplot(data = condo_resale.sf,
+              aes(x = `AGE`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_CBD <- ggplot(data = condo_resale.sf,
+                   aes(x = `PROX_CBD`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_CHILDCARE <- ggplot(data = condo_resale.sf,
+                         aes(x = `PROX_CHILDCARE`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_ELDERLYCARE <- ggplot(data = condo_resale.sf,
+                           aes(x = `PROX_ELDERLYCARE`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_URA_GROWTH_AREA <- ggplot(data = condo_resale.sf,
+                               aes(x = `PROX_URA_GROWTH_AREA`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_HAWKER_MARKET <- ggplot(data = condo_resale.sf,
+                             aes(x = `PROX_HAWKER_MARKET`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_KINDERGARTEN <- ggplot(data = condo_resale.sf,
+                            aes(x = `PROX_KINDERGARTEN`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_MRT <- ggplot(data = condo_resale.sf,
+                   aes(x = `PROX_MRT`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_PARK <- ggplot(data = condo_resale.sf,
+                    aes(x = `PROX_PARK`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_PRIMARY_SCH <- ggplot(data = condo_resale.sf,
+                           aes(x = `PROX_PRIMARY_SCH`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+PROX_TOP_PRIMARY_SCH <- ggplot(data = condo_resale.sf,
+                               aes(x = `PROX_TOP_PRIMARY_SCH`)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+ggarrange(AREA_SQM, AGE, PROX_CBD, PROX_CHILDCARE,
+          PROX_ELDERLYCARE, PROX_URA_GROWTH_AREA,
+          PROX_HAWKER_MARKET, PROX_KINDERGARTEN, PROX_MRT,
+          PROX_PARK, PROX_PRIMARY_SCH, PROX_TOP_PRIMARY_SCH,
+          ncol = 3, nrow = 4)
+```
+
+::: {.en}
+The grid shows two different shapes. `AREA_SQM` and `AGE` are unimodal and moderately skewed, which is what a housing stock looks like. Most of the `PROX_` variables are also right-skewed, because amenities are dense in the built-up areas where most condominiums are and sparse elsewhere, so the short distances are common and the long ones rare. `PROX_CBD` is the exception and is close to uniform, which follows from its construction: it measures distance from one fixed point, so its distribution reflects how the transactions are spread across the island rather than how a facility type is distributed.
+:::
+
+::: {.zh}
+这组面板呈现两种形状。`AREA_SQM` 与 `AGE` 单峰、中度偏斜，住房存量本来就是这个样子。多数 `PROX_` 变量也右偏，因为设施在建成区（也就是多数公寓所在之处）密集、别处稀疏，于是短距离常见、长距离少见。`PROX_CBD` 是例外，接近均匀分布，这由它的构造决定：它量的是到单一固定点的距离，所以它的分布反映的是交易在全岛的散布方式，而不是某类设施的分布方式。
+:::
+
+### Drawing Statistical Point Map
+
+::: {.en}
+A statistical point map shows where the expensive transactions are. `tmap_mode("view")` renders it interactively so that individual units can be identified:
+:::
+
+::: {.zh}
+统计点图显示高价交易在哪里。`tmap_mode("view")` 以交互方式渲染，便于定位到单个单位：
+:::
+
+```{r}
+tmap_mode("view")
+```
+
+```{r}
+tm_shape(condo_resale.sf) +
+  tm_dots(fill = "SELLING_PRICE",
+          fill_alpha = 0.6,
+          size = 0.5,
+          fill.scale = tm_scale_intervals(
+            style = "quantile")) +
+  tm_view(set_zoom_limits = c(11, 14))
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+::: {.en}
+`tmap_mode()` is a global setting, so it is reset to `"plot"` immediately so that later chunks render as static images.
+:::
+
+::: {.zh}
+`tmap_mode()` 是全局设置，所以随即改回 `"plot"`，使后续代码块渲染为静态图。
+:::
+
+::: {.en}
+The highest quantile concentrates along the southern and central belt, around the CBD and the Orchard and Bukit Timah corridors, with a second cluster on the east coast. The outer estates in the north and west fall mostly into the lower quantiles. That pattern is already a hint that the relationship between price and location is not uniform, but a point map cannot separate location from floor area or tenure, which is what the regression is for.
+:::
+
+::: {.zh}
+最高分位集中在南部与中部一带，围绕 CBD 以及乌节路和武吉知马走廊，东海岸另有一簇。北部和西部的外围住区多落在较低的分位里。这个格局已经暗示价格与位置之间的关系并不均匀，但点图无法把位置与面积、产权区分开——那是回归的任务。
+:::
+
+## Hedonic Pricing Modelling in R
+
+### Simple Linear Regression Method
+
+::: {.en}
+The simplest hedonic model uses floor area alone:
+:::
+
+::: {.zh}
+最简单的特征价格模型只用面积：
+:::
+
+```{r}
+condo.slr <- lm(formula = SELLING_PRICE ~ AREA_SQM,
+                data = condo_resale.sf)
+```
+
+```{r}
+summary(condo.slr)
+```
+
+::: {.en}
+The fitted relationship is
+:::
+
+::: {.zh}
+拟合得到的关系是
+:::
+
+> *SELLING_PRICE* = −258,121.1 + 14,719.0 × *AREA_SQM*
+
+::: {.en}
+with an R² of 0.4518, so floor area alone accounts for about 45% of the variation in price. The slope says that one additional square metre is worth roughly 14,719 dollars, and its t value of 34.4 leaves no doubt that the coefficient differs from zero.
+:::
+
+::: {.zh}
+R² 为 0.4518，即仅面积一项就解释了价格差异的约 45%。斜率表明多一平方米约值 14,719 元，其 t 值 34.4 使该系数不等于零毫无疑问。
+:::
+
+::: {.en}
+The intercept is negative, which has no interpretation as a price: a unit of zero floor area does not sell for minus 258,121 dollars. The smallest unit in the data is 34 square metres, so the intercept is an extrapolation far outside the observed range and is better read as the arithmetic consequence of fitting a straight line through this cloud than as a quantity with meaning.
+:::
+
+::: {.zh}
+截距为负，这作为价格没有任何解释：面积为零的单位并不会以负 258,121 元成交。数据中最小的单位是 34 平方米，所以截距是远在观测范围之外的外推，更应当读作「在这团点上拟合一条直线」的算术后果，而不是一个有实质含义的量。
+:::
+
+::: {.en}
+A scatterplot with the fitted line shows what the model does and does not capture:
+:::
+
+::: {.zh}
+带拟合线的散点图显示这个模型抓住了什么、又漏掉了什么：
+:::
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+ggplot(data = condo_resale.sf,
+       aes(x = `AREA_SQM`, y = `SELLING_PRICE`)) +
+  geom_point() +
+  geom_smooth(method = lm)
+```
+
+::: {.en}
+The spread about the line widens as floor area increases, which is textbook heteroskedasticity, and a handful of points sit far above it. Those are the units the simple model cannot explain from size alone, and most of them are in expensive locations.
+:::
+
+::: {.zh}
+随着面积增大，点相对直线的离散度变宽，这是教科书式的异方差；另有少数几个点远在线之上。那些正是简单模型单凭面积解释不了的单位，而它们多数位于高价位置。
+:::
+
+### Multiple Linear Regression Method
+
+#### Visualising the relationships of the independent variables
+
+::: {.en}
+Before predictors are combined in one model, their mutual correlations have to be checked. Two predictors that measure nearly the same thing make the individual coefficients unstable and hard to interpret, even when the model as a whole fits well.
+:::
+
+::: {.zh}
+在把多个自变量放进同一个模型之前，必须检查它们之间的相关性。两个测量几乎同一件事的自变量会使各自的系数不稳定、难以解读，即使整个模型拟合得不错也是如此。
+:::
+
+::: {.en}
+`corrplot()` of **corrplot** draws the correlation matrix of columns 5 to 23, which are the candidate predictors. `order = "AOE"` reorders the variables by the angular order of their eigenvectors, which groups correlated variables together and makes blocks visible:
+:::
+
+::: {.zh}
+**corrplot** 的 `corrplot()` 画出第 5 到 23 列（即候选自变量）的相关矩阵。`order = "AOE"` 按特征向量的角序重排变量，把相关的变量聚到一起，使块状结构显现：
+:::
+
+```{r}
+#| fig-width: 11
+#| fig-height: 11
+corrplot(cor(condo_resale[, 5:23]),
+         diag = FALSE,
+         order = "AOE",
+         tl.pos = "td",
+         tl.cex = 0.5,
+         method = "number",
+         type = "upper")
+```
+
+::: {.en}
+The matrix is computed from `condo_resale`, the plain data frame, rather than from `condo_resale.sf`. An `sf` object would carry its geometry column into `cor()`, which cannot take a correlation of a point.
+:::
+
+::: {.zh}
+该矩阵是从普通数据框 `condo_resale` 算出的，而不是从 `condo_resale.sf`。`sf` 对象会把几何列带进 `cor()`，而点是没法求相关的。
+:::
+
+::: {.en}
+The strongest pair is `PROX_CHILDCARE` and `PROX_BUS_STOP` at 0.78, which is high but below the 0.85 threshold conventionally used to justify dropping a variable. The grouping is otherwise intelligible: the amenity distances that cluster together are the ones found in the same kind of neighbourhood. No pair is excluded on the strength of this matrix, which leaves the formal check to the variance inflation factors computed later.
+:::
+
+::: {.zh}
+最强的一对是 `PROX_CHILDCARE` 与 `PROX_BUS_STOP`，0.78，虽高但低于通常用来支持剔除变量的 0.85 阈值。其余的分组也都讲得通：聚在一起的那些设施距离，正是出现在同一类街区里的那些。仅凭这个矩阵不剔除任何一对，正式的检查留给后面计算的方差膨胀因子。
+:::
+
+### Building a hedonic pricing model using multiple linear regression method
+
+::: {.en}
+All eighteen candidate predictors enter the model together:
+:::
+
+::: {.zh}
+十八个候选自变量一起进入模型：
+:::
+
+```{r}
+condo.mlr <- lm(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE  +
+    PROX_CBD + PROX_CHILDCARE + PROX_ELDERLYCARE +
+    PROX_URA_GROWTH_AREA + PROX_HAWKER_MARKET   +
+    PROX_KINDERGARTEN   + PROX_MRT  + PROX_PARK +
+    PROX_PRIMARY_SCH + PROX_TOP_PRIMARY_SCH +
+    PROX_SHOPPING_MALL  + PROX_SUPERMARKET +
+    PROX_BUS_STOP   + NO_Of_UNITS +
+    FAMILY_FRIENDLY + FREEHOLD,
+  data = condo_resale.sf)
+summary(condo.mlr)
+```
+
+::: {.en}
+The adjusted R² rises from 0.4515 for floor area alone to 0.6474, so the locational and tenure attributes together explain a further twenty percentage points of the variation in price. The F statistic of 147.4 on 18 and 1,417 degrees of freedom rejects the hypothesis that all coefficients are zero.
+:::
+
+::: {.zh}
+调整后 R² 从仅用面积时的 0.4515 升到 0.6474，可见位置与产权类属性合起来又解释了价格差异的二十个百分点。F 统计量为 147.4（自由度 18 与 1,417），拒绝「所有系数均为零」的假设。
+:::
+
+::: {.en}
+Four predictors are not statistically significant at the 5% level: `PROX_HAWKER_MARKET` at p = 0.418, `PROX_KINDERGARTEN` at p = 0.075, `PROX_TOP_PRIMARY_SCH` at p = 0.911 and `PROX_SUPERMARKET` at p = 0.560. All four are amenities that are ubiquitous in Singapore, so the distance to the nearest one varies little between transactions and carries little information about price once the other variables are in the model.
+:::
+
+::: {.zh}
+有四个自变量在 5% 水平上不显著：`PROX_HAWKER_MARKET`（p = 0.418）、`PROX_KINDERGARTEN`（p = 0.075）、`PROX_TOP_PRIMARY_SCH`（p = 0.911）、`PROX_SUPERMARKET`（p = 0.560）。这四类设施在新加坡都极为普遍，所以各笔交易到最近一处的距离差别不大；在其他变量已在模型中的前提下，它们对价格几乎没有信息量。
+:::
+
+### Revising the model
+
+::: {.en}
+The four non-significant predictors are dropped and the model refitted:
+:::
+
+::: {.zh}
+剔除这四个不显著的自变量，重新拟合模型：
+:::
+
+```{r}
+condo.mlr1 <- lm(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE +
+    PROX_CBD + PROX_CHILDCARE + PROX_MRT +
+    PROX_ELDERLYCARE    + PROX_URA_GROWTH_AREA +
+    PROX_PARK   + PROX_PRIMARY_SCH +
+    PROX_SHOPPING_MALL  + PROX_BUS_STOP +
+    NO_Of_UNITS + FAMILY_FRIENDLY + FREEHOLD,
+  data = condo_resale.sf)
+summary(condo.mlr1)
+```
+
+::: {.en}
+Every remaining coefficient is significant at the 1% level. Dropping four predictors cost almost nothing in fit: R² falls from 0.6518 to 0.6507 and the adjusted R², which penalises parameters, barely moves at 0.6472 against 0.6474. The F statistic rises from 147.4 to 189.1 because the same explained variance is now attributed to fewer parameters.
+:::
+
+::: {.zh}
+余下每一个系数都在 1% 水平上显著。剔掉四个自变量在拟合上几乎没有代价：R² 从 0.6518 降到 0.6507，而对参数个数施加惩罚的调整后 R² 几乎没动，0.6472 对 0.6474。F 统计量从 147.4 升到 189.1，因为同样的被解释方差现在归到更少的参数上。
+:::
+
+::: {.en}
+The coefficients are readable as prices for attributes. An extra square metre adds 12,778 dollars. Each additional year of age subtracts 24,688. A kilometre further from the CBD subtracts 77,131, which is the clearest single statement of the premium Singapore places on centrality. Freehold tenure adds 350,600 over the 99-year leasehold baseline, and a family-friendly development adds 146,308.
+:::
+
+::: {.zh}
+这些系数可以读作各项属性的价格。多一平方米加 12,778 元；房龄每多一年减 24,688 元；离 CBD 远一公里减 77,131 元——这是新加坡对中心区位所给溢价最清晰的单一表述。永久产权相对 99 年租赁的基准加 350,600 元，适合家庭的楼盘加 146,308 元。
+:::
+
+::: {.en}
+Three signs run against intuition and are worth stating plainly rather than passing over. `PROX_PARK` at +570,505 and `PROX_BUS_STOP` at +682,482 say that being further from a park, or from a bus stop, raises the price, and `PROX_ELDERLYCARE` at +185,576 says the same of elderly care facilities. The likely reading is not that buyers dislike parks but that these variables are proxying for something the model does not contain. Bus stops are dense in public housing estates and sparse in the low-rise private enclaves, so distance from a bus stop partly measures exclusivity. The coefficients are conditional on the other fourteen variables, and with a correlated set of locational measures a conditional sign can invert relative to the simple association. This is one of the problems a local model is better placed to expose, since a coefficient that is genuinely positive in one part of the city and negative in another will average to something uninterpretable globally.
+:::
+
+::: {.zh}
+有三个符号与直觉相反，值得直说而不是带过。`PROX_PARK` 为 +570,505、`PROX_BUS_STOP` 为 +682,482，意味着离公园或离公交站越远价格越高；`PROX_ELDERLYCARE` 为 +185,576，对养老设施也是同样的结论。较可能的读法不是买家讨厌公园，而是这些变量正在替代模型里没有包含的某些东西。公交站在公共住宅区密集、在低层私人聚落稀疏，所以「离公交站的距离」部分地在度量私密性与排他性。这些系数都是以其余十四个变量为条件的，而当一组位置类度量彼此相关时，条件符号可以与简单关联的符号相反。这正是局部模型更有能力揭示的问题之一：一个系数若在城市某处确为正、在另一处确为负，在全局上平均之后就会变成无法解释的东西。
+:::
+
+### Preparing Publication Quality Table: gtsummary method
+
+::: {.en}
+`tbl_regression()` of **gtsummary** formats a fitted model as a table suitable for a report:
+:::
+
+::: {.zh}
+**gtsummary** 的 `tbl_regression()` 把拟合好的模型排成适合写进报告的表：
+:::
+
+```{r}
+tbl_regression(condo.mlr1, intercept = TRUE)
+```
+
+::: {.en}
+Model-level statistics can be appended as a source note, which keeps the fit and the coefficients in one object:
+:::
+
+::: {.zh}
+模型层面的统计量可以作为表注附上，这样拟合指标与系数就留在同一个对象里：
+:::
+
+```{r}
+tbl_regression(condo.mlr1,
+               intercept = TRUE) %>%
+  add_glance_source_note(
+    label = list(sigma ~ "\U03C3"),
+    include = c(r.squared, adj.r.squared,
+                AIC, statistic,
+                p.value, sigma))
+```
+
+### Regression Diagnostics
+
+::: {.en}
+A significant F statistic and a respectable R² establish that the model has explanatory power, not that it is correctly specified. Four assumptions are checked in turn, and the fourth is the one that leads to GWR.
+:::
+
+::: {.zh}
+显著的 F 统计量和看得过去的 R² 只能确立模型有解释力，并不能确立它被正确设定。下面依次检查四项假定，其中第四项正是引向 GWR 的那一项。
+:::
+
+#### Multicollinearity test
+
+::: {.en}
+`check_collinearity()` of **performance** computes the variance inflation factor for each predictor. A VIF above 10 is conventionally taken as serious collinearity and a value above 5 as worth attention:
+:::
+
+::: {.zh}
+**performance** 的 `check_collinearity()` 为每个自变量计算方差膨胀因子。按惯例，VIF 高于 10 视为严重共线性，高于 5 则值得注意：
+:::
+
+```{r}
+check_collinearity(condo.mlr1)
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+mlr.vif <- check_collinearity(condo.mlr1)
+plot(mlr.vif)
+```
+
+::: {.en}
+Every VIF is below 3.3. The highest is `PROX_CHILDCARE` at 3.26, followed by `PROX_BUS_STOP` at 2.85 and `PROX_PRIMARY_SCH` at 2.21, and **performance** classifies the whole set as low correlation. The correlation of 0.78 seen in the matrix above has therefore not inflated the standard errors to a damaging degree, and no further variable needs to be removed. The odd signs discussed above are not a collinearity artefact.
+:::
+
+::: {.zh}
+所有 VIF 都低于 3.3。最高的是 `PROX_CHILDCARE` 的 3.26，其次是 `PROX_BUS_STOP` 的 2.85 与 `PROX_PRIMARY_SCH` 的 2.21，**performance** 把整组归为低相关。可见上面矩阵里那个 0.78 的相关并没有把标准误膨胀到有害的程度，也不需要再剔除变量。前面讨论的那几个反常符号不是共线性造成的假象。
+:::
+
+#### Test for Non-Linearity
+
+::: {.en}
+The linearity assumption is that the relationship between each predictor and the response is a straight line. `check_model()` with `check = "linearity"` plots the residuals against the fitted values:
+:::
+
+::: {.zh}
+线性假定是指每个自变量与响应之间的关系为直线。`check_model()` 加上 `check = "linearity"` 画出残差对拟合值的图：
+:::
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+check_model(condo.mlr1,
+            check = "linearity")
+```
+
+::: {.en}
+The reference line should be flat if the assumption holds. It is roughly flat over the bulk of the fitted values and bends at the upper end, where the few multi-million dollar transactions are, and the vertical spread widens from left to right. Both features point the same way: price behaves multiplicatively rather than additively, which is what the log transformation computed earlier would have corrected.
+:::
+
+::: {.zh}
+若假定成立，参考线应当是平的。它在拟合值的主体区间大致平直，到上端——也就是那几笔上千万元交易所在之处——弯了起来，而纵向离散度自左向右变宽。两个特征指向同一件事：价格的行为是乘性的而不是加性的，而前面算过的对数变换本可纠正这一点。
+:::
+
+#### Test for Normality Assumption
+
+::: {.en}
+OLS does not require the residuals to be normal for the coefficients to be unbiased, but their normality is what the t and F tests rest on.
+:::
+
+::: {.zh}
+为使系数无偏，OLS 并不要求残差正态；但 t 检验与 F 检验正是建立在残差正态之上的。
+:::
+
+```{r}
+check_normality(condo.mlr1)
+```
+
+::: {.en}
+The test rejects normality at p < 0.001. The quantile-quantile plot shows where the departure is:
+:::
+
+::: {.zh}
+检验在 p < 0.001 上拒绝正态。分位数-分位数图显示偏离出现在哪里：
+:::
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+plot(check_normality(condo.mlr1),
+     type = "qq")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+check_model(condo.mlr1,
+            check = "normality")
+```
+
+::: {.en}
+The points follow the reference line through the middle of the distribution and leave it sharply at the upper tail. The residuals run from −3,470,778 to +12,234,210, so the largest positive residual is more than sixteen times the residual standard error of 756,000. The problem is a small number of very underpredicted transactions rather than a general misshaping, which is consistent with the untransformed dependent variable and the handful of extreme prices in it. With 1,436 observations the central limit theorem protects the t tests reasonably well, so the significance levels above are not void, but they are optimistic.
+:::
+
+::: {.zh}
+点在分布中段贴着参考线，到上尾急剧偏离。残差范围从 −3,470,778 到 +12,234,210，所以最大的正残差是残差标准误 756,000 的十六倍以上。问题出在少数几笔被严重低估的交易，而不是整体形状失真，这与未取对数的因变量及其中那几个极端价格相符。在 1,436 个观测下，中心极限定理对 t 检验提供了相当程度的保护，所以上面的显著性水平并非无效，但偏于乐观。
+:::
+
+#### Testing for Spatial Autocorrelation
+
+::: {.en}
+The remaining assumption is that the residuals are independent of one another. For a model whose predictors are mostly distances this is the assumption most likely to fail, because any locational influence the model has left out will be shared by units that are close together.
+:::
+
+::: {.zh}
+剩下的一项假定是残差彼此独立。对一个自变量以距离为主的模型来说，这是最可能不成立的一项，因为模型遗漏的任何位置性影响，都会被彼此靠近的单位共同承受。
+:::
+
+::: {.en}
+The residuals are extracted and joined to the `sf` object so that they can be mapped:
+:::
+
+::: {.zh}
+取出残差并挂到 `sf` 对象上，以便绘图：
+:::
+
+```{r}
+condo_resale.sf <- cbind(condo_resale.sf,
+                         condo.mlr1$residuals) %>%
+  rename(`MLR_RES` = `condo.mlr1.residuals`)
+```
+
+::: {.en}
+`cbind()` joins by row position rather than by key, which is valid here only because neither object has been reordered or filtered since the model was fitted.
+:::
+
+::: {.zh}
+`cbind()` 是按行位置而非按键连接，这里之所以成立，仅因为自模型拟合以来两个对象都没有被重排或筛选过。
+:::
+
+```{r}
+#| fig-width: 10
+#| fig-height: 7
+tm_shape(mpsz_svy21) +
+  tm_polygons(fill_alpha = 0.4) +
+  tm_shape(condo_resale.sf) +
+  tm_dots(
+    fill = "MLR_RES",
+    size = 0.25,
+    col = "black",
+    fill.scale = tm_scale_intervals(
+      n = 10,
+      values = rev(
+        brewer.pal(11, "RdBu")),
+      style = "quantile",
+      midpoint = NA),
+    fill.legend = tm_legend(title = "Residuals")
+  ) +
+  tm_title("LM Residuals (Quantile Classification)")
+```
+
+::: {.en}
+The map does not look random. Runs of red, where the model underpredicts, and runs of blue, where it overpredicts, occur in blocks rather than being interleaved, with the underpredicted transactions concentrated in the central and southern districts. Reading signs off a map is suggestive rather than conclusive, so the impression is tested.
+:::
+
+::: {.zh}
+这幅图看起来不像随机的。模型低估处的红色与高估处的蓝色各自成片出现，而不是交错分布，其中被低估的交易集中在中部和南部。从地图上读符号只具提示性而非定论，所以这个印象要拿去检验。
+:::
+
+::: {.en}
+A neighbour structure is needed first. `st_dist_band()` of **sfdep** links every transaction to all others within 1,500 metres, and `st_weights()` row-standardises:
+:::
+
+::: {.zh}
+首先需要一个邻居结构。**sfdep** 的 `st_dist_band()` 把每笔交易与 1,500 米内的其他所有交易相连，`st_weights()` 做行标准化：
+:::
+
+```{r}
+condo_resale.sf <- condo_resale.sf %>%
+  mutate(
+    nb = st_dist_band(
+      st_geometry(geometry),
+      upper = 1500),
+    wt = st_weights(
+      nb, style = "W"),
+    .before = 1)
+```
+
+```{r}
+summary(condo_resale.sf$nb)
+```
+
+::: {.en}
+The structure is dense: 66,266 links over 1,436 points, an average of 46 neighbours each, and one transaction with 125. Condominium transactions are clustered by construction, since many units in the same development sell in the same year, so a 1,500 metre radius captures a great many of them. Three points have a single neighbour and the report notes ten disjoint subgraphs, which is a consequence of the same clustering: a handful of isolated developments have no other transaction nearby. The weights are row-standardised, so those points still contribute, each resting on one neighbour.
+:::
+
+::: {.zh}
+这个结构很稠密：1,436 个点上有 66,266 条连边，平均每个 46 个邻居，其中一笔交易有 125 个。公寓交易按其成因本就聚集——同一个楼盘往往有许多单位在同一年售出——所以 1,500 米的半径会把很多笔一并收进来。有三个点只有一个邻居，报告还指出存在十个互不相连的子图，这同样是聚集造成的：少数孤立楼盘附近没有别的交易。权重是行标准化的，所以那些点仍有贡献，各自依据其唯一的那个邻居。
+:::
+
+::: {.en}
+`global_moran_perm()` tests the residuals against a permutation null:
+:::
+
+::: {.zh}
+`global_moran_perm()` 用置换零分布检验残差：
+:::
+
+```{r}
+set.seed(1234)
+global_moran_perm(
+  condo_resale.sf$MLR_RES,
+  nb = condo_resale.sf$nb,
+  wt = condo_resale.sf$wt,
+  alternative = "two.sided",
+  nsim = 499)
+```
+
+::: {.en}
+Moran's I is 0.1439 and the observed value ranks 500th of 500, so no permutation of the residuals produced a value as extreme. The independence assumption is rejected.
+:::
+
+::: {.zh}
+Moran's I 为 0.1439，观测值在 500 个值中排第 500 位，即没有任何一次残差置换给出同样极端的值。独立性假定被拒绝。
+:::
+
+::: {.en}
+This is the diagnostic that matters most for what follows. The statistic itself is modest, and 0.1439 is far below the 0.3 found for GDP per capita in [Hands-on Exercise 5a](../hand-on-ex5/hand-on-ex5a.qmd), which is as expected: these are not raw prices but the part of price the model failed to explain, and most of the spatial structure has already been absorbed by the fourteen predictors. What remains is nevertheless systematic rather than random. Locational influence on price is still present in a form the global model cannot represent, which is the case for letting the coefficients vary over space.
+:::
+
+::: {.zh}
+这是对后文最关键的一项诊断。统计量本身并不大，0.1439 远低于[练习 5a](../hand-on-ex5/hand-on-ex5a.qmd) 中人均 GDP 的 0.3，而这是预期之中的：这里的对象不是原始价格，而是模型未能解释的那部分价格，大部分空间结构已经被十四个自变量吸收掉了。但剩下的部分仍然是系统性的而非随机的。位置对价格的影响依然存在，而其形式是全局模型表达不出来的——这正是让系数随空间变化的理由。
+:::
+
+## Building Hedonic Pricing Models using GWmodel
+
+::: {.en}
+The GWR model uses the same fourteen predictors as `condo.mlr1`. The difference is that each coefficient is estimated separately at every one of the 1,436 locations, from a kernel-weighted subset of the data rather than from all of it.
+:::
+
+::: {.zh}
+GWR 模型用的是与 `condo.mlr1` 相同的十四个自变量。差别在于：每个系数都在 1,436 个位置上各自单独估计，所依据的是经核加权的数据子集，而不是全部数据。
+:::
+
+### Building Fixed Bandwidth GWR Model
+
+#### Computing fixed bandwidth
+
+::: {.en}
+`bw.gwr()` searches for the bandwidth that minimises a criterion. `approach = "CV"` uses leave-one-out cross-validation, `adaptive = FALSE` requests a fixed radius, and `longlat = FALSE` tells the function that the coordinates are already projected so distances can be taken as straight lines in metres:
+:::
+
+::: {.zh}
+`bw.gwr()` 搜索使某个准则最小化的带宽。`approach = "CV"` 用留一交叉验证，`adaptive = FALSE` 要求固定半径，`longlat = FALSE` 告诉函数坐标已经投影过，距离可按米为单位的直线来算：
+:::
+
+```{r}
+#| results: hide
+bw.fixed <- bw.gwr(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE  +
+    PROX_CBD + PROX_CHILDCARE + PROX_ELDERLYCARE    +
+    PROX_URA_GROWTH_AREA + PROX_MRT + PROX_PARK +
+    PROX_PRIMARY_SCH + PROX_SHOPPING_MALL   +
+    PROX_BUS_STOP   + NO_Of_UNITS + FAMILY_FRIENDLY +
+    FREEHOLD,
+  data = condo_resale.sf,
+  approach = "CV",
+  kernel = "gaussian",
+  adaptive = FALSE,
+  longlat = FALSE)
+```
+
+```{r}
+bw.fixed
+```
+
+::: {.en}
+The search settles on 971.39 metres. The verbose output is suppressed with `results: hide` because the function prints a line for every candidate it evaluates.
+:::
+
+::: {.zh}
+搜索最终落在 971.39 米。冗长的输出用 `results: hide` 压掉了，因为该函数对每一个评估过的候选值都会打印一行。
+:::
+
+::: {.en}
+Just under a kilometre is a very local kernel for a model with fifteen coefficients, and the search arrived at it from a long way off: the first candidate it tried was 17,661 metres, and the cross-validation score fell steadily as the bandwidth shrank, from 8.26 × 10^14^ at that width to 4.72 × 10^14^ at the optimum. Cross-validation scores each location by how well it is predicted from the others, so it rewards a narrow kernel as long as enough observations remain inside it. Here the transactions are dense enough for a one-kilometre window to contain a workable sample over most of the island.
+:::
+
+::: {.zh}
+对一个有十五个系数的模型而言，不到一公里是个非常局部的核，而搜索是从很远处一路收过来的：它第一个试的候选值是 17,661 米，随着带宽收窄，交叉验证得分稳步下降，从那个宽度下的 8.26 × 10^14^ 降到最优处的 4.72 × 10^14^。交叉验证按「每个位置能被其他位置预测得多好」打分，所以只要核内还留有足够的观测，它就偏好更窄的核。这里交易足够稠密，一公里的窗口在全岛大部分地方都能装下一个可用的样本。
+:::
+
+#### GWModel method: fixed bandwidth
+
+::: {.en}
+`gwr.basic()` fits the model at that bandwidth:
+:::
+
+::: {.zh}
+`gwr.basic()` 在该带宽下拟合模型：
+:::
+
+```{r}
+gwr.fixed <- gwr.basic(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE  +
+    PROX_CBD + PROX_CHILDCARE + PROX_ELDERLYCARE    +
+    PROX_URA_GROWTH_AREA + PROX_MRT + PROX_PARK +
+    PROX_PRIMARY_SCH + PROX_SHOPPING_MALL   +
+    PROX_BUS_STOP   + NO_Of_UNITS + FAMILY_FRIENDLY +
+    FREEHOLD,
+  data = condo_resale.sf,
+  bw = bw.fixed,
+  kernel = 'gaussian',
+  longlat = FALSE)
+```
+
+```{r}
+gwr.fixed
+```
+
+::: {.en}
+The report prints the global regression first, which reproduces `condo.mlr1` exactly, and then the geographically weighted results, so the two can be compared on the same page.
+:::
+
+::: {.zh}
+报告先打印全局回归——它与 `condo.mlr1` 完全一致——再打印地理加权的结果，这样两者可以在同一页上比较。
+:::
+
+::: {.en}
+The adjusted R² rises from 0.6472 globally to 0.8430, and the residual sum of squares falls from 8.12 × 10^14^ to 2.53 × 10^14^. The AICc falls from 42,967 to 42,264. A difference of 703 in AICc is decisive by any convention, and unlike R² the AICc has already been charged for the extra flexibility, so the improvement is not merely the arithmetic consequence of fitting more parameters.
+:::
+
+::: {.zh}
+调整后 R² 从全局的 0.6472 升到 0.8430，残差平方和从 8.12 × 10^14^ 降到 2.53 × 10^14^，AICc 从 42,967 降到 42,264。AICc 相差 703，按任何惯例都是决定性的；而且与 R² 不同，AICc 已经为这份额外的灵活性记过账，所以这个改进不只是「拟合了更多参数」的算术后果。
+:::
+
+::: {.en}
+That charge is substantial. The effective number of parameters is 438.36, against 15 for the global model, leaving 997.64 effective degrees of freedom out of 1,436 observations. Roughly three in ten degrees of freedom have been spent on letting the coefficients vary.
+:::
+
+::: {.zh}
+这笔账相当可观。有效参数个数为 438.36，而全局模型是 15，于是 1,436 个观测里只剩 997.64 个有效自由度。大约每十个自由度就有三个花在了让系数随空间变化上。
+:::
+
+### Building Adaptive Bandwidth GWR Model
+
+::: {.en}
+A fixed radius has a known weakness, demonstrated in [In-class Exercise 4](../../in-class-ex/in-class-ex4/in-class-ex4.qmd): where observations are dense the kernel contains many of them and where they are sparse it contains few, so the amount of smoothing varies across the map for reasons unconnected to the phenomenon. For condominium transactions, which are far denser in the central districts than in the outer estates, that unevenness is pronounced.
+:::
+
+::: {.zh}
+固定半径有一个已知的弱点，[课堂练习 4](../../in-class-ex/in-class-ex4/in-class-ex4.qmd) 已经演示过：观测稠密处核里装的多、稀疏处装的少，于是平滑程度在地图各处不一，而原因与所研究的现象无关。公寓交易在中心区远比外围住区稠密，这种不均因而相当明显。
+:::
+
+#### Computing the adaptive bandwidth
+
+::: {.en}
+An adaptive bandwidth fixes the number of neighbours instead and lets the radius vary:
+:::
+
+::: {.zh}
+自适应带宽改为固定邻居个数、让半径变化：
+:::
+
+```{r}
+#| results: hide
+bw.adaptive <- bw.gwr(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE  +
+    PROX_CBD + PROX_CHILDCARE + PROX_ELDERLYCARE    +
+    PROX_URA_GROWTH_AREA + PROX_MRT + PROX_PARK +
+    PROX_PRIMARY_SCH + PROX_SHOPPING_MALL   +
+    PROX_BUS_STOP   + NO_Of_UNITS +
+    FAMILY_FRIENDLY + FREEHOLD,
+  data = condo_resale.sf,
+  approach = "CV",
+  kernel = "gaussian",
+  adaptive = TRUE,
+  longlat = FALSE)
+```
+
+```{r}
+bw.adaptive
+```
+
+::: {.en}
+The recommended bandwidth is 30 nearest neighbours.
+:::
+
+::: {.zh}
+推荐的带宽是 30 个最近邻。
+:::
+
+#### Constructing the adaptive bandwidth gwr model
+
+```{r}
+gwr.adaptive <- gwr.basic(
+  formula = SELLING_PRICE ~ AREA_SQM + AGE +
+    PROX_CBD + PROX_CHILDCARE + PROX_ELDERLYCARE +
+    PROX_URA_GROWTH_AREA + PROX_MRT + PROX_PARK +
+    PROX_PRIMARY_SCH + PROX_SHOPPING_MALL + PROX_BUS_STOP +
+    NO_Of_UNITS + FAMILY_FRIENDLY + FREEHOLD,
+  data = condo_resale.sf,
+  bw = bw.adaptive,
+  kernel = 'gaussian',
+  adaptive = TRUE,
+  longlat = FALSE)
+```
+
+```{r}
+gwr.adaptive
+```
+
+::: {.en}
+The adaptive model is the better of the two on every count. Its AICc is 41,982 against 42,264 for the fixed kernel, a further improvement of 281. Its adjusted R² is 0.8561 against 0.8430. And it achieves this using fewer effective parameters, 350.31 against 438.36, so it is both a better fit and a more economical one. The R² values are almost identical at 0.8912 and 0.8910; the adjusted figures separate them because they account for the difference in parameters.
+:::
+
+::: {.zh}
+两者相比，自适应模型在每一项上都更好：AICc 为 41,982，对固定核的 42,264，又改进了 281；调整后 R² 为 0.8561，对 0.8430。而且它用的有效参数更少，350.31 对 438.36，所以它既拟合更好、也更节省。两者的 R² 几乎相同，0.8912 与 0.8910；是调整后的数值把它们分开的，因为那个指标计入了参数个数的差别。
+:::
+
+::: {.en}
+The ordering matches the one found in In-class Exercise 4, where the adaptive specification was also the one the data supported. The reason is the same in both cases: Hunan's counties and Singapore's condominium developments are both distributed unevenly, and an adaptive kernel is the specification that does not let that unevenness into the estimates.
+:::
+
+::: {.zh}
+这个次序与课堂练习 4 中的结果一致，那里数据支持的同样是自适应设定。两处的原因相同：湖南的县与新加坡的公寓楼盘都分布不均，而自适应核是唯一不把这种不均带进估计值的设定。
+:::
+
+::: {.en}
+Each local regression is fitted on the 30 nearest transactions and estimates 15 coefficients, so a local coefficient is a far noisier quantity than a global one. `gwr.basic()` returns a standard error and a t value alongside every estimate for exactly this reason, and the mapping below uses them: a coefficient surface is read together with its t surface, and only the locations where the estimate is locally significant are taken to say anything. The local R² surface and the fit statistics rest on the whole local fit rather than on any single coefficient, so they are the more robust part of the output.
+:::
+
+::: {.zh}
+每个局部回归都只用最近的 30 笔交易来估计 15 个系数，所以局部系数是个比全局系数噪声大得多的量。`gwr.basic()` 之所以在每个估计值旁同时返回标准误与 t 值，正是为此；下面的绘图会用到它们：系数面要与它的 t 面一起读，只有估计值在局部显著的那些位置才被当作说明了什么。局部 R² 面与拟合统计量依据的是整个局部拟合而不是任何单个系数，所以它们是输出中更稳健的部分。
+:::
+
+### Visualising GWR Output
+
+::: {.en}
+Besides the usual regression output, the object returned by `gwr.basic()` carries a `SDF` slot holding one row per location with the following fields:
+:::
+
+::: {.zh}
+除常规回归输出之外，`gwr.basic()` 返回的对象还带一个 `SDF` 槽，每个位置一行，含以下字段：
+:::
+
+| Field | Meaning |
+|----|----|
+| Coefficient estimates | One column per predictor, holding the local coefficient at that location |
+| `y`, `yhat`, `residual` | The observed value, the fitted value, and their difference |
+| `CV_Score` | The cross-validation score at that location |
+| `Stud_residual` | The studentised residual, the residual divided by its local standard deviation |
+| `*_SE` | The standard error of each local coefficient |
+| `*_TV` | The t value of each local coefficient, the estimate divided by its standard error |
+| `Local_R2` | The goodness of fit of the local regression at that location |
+
+### Converting SDF into sf data.frame
+
+::: {.en}
+The `SDF` slot is a `Spatial*DataFrame` from the older **sp** class system. `st_as_sf()` converts it back to an `sf` object so **tmap** can draw it:
+:::
+
+::: {.zh}
+`SDF` 槽是旧 **sp** 类体系下的 `Spatial*DataFrame`。`st_as_sf()` 把它转回 `sf` 对象，这样 **tmap** 才画得出来：
+:::
+
+```{r}
+condo_resale.sf.adaptive <-
+  st_as_sf(gwr.adaptive$SDF) %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+glimpse(condo_resale.sf.adaptive)
+```
+
+```{r}
+summary(gwr.adaptive$SDF$yhat)
+```
+
+::: {.en}
+The fitted values run from 171,347 to 13,887,901 with a median of 1,385,528, against an observed median of 1,383,222. The local model is tracking the centre of the price distribution closely, which the global model did not: its own fitted values could not reach the top of the observed range at all.
+:::
+
+::: {.zh}
+拟合值从 171,347 到 13,887,901，中位数 1,385,528，而观测中位数是 1,383,222。局部模型紧紧跟住了价格分布的中心，这是全局模型没做到的：全局模型的拟合值根本到不了观测范围的上端。
+:::
+
+### Visualising local R2
+
+::: {.en}
+The local R² is the fit of the regression at each point, and mapping it shows where the hedonic specification works and where it does not:
+:::
+
+::: {.zh}
+局部 R² 是每个点上回归的拟合程度，把它画成图就能看出这套特征价格设定在哪里管用、在哪里不管用：
+:::
+
+```{r}
+#| fig-width: 10
+#| fig-height: 7
+tm_shape(mpsz_svy21) +
+  tm_polygons(fill_alpha = 0.1) +
+  tm_shape(condo_resale.sf.adaptive) +
+  tm_dots(fill = "Local_R2",
+          size = 0.25,
+          fill.scale = tm_scale_intervals(
+            style = "quantile",
+            n = 5,
+            values = "brewer.yl_or_rd"),
+          fill.legend = tm_legend(title = "Local R2")) +
+  tm_title("Local R2 of the adaptive bandwidth GWR model")
+```
+
+::: {.en}
+The local R² runs from 0.6718 to 0.9926 with a median of 0.9067. Even the worst-fitting neighbourhood is explained better by its local regression than the whole island was by the global model, whose R² was 0.6507.
+:::
+
+::: {.zh}
+局部 R² 从 0.6718 到 0.9926，中位数 0.9067。即便拟合最差的那个邻域，其局部回归的解释力也强于全局模型对全岛的解释力——后者的 R² 是 0.6507。
+:::
+
+::: {.en}
+The weakest fits are scattered rather than concentrated in one district, which is informative. Had they formed a block, the reading would be that the specification is missing something about that part of the city. Scattered low values point instead at the developments whose 30 nearest transactions happen to be heterogeneous, which is a property of the sampling rather than of the location.
+:::
+
+::: {.zh}
+拟合最弱的那些点是散布的，而不是集中在某一个片区，这一点有信息量。若它们连成一块，读法就该是这套设定漏掉了关于城市那一部分的某些东西。散落的低值反而指向那些「最近 30 笔交易恰好异质」的楼盘，这是抽样的性质而不是位置的性质。
+:::
+
+### Visualising coefficient estimates
+
+::: {.en}
+The same mapping applies to any column of the `SDF`. Drawing a coefficient's standard error beside its t value shows where the local estimate is trustworthy: a t value above about 2 in absolute terms marks a locally significant coefficient, and a large standard error marks one that is not identified:
+:::
+
+::: {.zh}
+同样的绘图方式适用于 `SDF` 的任何一列。把某个系数的标准误与它的 t 值并排画出，就能看出局部估计在哪里可信：t 值绝对值大于约 2 标示该系数在局部显著，而标准误很大则标示它没有被识别出来：
+:::
+
+```{r}
+#| fig-width: 13
+#| fig-height: 6
+AREA_SQM_SE <- tm_shape(mpsz_svy21) +
+  tm_polygons(fill_alpha = 0.1) +
+  tm_shape(condo_resale.sf.adaptive) +
+  tm_dots(fill = "AREA_SQM_SE",
+          size = 0.2,
+          fill.scale = tm_scale_intervals(
+            style = "quantile",
+            n = 5,
+            values = "brewer.yl_or_rd"),
+          fill.legend = tm_legend(title = "AREA_SQM SE")) +
+  tm_title("Standard error")
+
+AREA_SQM_TV <- tm_shape(mpsz_svy21) +
+  tm_polygons(fill_alpha = 0.1) +
+  tm_shape(condo_resale.sf.adaptive) +
+  tm_dots(fill = "AREA_SQM_TV",
+          size = 0.2,
+          fill.scale = tm_scale_intervals(
+            style = "quantile",
+            n = 5,
+            values = "brewer.rd_bu"),
+          fill.legend = tm_legend(title = "AREA_SQM TV")) +
+  tm_title("t value")
+
+tmap_arrange(AREA_SQM_SE, AREA_SQM_TV,
+             asp = 1, ncol = 2)
+```
+
+::: {.en}
+The two panels are drawn on a shared layout so that a given location can be found in both, which is what makes the pair readable: the question being asked of it is whether a location is dark on the left and pale on the right.
+:::
+
+::: {.zh}
+两幅面板画在同一套版面上，使同一个位置在两幅里都能找到，这才使这一对图可读：要向它提的问题是——某个位置是否在左图里深、在右图里浅。
+:::
+
+::: {.en}
+Floor area is the structural attribute, the one with no spatial content of its own, and the pair shows it behaving as a well-identified coefficient: the t value clears the conventional threshold at 96% of the 1,436 locations, and the large standard errors are confined to a small number of them. The local `AREA_SQM` surface can therefore be read as a finding in its own right. It runs from 3,319 to 23,064 dollars per square metre, so an extra square metre is worth several times more in the central districts than in the outer estates, which is the kind of variation the single global coefficient of 12,778 averages away.
+:::
+
+::: {.zh}
+面积是结构类属性，本身不含空间内容，而这一对图显示它表现得像一个被良好识别的系数：在 1,436 个位置中有 96% 的 t 值越过了通行阈值，标准误较大的只局限在少数几处。因此局部的 `AREA_SQM` 面本身就可以当作一项发现来读。它从每平方米 3,319 元到 23,064 元，也就是说多一平方米在中心区的价值是外围住区的数倍——而这正是那个 12,778 的单一全局系数所平均掉的那种变化。
+:::
+
+::: {.en}
+Reading a coefficient surface against its own t surface, rather than mapping the estimate alone, is what makes that claim safe to state.
+:::
+
+::: {.zh}
+把系数面对照它自己的 t 面来读，而不是只画估计值，这才使上面那个论断可以稳妥地说出来。
+:::
+
+## Reference
+
+-   Kam, T. S. *R for Geospatial Data Science and Analytics*, [Chapter 13: Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method](https://r4gdsa.netlify.app/chap13).
+-   Fotheringham, A. S., Brunsdon, C. and Charlton, M. (2002) *Geographically Weighted Regression: The Analysis of Spatially Varying Relationships*. Chichester: Wiley.
+-   Brunsdon, C., Fotheringham, A. S. and Charlton, M. (1996) ["Geographically Weighted Regression: A Method for Exploring Spatial Nonstationarity"](https://onlinelibrary.wiley.com/doi/10.1111/j.1538-4632.1996.tb00936.x), *Geographical Analysis*, 28(4): 281-298.
+-   Gollini, I., Lu, B., Charlton, M., Brunsdon, C. and Harris, P. (2015) ["GWmodel: An R Package for Exploring Spatial Heterogeneity Using Geographically Weighted Models"](https://www.jstatsoft.org/article/view/v063i17), *Journal of Statistical Software*, 63(17).
+-   Rosen, S. (1974) "Hedonic Prices and Implicit Markets: Product Differentiation in Pure Competition", *Journal of Political Economy*, 82(1): 34-55.
+-   [GWmodel: Geographically-Weighted Models](https://cran.r-project.org/package=GWmodel)
+-   [performance: Assessment of Regression Models Performance](https://easystats.github.io/performance/)

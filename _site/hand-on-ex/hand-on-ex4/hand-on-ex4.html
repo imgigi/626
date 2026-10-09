@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-19">
+<meta name="dcterms.date" content="2026-10-09">
 
 <title>Hands-on Exercise 4: Spatial Weights and Applications – ISSS626-GAA</title>
 <style>
@@ -188,6 +188,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex6/hand-on-ex6.html">
  <span class="dropdown-text">Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex7/hand-on-ex7.html">
+ <span class="dropdown-text">Exercise 7 · Hedonic Pricing Model with GWR</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -316,14 +321,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 19, 2026</p>
+      <p class="date">October 9, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 19, 2026</p>
+      <p class="date-modified">October 9, 2026</p>
     </div>
   </div>
     
@@ -336,6 +341,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<div class="en">
 <p>Every measure of spatial association, from Moran’s I and Geary’s C to the local indicators that follow in later exercises, rests on a prior decision that is rarely stated explicitly: which areas count as neighbours of which. That decision is encoded in a <strong>spatial weights matrix</strong>, an <em>n</em> × <em>n</em> object whose entry <em>w<sub>ij</sub></em> records how strongly area <em>i</em> is linked to area <em>j</em>. The matrix is not given by the data; it is constructed, and the construction is a modelling choice.</p>
 <p>This exercise builds that matrix four different ways for the 88 counties of Hunan province, then puts it to work by computing spatially lagged versions of a development indicator. By the end of it the following are in place:</p>
 <ul>
@@ -344,10 +350,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>spatial weights computed with the appropriate functions of <strong>spdep</strong>, and</li>
 <li>spatially lagged variables calculated with <strong>spdep</strong>.</li>
 </ul>
+</div>
+<div class="zh">
+<p>每一个空间关联测度，从 Moran’s I、Geary’s C 到后续练习中的局部指标，都建立在一个很少被明说的前置判断之上：哪些区域算作彼此的邻居。这个判断被编码进<strong>空间权重矩阵</strong>——一个 <em>n</em> × <em>n</em> 的对象，其元素 <em>w<sub>ij</sub></em> 记录区域 <em>i</em> 与区域 <em>j</em> 的联系强度。这个矩阵不是数据自带的，而是构造出来的，构造方式本身就是一种建模选择。</p>
+<p>本练习为湖南省 88 个县以四种不同方式构建该矩阵，再用它计算某个发展指标的空间滞后版本。练习结束时应当完成：</p>
+<ul>
+<li>用 <strong>sf</strong> 的相应函数导入地理空间数据；</li>
+<li>用 <strong>readr</strong> 导入属性表，并用 <strong>dplyr</strong> 做关系连接挂上去；</li>
+<li>用 <strong>spdep</strong> 的相应函数计算空间权重；</li>
+<li>用 <strong>spdep</strong> 计算空间滞后变量。</li>
+</ul>
+</div>
 </section>
 <section id="the-study-area-and-data" class="level2">
 <h2 class="anchored" data-anchor-id="the-study-area-and-data">The Study Area and Data</h2>
+<div class="en">
 <p>Two data sets are used:</p>
+</div>
+<div class="zh">
+<p>使用两个数据集：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -365,12 +387,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>County boundary layer of Hunan province, China, in ESRI shapefile format</td>
 </tr>
 <tr class="even">
-<td><code>Hunan_2012.7831–114.2544 E by 24.6342–30.1281 N, and geodetic CRS WGS 84, all identical to the figures printed in the chapter. Every number produced in this document therefore matches the textbook’s, which is not the case for <a href="../../hand-on-ex/hand-on-ex3/hand-on-ex3.html">Hands-on Exercise 3</a>, where the source data had to be rebuilt.</p>
-</div>
-</div>
+<td><code>Hunan_2012.csv</code></td>
+<td>Selected local development indicators for Hunan in 2012</td>
+</tr>
+</tbody>
+</table>
 <section id="getting-started" class="level3">
 <h3 class="anchored" data-anchor-id="getting-started">Getting Started</h3>
+<div class="en">
 <p>Five packages are used:</p>
+</div>
+<div class="zh">
+<p>用到五个包：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -412,10 +441,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="getting-the-data-into-r-environment" class="level2">
 <h2 class="anchored" data-anchor-id="getting-the-data-into-r-environment">Getting the Data Into R Environment</h2>
+<div class="en">
 <p>The geospatial data arrives as an ESRI shapefile and the attribute table as a csv. They are brought in separately and then joined on the county name.</p>
+</div>
+<div class="zh">
+<p>地理空间数据是 ESRI shapefile，属性表是 csv。两者分别导入，再按县名连接起来。</p>
+</div>
 <section id="import-shapefile-into-r-environment" class="level3">
 <h3 class="anchored" data-anchor-id="import-shapefile-into-r-environment">Import shapefile into R environment</h3>
+<div class="en">
 <p><code>st_read()</code> of <strong>sf</strong> imports the Hunan shapefile. The result is a simple feature object:</p>
+</div>
+<div class="zh">
+<p><strong>sf</strong> 的 <code>st_read()</code> 导入湖南 shapefile，得到一个简单要素对象：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>,</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">layer =</span> <span class="st">"Hunan"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -430,28 +469,53 @@ Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The header reports 88 polygon features with seven attribute fields, in geographic coordinates on WGS 84. The coordinates are left unprojected: the <strong>spdep</strong> functions used below accept longitude–latitude input directly and compute great circle distances in kilometres when asked to, so no reprojection is required.</p>
+</div>
+<div class="zh">
+<p>表头显示 88 个多边形要素、七个属性字段，坐标是 WGS 84 下的地理坐标。坐标不做投影：下面用到的 <strong>spdep</strong> 函数可以直接接受经纬度输入，需要时按大圆距离以公里计算，因此无需重投影。</p>
+</div>
 </section>
 <section id="import-csv-file-into-r-environment" class="level3">
 <h3 class="anchored" data-anchor-id="import-csv-file-into-r-environment">Import csv file into R environment</h3>
+<div class="en">
 <p><code>read_csv()</code> of <strong>readr</strong> imports the indicator table. The output is a plain data frame with no geometry:</p>
+</div>
+<div class="zh">
+<p><strong>readr</strong> 的 <code>read_csv()</code> 导入指标表，输出是不带几何的普通数据框：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>hunan2012 <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial/Hunan_2012.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="performing-relational-join" class="level3">
 <h3 class="anchored" data-anchor-id="performing-relational-join">Performing relational join</h3>
+<div class="en">
 <p><code>left_join()</code> of <strong>dplyr</strong> attaches the indicator fields to the attribute table of the <code>hunan</code> simple feature object. Both tables carry a <code>County</code> field, so that is the join key. <code>select()</code> then keeps only the identifying fields and GDPPC, gross domestic product per capita, which is the variable carried through the rest of the exercise:</p>
+</div>
+<div class="zh">
+<p><strong>dplyr</strong> 的 <code>left_join()</code> 把指标字段挂到 <code>hunan</code> 简单要素对象的属性表上。两张表都有 <code>County</code> 字段，就以它为连接键。接着 <code>select()</code> 只保留标识字段和 GDPPC（人均国内生产总值），这是贯穿本练习余下部分的变量：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, hunan2012, <span class="at">by =</span> <span class="st">"County"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="dv">7</span>, <span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The join is written with an explicit <code>by =</code> rather than left to automatic matching, so the key is visible in the document rather than reported in a message. The order of the join matters: <code>hunan</code> comes first, which keeps the result an <code>sf</code> object with its geometry column intact.</p>
+</div>
+<div class="zh">
+<p>连接时显式写出 <code>by =</code> 而不交给自动匹配，这样连接键在文档里直接可见，而不是藏在一条提示信息里。连接的顺序有讲究：<code>hunan</code> 放在前面，结果才仍是带完整几何列的 <code>sf</code> 对象。</p>
+</div>
 </section>
 </section>
 <section id="visualising-regional-development-indicator" class="level2">
 <h2 class="anchored" data-anchor-id="visualising-regional-development-indicator">Visualising Regional Development Indicator</h2>
+<div class="en">
 <p>Before any weights are built, a basemap of county names and a choropleth of GDPPC give a sense of what the province looks like and where its wealth sits:</p>
+</div>
+<div class="zh">
+<p>在构建权重之前，先画一幅带县名的底图和一幅 GDPPC 分级统计图，对该省的样貌和财富分布有个概念：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>basemap <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(hunan) <span class="sc">+</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>() <span class="sc">+</span></span>
@@ -469,12 +533,23 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>GDPPC is concentrated in the north-east, around Changsha and its neighbours. Whether that concentration amounts to spatial clustering is precisely the question a weights matrix is needed to answer.</p>
+</div>
+<div class="zh">
+<p>GDPPC 集中在东北部，长沙及其周边一带。这种集中是否构成空间聚集，正是需要靠权重矩阵来回答的问题。</p>
+</div>
 </section>
 <section id="computing-contiguity-spatial-weights" class="level2">
 <h2 class="anchored" data-anchor-id="computing-contiguity-spatial-weights">Computing Contiguity Spatial Weights</h2>
+<div class="en">
 <p><code>poly2nb()</code> of <strong>spdep</strong> builds a neighbours list from regions with contiguous boundaries. Its <code>queen</code> argument takes <code>TRUE</code> or <code>FALSE</code>; the default is <code>TRUE</code>, so omitting it returns first order neighbours under the Queen criterion.</p>
 <p>The two criteria differ in what counts as contact. Under the <strong>Rook</strong> criterion two counties are neighbours only if their boundaries share a line segment. Under the <strong>Queen</strong> criterion a single shared point is enough, so counties meeting only at a corner are also counted.</p>
+</div>
+<div class="zh">
+<p><strong>spdep</strong> 的 <code>poly2nb()</code> 从边界相接的区域构建邻居列表。它的 <code>queen</code> 参数取 <code>TRUE</code> 或 <code>FALSE</code>，默认是 <code>TRUE</code>，所以不写该参数时返回的是 Queen 准则下的一阶邻居。</p>
+<p>两种准则的差别在于什么算”相接”。<strong>Rook</strong> 准则下，只有两县边界共有一段线才算邻居；<strong>Queen</strong> 准则下，共有一个点就够了，所以仅在一角相触的县也算邻居。</p>
+</div>
 <section id="computing-queen-contiguity-based-neighbours" class="level3">
 <h3 class="anchored" data-anchor-id="computing-queen-contiguity-based-neighbours">Computing (QUEEN) contiguity based neighbours</h3>
 <div class="cell">
@@ -496,29 +571,54 @@ Link number distribution:
 85 with 11 links</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The summary reports 88 area units. The most connected has 11 neighbours; two units have a single neighbour each. The average of 5.09 links is the baseline against which every other criterion below is measured.</p>
+</div>
+<div class="zh">
+<p>摘要显示 88 个面单元。连通度最高的有 11 个邻居；有两个单元各只有一个邻居。平均 5.09 条连边是下文其他各准则的比较基准。</p>
+</div>
+<div class="en">
 <p>For each polygon <code>wm_q</code> lists all neighbouring polygons. The neighbours of the first polygon are:</p>
+</div>
+<div class="zh">
+<p><code>wm_q</code> 为每个多边形列出其所有邻接多边形。第一个多边形的邻居是：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>wm_q[[<span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1]  2  3  4 57 85</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Polygon 1 has five neighbours. The numbers are the polygon IDs as stored in the <code>hunan</code> object, which are row positions rather than county identifiers. The name behind ID 1 is recovered with:</p>
+</div>
+<div class="zh">
+<p>1 号多边形有五个邻居。这些数字是 <code>hunan</code> 对象里存的多边形 ID，也就是行位置，不是县的标识码。ID 1 对应的名称这样取出：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>hunan<span class="sc">$</span>County[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Anxiang"</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Polygon ID 1 is Anxiang county. The names of its five neighbours follow from the same indexing:</p>
+</div>
+<div class="zh">
+<p>ID 1 是安乡县。它那五个邻居的名称按同样的索引方式取出：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>hunan<span class="sc">$</span>NAME_3[<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">57</span>, <span class="dv">85</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Hanshou" "Jinshi"  "Li"      "Nan"     "Taoyuan"</code></pre>
 </div>
 </div>
+<div class="en">
 <p>And their GDPPC values:</p>
+</div>
+<div class="zh">
+<p>以及它们的 GDPPC 值：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>nb1 <span class="ot">&lt;-</span> wm_q[[<span class="dv">1</span>]]</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>nb1 <span class="ot">&lt;-</span> hunan<span class="sc">$</span>GDPPC[nb1]</span>
@@ -527,10 +627,20 @@ Link number distribution:
 <pre><code>[1] 20981 34592 24473 21311 22879</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The five Queen neighbours of Anxiang have GDPPC of 20981, 34592, 24473, 21311 and 22879 respectively. These five numbers reappear in the final section, where their weighted average becomes the spatial lag of Anxiang.</p>
+</div>
+<div class="zh">
+<p>安乡的五个 Queen 邻居的 GDPPC 分别是 20981、34592、24473、21311、22879。这五个数在最后一节会再次出现，它们的加权平均就是安乡的空间滞后值。</p>
+</div>
+<div class="en">
 <p>The complete neighbour list is displayed with <code>str()</code>. The output runs to 88 entries, so it is folded away here:</p>
+</div>
+<div class="zh">
+<p>完整的邻居列表用 <code>str()</code> 显示。输出共 88 条，这里折叠起来：</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -539,7 +649,7 @@ Link number distribution:
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(wm_q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -650,7 +760,12 @@ Link number distribution:
 </section>
 <section id="creating-rook-contiguity-based-neighbours" class="level3">
 <h3 class="anchored" data-anchor-id="creating-rook-contiguity-based-neighbours">Creating (ROOK) contiguity based neighbours</h3>
+<div class="en">
 <p>The same function with <code>queen = FALSE</code> applies the Rook criterion:</p>
+</div>
+<div class="zh">
+<p>同一个函数加上 <code>queen = FALSE</code> 就是 Rook 准则：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>wm_r <span class="ot">&lt;-</span> <span class="fu">poly2nb</span>(hunan, <span class="at">queen =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(wm_r)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -670,24 +785,54 @@ Link number distribution:
 85 with 10 links</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Eight links are lost, 440 against 448, and the average number of links falls from 5.09 to 5.00. Those eight are the corner touches that the Queen criterion admits and the Rook criterion rejects. The most connected unit drops from 11 neighbours to 10, and the same two units remain with one neighbour each. For irregular administrative polygons of this kind the two criteria rarely diverge much, since exact corner contacts are uncommon; the difference is far more consequential on a regular grid.</p>
+</div>
+<div class="zh">
+<p>连边少了八条，440 对 448，平均连边数从 5.09 降到 5.00。这八条正是 Queen 准则接受而 Rook 准则排除的角接触。连通度最高的单元从 11 个邻居降到 10 个，那两个只有一个邻居的单元不变。对这类不规则的行政多边形，两种准则的差别通常不大，因为恰好在一角相触的情形并不常见；换成规则格网，差别就显著得多。</p>
+</div>
 </section>
 <section id="visualising-contiguity-weights" class="level3">
 <h3 class="anchored" data-anchor-id="visualising-contiguity-weights">Visualising contiguity weights</h3>
+<div class="en">
 <p>A connectivity graph takes a point and draws a line to each neighbouring point. The units here are polygons, so points have to be derived before the graph can be drawn, and the usual choice is the polygon centroid.</p>
+</div>
+<div class="zh">
+<p>连通图的画法是从一个点出发，向它的每个邻居点连一条线。这里的单元是多边形，所以得先导出点才能画图，通常取多边形的质心。</p>
+</div>
+<div class="en">
 <p>The coordinates are needed as a plain matrix rather than as an <code>sf</code> geometry, which rules out running <code>st_centroid()</code> on the object as a whole. Instead the function is mapped over the geometry column one feature at a time. <code>map_dbl()</code> of <strong>purrr</strong> applies a given function to each element of a vector and returns a vector of the same length, so mapping <code>st_centroid()</code> over the geometry column and taking the first element of each result gives the longitudes:</p>
+</div>
+<div class="zh">
+<p>这里需要的是普通矩阵形式的坐标，而不是 <code>sf</code> 几何，所以不能对整个对象直接跑 <code>st_centroid()</code>。改为在几何列上逐要素映射该函数。<strong>purrr</strong> 的 <code>map_dbl()</code> 把给定函数作用于向量的每个元素、返回等长向量，因此在几何列上映射 <code>st_centroid()</code> 并取每个结果的第一个元素，就得到经度：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>longitude <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(hunan<span class="sc">$</span>geometry, <span class="sc">~</span><span class="fu">st_centroid</span>(.x)[[<span class="dv">1</span>]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Latitude is obtained the same way, with the second element of each centroid instead of the first:</p>
+</div>
+<div class="zh">
+<p>纬度同理，取每个质心的第二个元素：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>latitude <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(hunan<span class="sc">$</span>geometry, <span class="sc">~</span><span class="fu">st_centroid</span>(.x)[[<span class="dv">2</span>]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>cbind()</code> puts the two into a single object:</p>
+</div>
+<div class="zh">
+<p><code>cbind()</code> 把两者合成一个对象：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">cbind</span>(longitude, latitude)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The first few rows confirm the format, a two column matrix in the order expected by the <strong>spdep</strong> plotting and distance functions:</p>
+</div>
+<div class="zh">
+<p>前几行可以确认格式：两列的矩阵，列序正是 <strong>spdep</strong> 的绘图与距离函数所要求的：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(coords)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -730,7 +875,12 @@ Link number distribution:
 </section>
 <section id="plotting-both-queen-and-rook-contiguity-based-neighbours-maps" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-both-queen-and-rook-contiguity-based-neighbours-maps">Plotting both Queen and Rook contiguity based neighbours maps</h4>
+<div class="en">
 <p>Side by side, the eight extra Queen links are easier to find than in either map alone:</p>
+</div>
+<div class="zh">
+<p>并排放在一起，比单看任一幅更容易找出那八条多出来的 Queen 连边：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(hunan<span class="sc">$</span>geometry, <span class="at">border =</span> <span class="st">"lightgrey"</span>, <span class="at">main =</span> <span class="st">"Queen Contiguity"</span>)</span>
@@ -745,15 +895,26 @@ Link number distribution:
 </div>
 </div>
 </div>
+<div class="en">
 <p>Both graphs are fully connected, meaning every county is reachable from every other, which is what the absence of isolated units in the two summaries already implied.</p>
+</div>
+<div class="zh">
+<p>两幅图都是全连通的，即任意两县之间都可达，这也正是两份摘要中没有孤立单元所已经暗示的。</p>
+</div>
 </section>
 </section>
 </section>
 <section id="computing-distance-based-neighbours" class="level2">
 <h2 class="anchored" data-anchor-id="computing-distance-based-neighbours">Computing distance based neighbours</h2>
+<div class="en">
 <p>Contiguity is not the only way to define a neighbour. <code>dnearneigh()</code> of <strong>spdep</strong> identifies neighbours of region points by Euclidean distance, within a band whose lower and upper bounds are set by <code>d1=</code> and <code>d2=</code>. If the coordinates are unprojected and <code>longlat = TRUE</code> is passed, great circle distances in kilometres are calculated on the WGS 84 reference ellipsoid, which is the case here, since <code>coords</code> holds longitude and latitude.</p>
+</div>
+<div class="zh">
+<p>邻接并不是定义邻居的唯一方式。<strong>spdep</strong> 的 <code>dnearneigh()</code> 按欧氏距离确定区域点的邻居，距离带的上下界由 <code>d1=</code> 与 <code>d2=</code> 给出。若坐标未投影且传入 <code>longlat = TRUE</code>，则按 WGS 84 参考椭球以公里计算大圆距离——此处正是如此，因为 <code>coords</code> 存的是经纬度。</p>
+</div>
 <section id="determine-the-cut-off-distance" class="level3">
 <h3 class="anchored" data-anchor-id="determine-the-cut-off-distance">Determine the cut-off distance</h3>
+<div class="en">
 <p>The upper limit of the distance band has to be chosen rather than assumed. A defensible choice is the smallest radius at which no county is left without a neighbour, and that is found in four steps:</p>
 <ul>
 <li><code>knearneigh()</code> of <strong>spdep</strong> returns a matrix of the indices of the <em>k</em> nearest neighbours of each point,</li>
@@ -761,6 +922,16 @@ Link number distribution:
 <li><code>nbdists()</code> returns the lengths of the neighbour relationship edges, in the units of the coordinates if projected and in kilometres otherwise, and</li>
 <li><code>unlist()</code> removes the list structure so the lengths can be summarised.</li>
 </ul>
+</div>
+<div class="zh">
+<p>距离带的上限需要选，而不能想当然。一个站得住的选法是：取使得没有任何县失去邻居的最小半径。分四步求得：</p>
+<ul>
+<li><strong>spdep</strong> 的 <code>knearneigh()</code> 返回每个点的 <em>k</em> 个最近邻的索引矩阵；</li>
+<li><code>knn2nb()</code> 把该对象转成 <code>nb</code> 类的邻居列表；</li>
+<li><code>nbdists()</code> 返回各邻接边的长度，坐标已投影时用坐标单位，否则用公里；</li>
+<li><code>unlist()</code> 去掉列表结构，便于对长度做汇总。</li>
+</ul>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>k1 <span class="ot">&lt;-</span> <span class="fu">knn2nb</span>(<span class="fu">knearneigh</span>(coords))</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>k1dists <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">nbdists</span>(k1, coords, <span class="at">longlat =</span> <span class="cn">TRUE</span>))</span>
@@ -770,7 +941,12 @@ Link number distribution:
   24.79   32.57   38.01   39.07   44.52   61.79 </code></pre>
 </div>
 </div>
+<div class="en">
 <p>The largest first nearest neighbour distance is 61.79 km. Using that as the upper threshold guarantees that every unit has at least one neighbour, since by construction each county’s single closest neighbour lies within it.</p>
+</div>
+<div class="zh">
+<p>最大的第一最近邻距离是 61.79 公里。以它作上限阈值可以保证每个单元至少有一个邻居，因为按构造，每个县最近的那一个邻居必然落在该半径内。</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -781,13 +957,23 @@ Link number distribution:
 </div>
 </div>
 <div class="callout-body-container callout-body">
+<div class="en">
 <p><code>knearneigh(coords)</code> with no <code>k</code> returns the single nearest neighbour of each county, and <strong>spdep</strong> notes that the resulting object has 25 sub-graphs. This is expected and is not a defect in the data: linking every point only to its closest partner produces mutual pairs and short chains rather than one connected network, which is why the k = 1 graph is used here purely as a ruler for distances and never as a weights matrix in its own right.</p>
+</div>
+<div class="zh">
+<p><code>knearneigh(coords)</code> 不给 <code>k</code> 时返回每个县的单一最近邻，<strong>spdep</strong> 会提示所得对象含 25 个子图。这是预期之中的，不是数据有缺陷：只把每个点连到它最近的那一个伙伴，得到的是互为最近邻的点对和短链，而不是一个连通网络。正因如此，k = 1 的图在这里只当量距离的尺子用，绝不作为权重矩阵本身。</p>
+</div>
 </div>
 </div>
 </section>
 <section id="computing-fixed-distance-weight-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="computing-fixed-distance-weight-matrix">Computing fixed distance weight matrix</h3>
+<div class="en">
 <p>With the threshold settled, the distance weight matrix is computed:</p>
+</div>
+<div class="zh">
+<p>阈值定下来之后，计算距离权重矩阵：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>wm_d62 <span class="ot">&lt;-</span> <span class="fu">dnearneigh</span>(coords, <span class="dv">0</span>, <span class="dv">62</span>, <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>wm_d62</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -799,10 +985,20 @@ Percentage nonzero weights: 4.183884
 Average number of links: 3.681818 </code></pre>
 </div>
 </div>
+<div class="en">
 <p>The average number of links is 3.68, meaning that across the province each county has on average 3.68 other counties whose centroids lie within 62 km of its own. That is well below the 5.09 of the Queen criterion, and the gap is informative: a fixed radius that is generous enough to reach the most isolated county is still not generous enough to reproduce contiguity everywhere, because Hunan’s counties vary considerably in size.</p>
+</div>
+<div class="zh">
+<p>平均连边数是 3.68，即全省范围内每个县平均有 3.68 个其他县的质心落在自身 62 公里以内。这远低于 Queen 准则的 5.09，而这个差距是有信息量的：一个足以覆盖到最孤立那个县的固定半径，仍不足以在各处复现邻接关系，原因是湖南各县的面积差异相当大。</p>
+</div>
+<div class="en">
 <p>The contents of the matrix are displayed with <code>str()</code>:</p>
+</div>
+<div class="zh">
+<p>矩阵的内容用 <code>str()</code> 显示：</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -811,7 +1007,7 @@ Average number of links: 3.681818 </code></pre>
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-4" class="callout-4-contents callout-collapse collapse">
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(wm_d62)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -922,7 +1118,12 @@ Average number of links: 3.681818 </code></pre>
 </div>
 <section id="plotting-fixed-distance-weight-matrix" class="level4">
 <h4 class="anchored" data-anchor-id="plotting-fixed-distance-weight-matrix">Plotting fixed distance weight matrix</h4>
+<div class="en">
 <p>Plotting the first nearest neighbour links in red over the 62 km links in black shows the two structures together:</p>
+</div>
+<div class="zh">
+<p>把第一最近邻连边画成红色、叠在黑色的 62 公里连边之上，两种结构就能同时看到：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(hunan<span class="sc">$</span>geometry, <span class="at">border =</span> <span class="st">"lightgrey"</span>)</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(wm_d62, coords, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
@@ -935,8 +1136,18 @@ Average number of links: 3.681818 </code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>The red lines are the links to first nearest neighbours and the black lines the links to neighbours within the 62 km cut-off. Every red line is also a black line, which is the graphical statement of the guarantee built into the threshold.</p>
+</div>
+<div class="zh">
+<p>红线是通往第一最近邻的连边，黑线是通往 62 公里截断半径内邻居的连边。每一条红线同时也是黑线，这正是阈值所内含的那个保证的图形表述。</p>
+</div>
+<div class="en">
 <p>The same two graphs can also be placed next to each other:</p>
+</div>
+<div class="zh">
+<p>这两幅图也可以并排放置：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(hunan<span class="sc">$</span>geometry, <span class="at">border =</span> <span class="st">"lightgrey"</span>, <span class="at">main =</span> <span class="st">"1st nearest neighbours"</span>)</span>
@@ -955,8 +1166,18 @@ Average number of links: 3.681818 </code></pre>
 </section>
 <section id="computing-adaptive-distance-weight-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="computing-adaptive-distance-weight-matrix">Computing adaptive distance weight matrix</h3>
+<div class="en">
 <p>A fixed distance weight matrix has a characteristic consequence: densely settled areas, usually urban, tend to have many neighbours, while sparsely settled areas, usually rural, tend to have few. Having many neighbours smooths the neighbour relationship across more units, so the degree of smoothing varies across the map for reasons that have nothing to do with the variable being studied.</p>
+</div>
+<div class="zh">
+<p>固定距离权重矩阵有一个特有的后果：人口稠密区（通常是城区）邻居偏多，稀疏区（通常是农村）邻居偏少。邻居多意味着邻接关系被摊到更多单元上去平滑，于是平滑的程度在地图各处不一致，而原因与所研究的变量毫无关系。</p>
+</div>
+<div class="en">
 <p>Controlling the number of neighbours directly with k-nearest neighbours removes that variation. Asymmetric neighbours can either be accepted or forced symmetric:</p>
+</div>
+<div class="zh">
+<p>用 k 最近邻直接控制邻居个数，可以消除这种不一致。非对称的邻居关系既可以接受，也可以强制对称：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>knn6 <span class="ot">&lt;-</span> <span class="fu">knn2nb</span>(<span class="fu">knearneigh</span>(coords, <span class="at">k =</span> <span class="dv">6</span>))</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>knn6</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -969,10 +1190,20 @@ Average number of links: 6
 Non-symmetric neighbours list</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Each county now has exactly six neighbours, so the total of 528 links is simply 88 × 6 and the average number of links is exactly 6. The report also states that the list is non-symmetric: county <em>i</em> being among the six closest to <em>j</em> does not oblige <em>j</em> to be among the six closest to <em>i</em>. This is the price of a fixed count, and <code>knn2nb()</code> takes a <code>sym = TRUE</code> argument for cases where symmetry is required.</p>
+</div>
+<div class="zh">
+<p>现在每个县恰好六个邻居，所以 528 条连边就是 88 × 6，平均连边数恰为 6。报告同时指出该列表非对称：县 <em>i</em> 属于离 <em>j</em> 最近的六个之一，并不意味着 <em>j</em> 也属于离 <em>i</em> 最近的六个之一。这是固定个数的代价；若需要对称，<code>knn2nb()</code> 有 <code>sym = TRUE</code> 参数。</p>
+</div>
+<div class="en">
 <p>The contents are displayed with <code>str()</code>, and every entry is now the same length:</p>
+</div>
+<div class="zh">
+<p>用 <code>str()</code> 查看内容，此时每一条的长度都相同：</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -981,7 +1212,7 @@ Non-symmetric neighbours list</code></pre>
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-5" class="callout-5-contents callout-collapse collapse">
+<div id="callout-4" class="callout-4-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(knn6)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1102,29 +1333,59 @@ Non-symmetric neighbours list</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>The graph is visibly more uniform than the fixed distance one: the sparse west is as densely linked as the crowded north-east, because the criterion counts neighbours rather than measuring distance.</p>
+</div>
+<div class="zh">
+<p>这幅图明显比固定距离的那幅均匀：稀疏的西部与拥挤的东北部连边一样密，因为该准则数的是邻居个数，而不是量距离。</p>
+</div>
 </section>
 </section>
 </section>
 <section id="weights-based-on-idw" class="level2">
 <h2 class="anchored" data-anchor-id="weights-based-on-idw">Weights based on IDW</h2>
+<div class="en">
 <p>A third approach keeps the contiguity structure but stops treating all neighbours as equivalent, weighting each by the inverse of the distance between the two centroids so that nearer neighbours count for more.</p>
+</div>
+<div class="zh">
+<p>第三种办法保留邻接结构，但不再把所有邻居一视同仁：按两个质心之间距离的倒数赋权，于是越近的邻居权重越大。</p>
+</div>
+<div class="en">
 <p><code>nbdists()</code> computes the distances between areas, and <code>lapply()</code> inverts them:</p>
+</div>
+<div class="zh">
+<p><code>nbdists()</code> 计算区域之间的距离，<code>lapply()</code> 取其倒数：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">nbdists</span>(wm_q, coords, <span class="at">longlat =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>ids <span class="ot">&lt;-</span> <span class="fu">lapply</span>(dist, <span class="cf">function</span>(x) <span class="dv">1</span> <span class="sc">/</span> (x))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The first entry corresponds to the five Queen neighbours of Anxiang seen earlier:</p>
+</div>
+<div class="zh">
+<p>第一条对应前面见过的安乡的五个 Queen 邻居：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>ids[[<span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.01535405 0.03916350 0.01820896 0.02807922 0.01145113</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The values are in reciprocal kilometres, so 0.0392 corresponds to a centroid roughly 26 km away and 0.0115 to one roughly 87 km away, a factor of more than three between the strongest and weakest of Anxiang’s five links, where the plain contiguity matrix would have given all five the same value.</p>
+</div>
+<div class="zh">
+<p>数值的单位是每公里的倒数，所以 0.0392 对应约 26 公里外的质心，0.0115 对应约 87 公里外的质心——安乡这五条连边中最强与最弱相差三倍以上，而普通邻接矩阵会给这五条同一个值。</p>
+</div>
+<div class="en">
 <p>The full set of inverse distances is:</p>
+</div>
+<div class="zh">
+<p>全部的距离倒数如下：</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -1133,7 +1394,7 @@ Non-symmetric neighbours list</code></pre>
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>ids</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1417,8 +1678,14 @@ Non-symmetric neighbours list</code></pre>
 </section>
 <section id="row-standardised-weights-matrix" class="level2">
 <h2 class="anchored" data-anchor-id="row-standardised-weights-matrix">Row-standardised Weights Matrix</h2>
+<div class="en">
 <p>The neighbour list says which units are linked; a weights list says how much each link counts. <code>nb2listw()</code> performs that conversion, and its <code>style</code> argument governs the rule.</p>
 <p>Under <code>style = "W"</code> each neighbour of a unit receives the fraction 1 / (number of neighbours), so the weights in every row sum to one. This is the most intuitive way of summarising neighbouring values, but it carries one drawback: polygons on the edge of the study area base their lagged values on fewer neighbours, and so may over- or under-state the true spatial autocorrelation. <code>style = "W"</code> is used here for simplicity, with the more robust <code>style = "B"</code> noted as the alternative.</p>
+</div>
+<div class="zh">
+<p>邻居列表说明哪些单元相连，权重列表说明每条连边各占多少。<code>nb2listw()</code> 完成这一转换，规则由它的 <code>style</code> 参数决定。</p>
+<p><code>style = "W"</code> 下，一个单元的每个邻居各得 1 /（邻居个数）的份额，于是每一行的权重之和为 1。这是汇总邻居取值最直观的方式，但有一个缺点：研究区边缘的多边形基于更少的邻居算出滞后值，因而可能高估或低估真实的空间自相关。这里为简明起见采用 <code>style = "W"</code>，并指出更稳健的替代是 <code>style = "B"</code>。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>rswm_q <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_q, <span class="at">style =</span> <span class="st">"W"</span>, <span class="at">zero.policy =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>rswm_q</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1436,8 +1703,18 @@ Weights constants summary:
 W 88 7744 88 37.86334 365.9147</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>zero.policy = TRUE</code> permits units with no neighbours at all. It warrants care, since it lets missing neighbours pass unnoticed; with <code>zero.policy = FALSE</code> such a case returns an error instead. Neither applies to this data set, where every county has at least one neighbour.</p>
+</div>
+<div class="zh">
+<p><code>zero.policy = TRUE</code> 允许存在完全没有邻居的单元。这个参数要当心，因为它会让「缺邻居」这件事悄悄通过；设成 <code>zero.policy = FALSE</code> 时这种情形会直接报错。本数据集两种情形都不涉及，每个县至少有一个邻居。</p>
+</div>
+<div class="en">
 <p>The weights of the tenth polygon, which has eight neighbours, are:</p>
+</div>
+<div class="zh">
+<p>第十个多边形有八个邻居，它的权重是：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>rswm_q<span class="sc">$</span>weights[<span class="dv">10</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1445,8 +1722,18 @@ W 88 7744 88 37.86334 365.9147</code></pre>
 [1] 0.125 0.125 0.125 0.125 0.125 0.125 0.125 0.125</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Each neighbour carries 0.125 of the total weight, so when the average neighbouring value is computed each of the eight will be multiplied by 0.125 before being summed.</p>
+</div>
+<div class="zh">
+<p>每个邻居占总权重的 0.125，所以计算邻居平均值时，这八个值各乘 0.125 再求和。</p>
+</div>
+<div class="en">
 <p>The same function derives a weights list from the inverse distances, passed through the <code>glist</code> argument:</p>
+</div>
+<div class="zh">
+<p>同一个函数也能从距离倒数导出权重列表，通过 <code>glist</code> 参数传入：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>rswm_ids <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_q, <span class="at">glist =</span> ids, <span class="at">style =</span> <span class="st">"B"</span>, <span class="at">zero.policy =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>rswm_ids</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1464,7 +1751,12 @@ Weights constants summary:
 B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The first row now holds the inverse distances themselves rather than equal fractions:</p>
+</div>
+<div class="zh">
+<p>此时第一行存的是距离倒数本身，而不是均等的份额：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>rswm_ids<span class="sc">$</span>weights[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1479,11 +1771,21 @@ B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 0.008218 0.015088 0.018739 0.019614 0.022823 0.040338 </code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>style = "B"</code> here leaves the supplied values as they are rather than rescaling them, so these rows do not sum to one, and the row sums vary with both the number and the proximity of each county’s neighbours.</p>
+</div>
+<div class="zh">
+<p>这里的 <code>style = "B"</code> 保留传入的数值、不做重新缩放，所以这些行的和不为 1，而且行和随各县邻居的个数与远近而变化。</p>
+</div>
 </section>
 <section id="application-of-spatial-weight-matrix" class="level2">
 <h2 class="anchored" data-anchor-id="application-of-spatial-weight-matrix">Application of Spatial Weight Matrix</h2>
+<div class="en">
 <p>A weights matrix earns its keep by transforming a variable into a <strong>spatially lagged</strong> version of itself: a summary, for each unit, of the values observed around it. Four such variables are created below, and the differences between them come down to two binary choices: whether the weights are row-standardised or binary, and whether the unit itself is included among its own neighbours.</p>
+</div>
+<div class="zh">
+<p>权重矩阵的用处，体现在它能把一个变量变成自身的<strong>空间滞后</strong>版本：对每个单元，汇总它周围观测到的取值。下面构造四个这样的变量，它们之间的差别归结为两个二元选择：权重是行标准化还是二值，以及该单元自身是否算进它自己的邻居里。</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -1512,7 +1814,12 @@ B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 </table>
 <section id="spatial-lag-with-row-standardized-weights" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-lag-with-row-standardized-weights">Spatial lag with row-standardized weights</h3>
+<div class="en">
 <p><code>lag.listw()</code> computes the average neighbouring GDPPC for each polygon. These are the spatially lagged values:</p>
+</div>
+<div class="zh">
+<p><code>lag.listw()</code> 为每个多边形计算邻居 GDPPC 的平均值，这就是空间滞后值：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>GDPPC.lag <span class="ot">&lt;-</span> <span class="fu">lag.listw</span>(rswm_q, hunan<span class="sc">$</span>GDPPC)</span>
 <span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>GDPPC.lag</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1530,15 +1837,30 @@ B 88 7744 8.786867 0.3776535 3.8137</code></pre>
 [81] 18145.00 21617.00 29203.89 41363.67 22259.09 44939.56 16902.00 16930.00</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The first entry, 24847.20, is the mean of the five GDPPC values retrieved for the neighbours of Anxiang in the earlier section, namely 20981, 34592, 24473, 21311 and 22879, each multiplied by its weight of 0.2 and summed. That is what a row-standardised spatial lag is: the neighbourhood mean, with the unit’s own value excluded.</p>
+</div>
+<div class="zh">
+<p>第一个值 24847.20，就是前面取出的安乡五个邻居的 GDPPC（20981、34592、24473、21311、22879）各乘权重 0.2 再求和的结果。行标准化的空间滞后就是这个意思：邻域均值，不含该单元自身的取值。</p>
+</div>
+<div class="en">
 <p>The lagged values are appended to the <code>hunan</code> data frame:</p>
+</div>
+<div class="zh">
+<p>把滞后值追加到 <code>hunan</code> 数据框：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>lag.list <span class="ot">&lt;-</span> <span class="fu">list</span>(hunan<span class="sc">$</span>NAME_3, <span class="fu">lag.listw</span>(rswm_q, hunan<span class="sc">$</span>GDPPC))</span>
 <span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>lag.res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(lag.list)</span>
 <span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(lag.res) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"NAME_3"</span>, <span class="st">"lag GDPPC"</span>)</span>
 <span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, lag.res, <span class="at">by =</span> <span class="st">"NAME_3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>head()</code> shows the new field alongside the original:</p>
+</div>
+<div class="zh">
+<p><code>head()</code> 把新字段和原字段并排显示：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(hunan)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1563,7 +1885,12 @@ Geodetic CRS:  WGS 84
 6 POLYGON ((110.8825 30.11675...</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Mapping GDPPC against its spatial lag shows what the operation does to the map:</p>
+</div>
+<div class="zh">
+<p>把 GDPPC 与它的空间滞后并排画出来，就能看出这个运算对地图做了什么：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>gdppc <span class="ot">&lt;-</span> <span class="fu">qtm</span>(hunan, <span class="st">"GDPPC"</span>)</span>
 <span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>lag_gdppc <span class="ot">&lt;-</span> <span class="fu">qtm</span>(hunan, <span class="st">"lag GDPPC"</span>)</span>
@@ -1576,11 +1903,21 @@ Geodetic CRS:  WGS 84
 </div>
 </div>
 </div>
+<div class="en">
 <p>The lagged map is smoother, and the isolated high-GDPPC counties of the original are pulled towards their surroundings. Spatial lagging is a spatial smoother, which is exactly why comparing a value to its lag is the basis of the autocorrelation statistics that follow in later exercises.</p>
+</div>
+<div class="zh">
+<p>滞后后的地图更平滑，原图中那些孤立的高 GDPPC 县被拉向周边水平。空间滞后本质上是一个空间平滑器，这也正是「把取值与其滞后值相比」能成为后续练习中各自相关统计量基础的原因。</p>
+</div>
 </section>
 <section id="spatial-lag-as-a-sum-of-neighboring-values" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-lag-as-a-sum-of-neighboring-values">Spatial lag as a sum of neighboring values</h3>
+<div class="en">
 <p>Summing rather than averaging requires binary weights. The neighbours structure is returned to, a function assigning a value of 1 to each neighbour is applied across it with <code>lapply()</code>, and the result is passed to <code>nb2listw()</code> through <code>glist =</code>:</p>
+</div>
+<div class="zh">
+<p>要求和而不是求平均，就需要二值权重。回到邻居结构，用 <code>lapply()</code> 在其上作用一个给每个邻居赋值 1 的函数，再把结果通过 <code>glist =</code> 传给 <code>nb2listw()</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>b_weights <span class="ot">&lt;-</span> <span class="fu">lapply</span>(wm_q, <span class="cf">function</span>(x) <span class="dv">0</span> <span class="sc">*</span> x <span class="sc">+</span> <span class="dv">1</span>)</span>
 <span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>b_weights2 <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_q,</span>
@@ -1601,13 +1938,23 @@ Weights constants summary:
 B 88 7744 448 896 10224</code></pre>
 </div>
 </div>
+<div class="en">
 <p>With binary weights in place, <code>lag.listw()</code> computes the lag as before:</p>
+</div>
+<div class="zh">
+<p>二值权重就位后，<code>lag.listw()</code> 照旧计算滞后值：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>lag_sum <span class="ot">&lt;-</span> <span class="fu">list</span>(hunan<span class="sc">$</span>NAME_3, <span class="fu">lag.listw</span>(b_weights2, hunan<span class="sc">$</span>GDPPC))</span>
 <span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>lag.res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(lag_sum)</span>
 <span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(lag.res) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"NAME_3"</span>, <span class="st">"lag_sum GDPPC"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The result, paired with the county names:</p>
+</div>
+<div class="zh">
+<p>结果与县名配在一起：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>lag_sum</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1647,8 +1994,18 @@ B 88 7744 448 896 10224</code></pre>
 [81] 108870 108085 262835 248182 244850 404456  67608  33860</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Anxiang’s entry is 124236, which is the sum of the same five neighbouring values that averaged to 24847.20. The consequence is that this variable confounds two things: how wealthy the neighbours are, and how many of them there are. A county with eleven modest neighbours outranks one with two prosperous neighbours.</p>
+</div>
+<div class="zh">
+<p>安乡的值是 124236，即前面平均得 24847.20 的那同五个邻居值之和。后果是这个变量把两件事混在了一起：邻居有多富，以及邻居有多少个。有十一个中等邻居的县，排名会高于有两个富裕邻居的县。</p>
+</div>
+<div class="en">
 <p>The field is appended to the data frame:</p>
+</div>
+<div class="zh">
+<p>把该字段追加到数据框：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, lag.res, <span class="at">by =</span> <span class="st">"NAME_3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -1667,19 +2024,39 @@ B 88 7744 448 896 10224</code></pre>
 </section>
 <section id="spatial-window-average" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-window-average">Spatial window average</h3>
+<div class="en">
 <p>The spatial window average uses row-standardised weights and includes the diagonal element, which is to say it treats each county as one of its own neighbours. The neighbours structure is returned to and the diagonal added before weights are assigned, using <code>include.self()</code> of <strong>spdep</strong>:</p>
+</div>
+<div class="zh">
+<p>空间窗口平均用行标准化权重，并且包含对角元素，也就是把每个县算作自己的邻居之一。先回到邻居结构，用 <strong>spdep</strong> 的 <code>include.self()</code> 加上对角元素，再赋权重：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>wm_qs <span class="ot">&lt;-</span> <span class="fu">include.self</span>(wm_q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>The number of nonzero links, percentage nonzero weights and average number of links are now 536, 6.921488 and 6.090909, against 448, 5.785124 and 5.090909 for <code>wm_q</code>. The increase is exactly 88 links, one per county.</p>
+</div>
+<div class="zh">
+<p>此时非零连边数、非零权重占比、平均连边数分别是 536、6.921488、6.090909，而 <code>wm_q</code> 对应的是 448、5.785124、5.090909。增加的恰好是 88 条连边，每县一条。</p>
+</div>
+<div class="en">
 <p>The neighbour list of the first area confirms it:</p>
+</div>
+<div class="zh">
+<p>第一个区域的邻居列表可以印证：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>wm_qs[[<span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1]  1  2  3  4 57 85</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Area 1 now has six neighbours instead of five, the extra one being itself. Weights follow from <code>nb2listw()</code>:</p>
+</div>
+<div class="zh">
+<p>1 号区域的邻居由五个变成六个，多出来的那个是它自己。权重由 <code>nb2listw()</code> 得出：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>wm_qs_w <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_qs)</span>
 <span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>wm_qs_w</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1697,8 +2074,18 @@ Weights constants summary:
 W 88 7744 88 30.90265 357.5308</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The listw object is given its own name rather than overwriting <code>wm_qs</code>, so the neighbour list with the diagonal remains available for reuse in the next section.</p>
+</div>
+<div class="zh">
+<p>listw 对象单独命名而不覆盖 <code>wm_qs</code>，这样含对角元素的邻居列表仍可在下一节复用。</p>
+</div>
+<div class="en">
 <p>The lag variable is then created from the weight structure and the GDPPC variable:</p>
+</div>
+<div class="zh">
+<p>接着由权重结构和 GDPPC 变量生成滞后变量：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>lag_w_avg_gdppc <span class="ot">&lt;-</span> <span class="fu">lag.listw</span>(wm_qs_w, hunan<span class="sc">$</span>GDPPC)</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>lag_w_avg_gdppc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1716,17 +2103,32 @@ W 88 7744 88 30.90265 357.5308</code></pre>
 [81] 18086.14 21244.50 29568.80 48119.71 22310.75 43151.60 17133.40 17009.33</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The lag variable is converted into a data frame with <code>as.data.frame()</code>, and the field names set to <code>NAME_3</code> and <code>lag_window_avg GDPPC</code>:</p>
+</div>
+<div class="zh">
+<p>用 <code>as.data.frame()</code> 把滞后变量转成数据框，字段名设为 <code>NAME_3</code> 与 <code>lag_window_avg GDPPC</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>lag.list.wm_qs <span class="ot">&lt;-</span> <span class="fu">list</span>(hunan<span class="sc">$</span>NAME_3, <span class="fu">lag.listw</span>(wm_qs_w, hunan<span class="sc">$</span>GDPPC))</span>
 <span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>lag_wm_qs.res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(lag.list.wm_qs)</span>
 <span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(lag_wm_qs.res) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"NAME_3"</span>, <span class="st">"lag_window_avg GDPPC"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>left_join()</code> appends the values to the <code>hunan</code> data frame:</p>
+</div>
+<div class="zh">
+<p><code>left_join()</code> 把这些值追加到 <code>hunan</code> 数据框：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, lag_wm_qs.res, <span class="at">by =</span> <span class="st">"NAME_3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>kable()</code> of <strong>knitr</strong> prepares a table comparing the two row-standardised variables. The geometry column is dropped first, since a list column of polygons in a printed table is unreadable:</p>
+</div>
+<div class="zh">
+<p><strong>knitr</strong> 的 <code>kable()</code> 做出一张表，对比这两个行标准化变量。先去掉几何列，因为打印出来的表里放一列多边形列表根本没法读：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="sc">%&gt;%</span></span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
@@ -2188,8 +2590,18 @@ W 88 7744 88 30.90265 357.5308</code></pre>
 </table>
 </div>
 </div>
+<div class="en">
 <p>The two columns differ by exactly the pull of each county’s own value: where a county is richer than its surroundings the window average is higher than the plain lag, and where it is poorer the window average is lower. Changsha, at 41363.67 against 48119.71, is the clearest case in the table.</p>
+</div>
+<div class="zh">
+<p>两列之差恰好是各县自身取值的拉动：县比周边富时，窗口平均高于普通滞后；县比周边穷时，窗口平均低于普通滞后。长沙的 41363.67 对 48119.71 是表中最明显的例子。</p>
+</div>
+<div class="en">
 <p>Finally the two maps are placed side by side:</p>
+</div>
+<div class="zh">
+<p>最后把两幅地图并排放置：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>w_avg_gdppc <span class="ot">&lt;-</span> <span class="fu">qtm</span>(hunan, <span class="st">"lag_window_avg GDPPC"</span>)</span>
 <span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(lag_gdppc, w_avg_gdppc, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2201,11 +2613,21 @@ W 88 7744 88 30.90265 357.5308</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p><code>qtm()</code> is used here for speed of comparison. Because each call chooses its own class breaks, the two maps are not strictly comparable at the level of individual colours; the core <strong>tmap</strong> functions with a shared <code>fill.scale</code> would be the more effective choice for a published figure.</p>
+</div>
+<div class="zh">
+<p>这里用 <code>qtm()</code> 是为了快速比较。由于每次调用各自选定分级断点，两幅地图在单个颜色的层面上并不严格可比；若要出版用图，更有效的选择是用 <strong>tmap</strong> 的核心函数并共用一个 <code>fill.scale</code>。</p>
+</div>
 </section>
 <section id="spatial-window-sum" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-window-sum">Spatial window sum</h3>
+<div class="en">
 <p>The spatial window sum is the counterpart of the window average, without row standardisation. The diagonal element is again added with <code>include.self()</code>:</p>
+</div>
+<div class="zh">
+<p>空间窗口求和是窗口平均的对应物，只是不做行标准化。同样先用 <code>include.self()</code> 加上对角元素：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>wm_qs <span class="ot">&lt;-</span> <span class="fu">include.self</span>(wm_q)</span>
 <span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>wm_qs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2217,7 +2639,12 @@ Percentage nonzero weights: 6.921488
 Average number of links: 6.090909 </code></pre>
 </div>
 </div>
+<div class="en">
 <p>Binary weights are assigned to the neighbour structure that includes the diagonal:</p>
+</div>
+<div class="zh">
+<p>给含对角元素的邻居结构赋二值权重：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>b_weights <span class="ot">&lt;-</span> <span class="fu">lapply</span>(wm_qs, <span class="cf">function</span>(x) <span class="dv">0</span> <span class="sc">*</span> x <span class="sc">+</span> <span class="dv">1</span>)</span>
 <span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>b_weights[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2226,7 +2653,12 @@ Average number of links: 6.090909 </code></pre>
 [1] 1 1 1 1 1 1</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Area 1 again has six neighbours instead of five, so six weights of 1. The values are assigned explicitly through <code>glist</code>:</p>
+</div>
+<div class="zh">
+<p>1 号区域的邻居同样是六个而非五个，于是有六个为 1 的权重。取值通过 <code>glist</code> 显式指定：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>b_weights2 <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_qs,</span>
 <span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">glist =</span> b_weights,</span>
@@ -2246,7 +2678,12 @@ Weights constants summary:
 B 88 7744 536 1072 14160</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>lag.listw()</code> computes the lag variable with the new weight structure:</p>
+</div>
+<div class="zh">
+<p><code>lag.listw()</code> 用新的权重结构计算滞后变量：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>w_sum_gdppc <span class="ot">&lt;-</span> <span class="fu">list</span>(hunan<span class="sc">$</span>NAME_3, <span class="fu">lag.listw</span>(b_weights2, hunan<span class="sc">$</span>GDPPC))</span>
 <span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>w_sum_gdppc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2287,7 +2724,12 @@ B 88 7744 536 1072 14160</code></pre>
 [81] 126603 127467 295688 336838 267729 431516  85667  51028</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The lag variable is converted into a data frame and the fields renamed:</p>
+</div>
+<div class="zh">
+<p>把滞后变量转成数据框并重命名字段：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>w_sum_gdppc.res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(w_sum_gdppc)</span>
 <span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(w_sum_gdppc.res) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"NAME_3"</span>, <span class="st">"w_sum GDPPC"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2296,7 +2738,12 @@ B 88 7744 536 1072 14160</code></pre>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">left_join</span>(hunan, w_sum_gdppc.res, <span class="at">by =</span> <span class="st">"NAME_3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>kable()</code> prepares the comparison between the two binary variables:</p>
+</div>
+<div class="zh">
+<p><code>kable()</code> 做出两个二值变量的对比表：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="sc">%&gt;%</span></span>
 <span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
@@ -2756,7 +3203,12 @@ B 88 7744 536 1072 14160</code></pre>
 </table>
 </div>
 </div>
+<div class="en">
 <p>Here the difference between the two columns is not a pull but an addition: the window sum exceeds the plain sum by precisely the county’s own GDPPC, for every row in the table.</p>
+</div>
+<div class="zh">
+<p>这里两列之差不是拉动而是相加：表中每一行，窗口求和都恰好比普通求和多出该县自身的 GDPPC。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>w_sum_gdppc <span class="ot">&lt;-</span> <span class="fu">qtm</span>(hunan, <span class="st">"w_sum GDPPC"</span>)</span>
 <span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(lag_sum_gdppc, w_sum_gdppc, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

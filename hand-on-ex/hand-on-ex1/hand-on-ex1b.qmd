@@ -17,19 +17,39 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 Thematic mapping uses map symbols to visualise selected properties of geographic features that are not naturally visible, such as population, temperature, crime rate, and property prices.
 
 Geovisualisation combines cartography, computer science, and information visualisation to explore, analyse, and communicate geospatial data, enhancing spatial understanding and knowledge discovery.
 
 In this hands-on exercise, I learn how to plot functional and truthful choropleth maps using the **tmap** package in R.
+:::
+
+::: {.zh}
+专题制图用地图符号把地理要素上那些本来看不见的属性画出来，例如人口、气温、犯罪率、房价。
+
+地理可视化把地图学、计算机科学和信息可视化结合起来，用于探索、分析和传达地理空间数据，从而增进对空间的理解、促成新的发现。
+
+本次练习学习用 R 的 **tmap** 包绘制既实用又如实的分级统计地图。
+:::
 
 ## Getting Started
 
+::: {.en}
 The following R packages are used in this exercise:
 
 - **tmap** for thematic map creation
 - **sf** for handling geospatial data
 - **tidyverse**, which includes **readr**, **tidyr** and **dplyr**, for data import and wrangling
+:::
+
+::: {.zh}
+本练习用到以下 R 包：
+
+- **tmap**，绘制专题地图；
+- **sf**，处理地理空间数据；
+- **tidyverse**（含 **readr**、**tidyr**、**dplyr**），负责数据导入与整理。
+:::
 
 ```{r}
 pacman::p_load(sf, tmap, tidyverse)
@@ -39,31 +59,64 @@ pacman::p_load(sf, tmap, tidyverse)
 
 ### The Data
 
+::: {.en}
 Two datasets are used:
 
 - **Master Plan 2019 Subzone Boundary (No Sea) (GeoJSON)** from [data.gov.sg](https://data.gov.sg/), the geospatial data providing Singapore's planning subzone boundaries based on URA Master Plan 2019.
 - **Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2024** (`respopagesextod2024.csv`) from [Department of Statistics, Singapore](https://www.singstat.gov.sg/), the aspatial data whose PA and SZ fields georeference it to the subzone boundaries.
+:::
+
+::: {.zh}
+使用两个数据集：
+
+- **Master Plan 2019 Subzone Boundary (No Sea)（GeoJSON）**，来自 [data.gov.sg](https://data.gov.sg/)，是依据 URA 2019 总体规划的新加坡规划分区边界；
+- **Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2024**（`respopagesextod2024.csv`），来自[新加坡统计局](https://www.singstat.gov.sg/)，是非空间数据，靠 PA 与 SZ 两个字段与分区边界对应起来。
+:::
 
 ### Importing Geospatial Data into R
 
+::: {.en}
 `st_read()` is used to import the GeoJSON file, and the data is immediately transformed to the SVY21 projected coordinate system (EPSG: 3414). Unlike KML, the GeoJSON format already encodes attribute fields as proper columns, so no additional parsing is needed.
+:::
+
+::: {.zh}
+`st_read()` 读入 GeoJSON，随即转换到 SVY21 投影坐标系统（EPSG: 3414）。GeoJSON 已经把属性字段存成规整的列，不像 KML 那样需要额外解析。
+:::
 
 ```{r}
 mpsz <- st_read("data/geospatial/MasterPlan2019SubzoneBoundaryNoSea.geojson") %>%
   st_transform(crs = 3414)
 ```
 
+::: {.en}
 Examining the `mpsz` data frame:
+:::
+
+::: {.zh}
+查看 `mpsz` 数据框：
+:::
 
 ```{r}
 mpsz
 ```
 
+::: {.en}
 Only the first ten records are displayed by default because `mpsz` is a simple feature (`sf`) data frame, and sf objects print a limited number of rows to keep output manageable.
+:::
+
+::: {.zh}
+默认只显示前十条记录，因为 `mpsz` 是简单要素（`sf`）数据框，sf 对象为控制输出长度只打印有限行数。
+:::
 
 ### Importing Attribute Data into R
 
+::: {.en}
 The population CSV file is imported using `read_csv()`:
+:::
+
+::: {.zh}
+用 `read_csv()` 导入人口 csv 文件：
+:::
 
 ```{r}
 popdata <- read_csv("data/aspatial/respopagesextod2024.csv")
@@ -71,6 +124,7 @@ popdata <- read_csv("data/aspatial/respopagesextod2024.csv")
 
 ### Data Preparation
 
+::: {.en}
 A data table with 2024 values is prepared with the variables: `PA`, `SZ`, `YOUNG`, `ECONOMY ACTIVE`, `AGED`, `TOTAL`, and `DEPENDENCY`.
 
 - **YOUNG**: age groups 0–4 to 20–24
@@ -78,10 +132,27 @@ A data table with 2024 values is prepared with the variables: `PA`, `SZ`, `YOUNG
 - **AGED**: age group 65 and above
 - **TOTAL**: all age groups
 - **DEPENDENCY**: ratio of (YOUNG + AGED) to ECONOMY ACTIVE
+:::
+
+::: {.zh}
+整理出一张 2024 年的数据表，含 `PA`、`SZ`、`YOUNG`、`ECONOMY ACTIVE`、`AGED`、`TOTAL`、`DEPENDENCY` 七个变量。
+
+- **YOUNG**：0–4 岁到 20–24 岁各组之和；
+- **ECONOMY ACTIVE**：25–29 岁到 60–64 岁各组之和；
+- **AGED**：65 岁及以上；
+- **TOTAL**：全部年龄组之和；
+- **DEPENDENCY**：（YOUNG + AGED）与 ECONOMY ACTIVE 之比。
+:::
 
 #### Data wrangling
 
+::: {.en}
 `pivot_wider()` from **tidyr** and `mutate()`, `filter()`, `group_by()`, `select()` from **dplyr** are used. Column names are referenced explicitly in `rowSums()` instead of positional indices, as `pivot_wider()` sorts age group columns alphabetically (causing `5_to_9` to appear after `55_to_59`), which makes positional indexing unreliable:
+:::
+
+::: {.zh}
+用到 **tidyr** 的 `pivot_wider()` 和 **dplyr** 的 `mutate()`、`filter()`、`group_by()`、`select()`。`rowSums()` 里按列名引用而不是按位置，因为 `pivot_wider()` 会把年龄组列按字母序排列（`5_to_9` 会排到 `55_to_59` 后面），按位置取列并不可靠：
+:::
 
 ```{r}
 popdata2024 <- popdata %>%
@@ -109,7 +180,13 @@ popdata2024 <- popdata %>%
 
 #### Joining attribute data and geospatial data
 
+::: {.en}
 The `PA` and `SZ` values are converted to uppercase to match `SUBZONE_N` and `PLN_AREA_N`, and rows with no economy active population are removed:
+:::
+
+::: {.zh}
+把 `PA` 与 `SZ` 转成大写以便与 `SUBZONE_N`、`PLN_AREA_N` 匹配，并剔除经济活动人口为零的行：
+:::
 
 ```{r}
 popdata2024 <- popdata2024 %>%
@@ -118,14 +195,26 @@ popdata2024 <- popdata2024 %>%
   filter(`ECONOMY ACTIVE` > 0)
 ```
 
+::: {.en}
 `left_join()` joins the geospatial and attribute data using `SUBZONE_N` and `SZ` as the common identifier. Using `mpsz` as the left table ensures the output remains a simple feature data frame:
+:::
+
+::: {.zh}
+`left_join()` 以 `SUBZONE_N` 和 `SZ` 为共同标识把空间数据与属性数据连接起来。把 `mpsz` 放在左表，结果才仍是简单要素数据框：
+:::
 
 ```{r}
 mpsz_pop2024 <- left_join(mpsz, popdata2024,
                            by = c("SUBZONE_N" = "SZ"))
 ```
 
+::: {.en}
 Saving the joined data frame as an RDS file for future use:
+:::
+
+::: {.zh}
+把连接后的数据框存成 RDS 文件备用：
+:::
 
 ```{r}
 dir.create("data/rds/", recursive = TRUE, showWarnings = FALSE)
@@ -134,14 +223,29 @@ write_rds(mpsz_pop2024, "data/rds/mpsz_pop2024.rds")
 
 ## Choropleth Mapping with *tmap*
 
+::: {.en}
 Two approaches are available for creating choropleth maps in **tmap**:
 
 1.  Quick plot using `qtm()`
 2.  Fully customisable map using tmap layer elements
+:::
+
+::: {.zh}
+在 **tmap** 里绘制分级统计地图有两条路：
+
+1.  用 `qtm()` 快速出图；
+2.  用 tmap 的图层元素完全自定义。
+:::
 
 ### Quick choropleth map with `qtm()`
 
+::: {.en}
 `qtm()` provides a concise way to produce a standard choropleth map. `tmap_mode("plot")` sets the output to a static map:
+:::
+
+::: {.zh}
+`qtm()` 是画一张标准分级统计地图最省事的写法。`tmap_mode("plot")` 把输出设为静态地图：
+:::
 
 ```{r}
 tmap_mode("plot")
@@ -151,7 +255,13 @@ qtm(shp = mpsz_pop2024,
 
 ### Customisable choropleth map using tmap elements
 
+::: {.en}
 For finer control over cartographic quality, tmap's individual drawing elements are used:
+:::
+
+::: {.zh}
+若要对制图质量有更细的控制，就改用 tmap 的各个绘图元素：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -174,7 +284,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Drawing a base map
 
+::: {.en}
 `tm_shape()` defines the input data, and `tm_polygons()` draws the polygon layer with default styling (light gray fill, dark gray borders):
+:::
+
+::: {.zh}
+`tm_shape()` 指定输入数据，`tm_polygons()` 以默认样式绘制多边形图层（浅灰填充、深灰边界）：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -183,7 +299,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Choropleth map using `tm_polygons()`
 
+::: {.en}
 Assigning a variable to `fill` within `tm_polygons()` produces a choropleth map. The default classification method is *pretty* and the default colour scheme is `blues3`:
+:::
+
+::: {.zh}
+在 `tm_polygons()` 里把变量赋给 `fill` 就得到分级统计地图。默认分级方法是 *pretty*，默认配色是 `blues3`：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -192,14 +314,26 @@ tm_shape(mpsz_pop2024) +
 
 #### Using `tm_fill()` and `tm_borders()`
 
+::: {.en}
 `tm_polygons()` is a wrapper of `tm_fill()` and `tm_borders()`. Using them separately provides more control. `tm_fill()` alone (no borders):
+:::
+
+::: {.zh}
+`tm_polygons()` 其实是 `tm_fill()` 与 `tm_borders()` 的封装，分开用控制力更强。只用 `tm_fill()`（不画边界）：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
   tm_fill("DEPENDENCY")
 ```
 
+::: {.en}
 Adding borders with `tm_borders()`:
+:::
+
+::: {.zh}
+用 `tm_borders()` 加上边界：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -207,7 +341,13 @@ tm_shape(mpsz_pop2024) +
   tm_borders()
 ```
 
+::: {.en}
 Customising border appearance with `col`, `lwd`, and `lty`:
+:::
+
+::: {.zh}
+用 `col`、`lwd`、`lty` 调整边界外观：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -219,7 +359,13 @@ tm_shape(mpsz_pop2024) +
 
 ### Data Classification Methods
 
+::: {.en}
 **tmap** supports ten classification methods: *fixed*, *sd*, *equal*, *pretty* (default), *quantile*, *kmeans*, *hclust*, *bclust*, *fisher*, and *jenks*. The `style` argument in `tm_scale_intervals()` is used to specify the method.
+:::
+
+::: {.zh}
+**tmap** 支持十种分级方法：*fixed*、*sd*、*equal*、*pretty*（默认）、*quantile*、*kmeans*、*hclust*、*bclust*、*fisher*、*jenks*。用 `tm_scale_intervals()` 的 `style` 参数指定。
+:::
 
 #### Quantile classification (5 classes)
 
@@ -243,17 +389,35 @@ tm_shape(mpsz_pop2024) +
   tm_borders(fill_alpha = 0.5)
 ```
 
+::: {.en}
 The quantile method produces more evenly distributed class sizes compared to equal interval, which can be skewed by data distribution.
+:::
+
+::: {.zh}
+分位数法各类的要素个数较为均匀；等间距法则会被数据本身的分布带偏。
+:::
 
 #### Custom break points
 
+::: {.en}
 Descriptive statistics are checked first to inform break point choices:
+:::
+
+::: {.zh}
+先看描述统计，据此决定断点：
+:::
 
 ```{r}
 summary(mpsz_pop2024$DEPENDENCY)
 ```
 
+::: {.en}
 Custom breaks are set at 0.60, 0.70, 0.80, and 0.90, with minimum 0 and maximum 1.00:
+:::
+
+::: {.zh}
+自定义断点设在 0.60、0.70、0.80、0.90，下限 0、上限 1.00：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -267,7 +431,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Using ColourBrewer palette
 
+::: {.en}
 The `values` argument in `tm_scale_intervals()` accepts ColourBrewer palette names:
+:::
+
+::: {.zh}
+`tm_scale_intervals()` 的 `values` 参数接受 ColourBrewer 配色名：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -279,7 +449,13 @@ tm_shape(mpsz_pop2024) +
   tm_borders(fill_alpha = 0.5)
 ```
 
+::: {.en}
 To reverse the colour direction, prefix the palette name with `-`:
+:::
+
+::: {.zh}
+在配色名前加 `-` 可以反转色序：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -293,7 +469,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Cartographic furniture
 
+::: {.en}
 `tm_compass()`, `tm_scalebar()`, `tm_grid()`, and `tm_credits()` add map furniture:
+:::
+
+::: {.zh}
+`tm_compass()`、`tm_scalebar()`、`tm_grid()`、`tm_credits()` 用来添加指北针、比例尺、经纬网和图注：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -313,7 +495,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Map legend
 
+::: {.en}
 `fill.legend` and `tm_legend()` customise the legend position and title:
+:::
+
+::: {.zh}
+`fill.legend` 配合 `tm_legend()` 调整图例的位置与标题：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -334,7 +522,13 @@ tm_shape(mpsz_pop2024) +
 
 #### Map style
 
+::: {.en}
 `tmap_style()` applies predefined layout themes. The *natural* style is used below:
+:::
+
+::: {.zh}
+`tmap_style()` 套用预设的版面主题，下面用的是 *natural*：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -347,7 +541,13 @@ tm_shape(mpsz_pop2024) +
   tmap_style("natural")
 ```
 
+::: {.en}
 Resetting to the default white style:
+:::
+
+::: {.zh}
+改回默认的 white 样式：
+:::
 
 ```{r}
 tmap_style("white")
@@ -355,11 +555,23 @@ tmap_style("white")
 
 ## Small Multiple Choropleth Maps
 
+::: {.en}
 Small multiple maps (facet maps) place many maps side-by-side to show how spatial patterns change with respect to another variable. In **tmap**, they can be created three ways.
+:::
+
+::: {.zh}
+小多图（分面地图）把多幅地图并排放置，用来呈现空间格局如何随另一个变量变化。在 **tmap** 里有三种做法。
+:::
 
 ### By assigning multiple values to an aesthetic argument
 
+::: {.en}
 Assigning two variables to `fill` generates side-by-side choropleth maps:
+:::
+
+::: {.zh}
+把两个变量同时赋给 `fill`，就会并排生成两幅分级统计地图：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -379,7 +591,13 @@ tm_shape(mpsz_pop2024) +
 
 ### By arranging maps in a grid layout with `tmap_arrange()`
 
+::: {.en}
 Individual maps are created separately and then arranged:
+:::
+
+::: {.zh}
+先分别做好各幅地图，再排版：
+:::
 
 ```{r}
 youngmap <- tm_shape(mpsz_pop2024) +
@@ -409,7 +627,13 @@ tmap_arrange(youngmap, agedmap, asp = 1, ncol = 2)
 
 ### By defining a group-by variable in `tm_facets()`
 
+::: {.en}
 `tm_facets()` splits the map by a categorical variable:
+:::
+
+::: {.zh}
+`tm_facets()` 按某个分类变量把地图拆开：
+:::
 
 ```{r}
 tm_shape(mpsz_pop2024) +
@@ -430,7 +654,13 @@ tm_shape(mpsz_pop2024) +
 
 ## Mapping Spatial Object Meeting a Selection Criterion
 
+::: {.en}
 `filter()` from **dplyr** is used to focus the choropleth map on a specific region:
+:::
+
+::: {.zh}
+用 **dplyr** 的 `filter()` 把分级统计地图聚焦到某一个区域：
+:::
 
 ```{r}
 mpsz_pop2024 %>%
@@ -446,9 +676,17 @@ mpsz_pop2024 %>%
 
 ## Complementing Thematic Map with Statistical Chart
 
+::: {.en}
 Maps and statistical charts complement each other: maps show spatial patterns while charts display numerical distributions. **tmap** supports embedding statistical charts directly into map visualisations using the `fill.chart` argument.
 
 Adding a box plot to the Central Region dependency map:
+:::
+
+::: {.zh}
+地图与统计图互为补充：地图显示空间格局，统计图显示数值分布。**tmap** 支持用 `fill.chart` 参数把统计图直接嵌进地图里。
+
+给中部地区的抚养比地图加上箱线图：
+:::
 
 ```{r}
 mpsz_pop2024 %>%
@@ -464,7 +702,13 @@ mpsz_pop2024 %>%
   tm_layout(asp = 0.8)
 ```
 
+::: {.en}
 Outliers in the dependency distribution are highlighted on the choropleth map using red borders and subzone labels:
+:::
+
+::: {.zh}
+把抚养比分布中的离群分区在地图上用红色边界和分区名标出来：
+:::
 
 ```{r}
 mpsz_selected <- mpsz_pop2024 %>%
@@ -490,9 +734,17 @@ tm_shape(mpsz_selected) +
 
 ## Creating Interactive Maps
 
+::: {.en}
 `tmap_mode("view")` switches to interactive mode, allowing users to zoom, pan, and click on features for popup information.
 
 Basic interactive map of the Central Region:
+:::
+
+::: {.zh}
+`tmap_mode("view")` 切换到交互模式，可以缩放、平移，点击要素还能弹出信息。
+
+中部地区的基础交互地图：
+:::
 
 ```{r}
 region_selected <- mpsz_pop2024 %>%
@@ -517,7 +769,13 @@ tm_shape(region_selected,
 tmap_mode("plot")
 ```
 
+::: {.en}
 To prevent users from zooming too far out of the study area, `set_zoom_limits` restricts the zoom range:
+:::
+
+::: {.zh}
+为避免缩得太小而离开研究区，用 `set_zoom_limits` 限制缩放范围：
+:::
 
 ```{r}
 tmap_mode("view")
@@ -535,7 +793,13 @@ tm_shape(region_selected,
 tmap_mode("plot")
 ```
 
+::: {.en}
 Setting `set_zoom_limits = c(12, 14)` restricts how far users can zoom in (level 14) and out (level 12), keeping the focus on the Central Region throughout exploration.
+:::
+
+::: {.zh}
+设 `set_zoom_limits = c(12, 14)` 之后，最大放大到第 14 级、最小缩到第 12 级，浏览过程始终锁定在中部地区。
+:::
 
 ## Reference
 

@@ -17,6 +17,7 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 In this hands-on exercise, I learn how to handle geospatial data in R using the **sf** package. Geospatial Data Science involves importing, wrangling, integrating, and processing geographically referenced datasets. By the end of this exercise, I am able to:
 
 - install and load **sf** and **tidyverse** packages into R environment,
@@ -28,9 +29,25 @@ In this hands-on exercise, I learn how to handle geospatial data in R using the 
 - perform geoprocessing tasks using **sf** package,
 - perform data wrangling using **dplyr**, and
 - perform Exploratory Data Analysis (EDA) using **ggplot2**.
+:::
+
+::: {.zh}
+本次练习学习用 **sf** 包在 R 中处理地理空间数据。地理空间数据科学所做的事，是把带有地理参照的数据集导入、整理、整合并加工。练习结束时应当能够：
+
+- 在 R 环境中安装并载入 **sf** 与 **tidyverse**；
+- 用 **sf** 的相应函数导入地理空间数据；
+- 用 **readr** 导入非空间数据；
+- 用 Base R 与 **sf** 的函数查看简单要素数据框；
+- 用 **sf** 的函数指定或转换坐标系统；
+- 把非空间数据转换成 sf 数据框；
+- 用 **sf** 完成地理处理任务；
+- 用 **dplyr** 做数据整理；
+- 用 **ggplot2** 做探索性数据分析。
+:::
 
 ## Data Acquisition
 
+::: {.en}
 The following datasets are used in this exercise:
 
 - **Master Plan 2014 Subzone Boundary (Web)** from [data.gov.sg](https://data.gov.sg/)
@@ -39,34 +56,75 @@ The following datasets are used in this exercise:
 - **Singapore Airbnb listing data** from [Inside Airbnb](http://insideairbnb.com/get-the-data.html)
 
 The geospatial files (`MP14_SUBZONE_WEB_PL`, `CyclingPathGazette`, and `PreSchoolsLocation.kml`) are placed in the `data/geospatial` sub-folder. The aspatial file `listings.csv` is placed in the `data/aspatial` sub-folder.
+:::
+
+::: {.zh}
+本练习使用以下数据集：
+
+- **Master Plan 2014 Subzone Boundary (Web)**，来自 [data.gov.sg](https://data.gov.sg/)
+- **Pre-Schools Location**，来自 [data.gov.sg](https://data.gov.sg/)
+- **Cycling Path**，来自 [LTADataMall](https://www.mytransport.sg/content/mytransport/home/dataMall.html)
+- **Singapore Airbnb listing data**，来自 [Inside Airbnb](http://insideairbnb.com/get-the-data.html)
+
+三个地理空间文件（`MP14_SUBZONE_WEB_PL`、`CyclingPathGazette`、`PreSchoolsLocation.kml`）放在 `data/geospatial` 子目录下，非空间文件 `listings.csv` 放在 `data/aspatial` 子目录下。
+:::
 
 ## Getting Started
 
+::: {.en}
 Two R packages are used in this exercise:
 
 - **sf** for importing, managing, and processing geospatial data
 - **tidyverse** for data science tasks including importing, wrangling, and visualising data
 
 Within tidyverse, the following packages are specifically used: **readr** (importing csv), **tidyr** (manipulating data), **dplyr** (transforming data), and **ggplot2** (visualising data).
+:::
+
+::: {.zh}
+本练习用到两个 R 包：
+
+- **sf**，负责地理空间数据的导入、管理与加工；
+- **tidyverse**，负责导入、整理、可视化等数据科学任务。
+
+tidyverse 当中具体用到的是：**readr**（读 csv）、**tidyr**（整形）、**dplyr**（变换）、**ggplot2**（绘图）。
+:::
 
 ```{r}
 pacman::p_load(sf, tidyverse)
 ```
 
+::: {.en}
 `p_load()` from the **pacman** package is used to install (if not yet installed) and load the packages into R.
+:::
+
+::: {.zh}
+**pacman** 包的 `p_load()` 会检查这些包是否已安装，未安装则先安装，然后一并载入 R。
+:::
 
 ## Importing Geospatial Data
 
 ### Importing polygon feature data in shapefile format
 
+::: {.en}
 `st_read()` is used to import `MP14_SUBZONE_WEB_PL` shapefile as a polygon feature data frame. The `dsn` argument specifies the data path and `layer` provides the shapefile name (no file extension needed).
+:::
+
+::: {.zh}
+`st_read()` 把 `MP14_SUBZONE_WEB_PL` 这个 shapefile 读成多边形要素数据框。`dsn` 指定数据所在路径，`layer` 给出图层名，不需要带扩展名。
+:::
 
 ```{r}
 mpsz = st_read("data/geospatial/MasterPlan2014SubzoneBoundaryNoSea.geojson") %>%
   st_transform(crs = 3414)
 ```
 
+::: {.en}
 The GeoJSON file is in **wgs84** (EPSG: 4326) by default. `st_transform(crs = 3414)` is applied immediately upon import to reproject it to the **svy21** projected coordinate system (EPSG: 3414).
+:::
+
+::: {.zh}
+这个 GeoJSON 文件默认是 **wgs84**（EPSG: 4326）。导入时紧接着调用 `st_transform(crs = 3414)`，把它投影到新加坡的 **svy21** 投影坐标系统（EPSG: 3414）。
+:::
 
 ### Importing polyline feature data in shapefile format
 
@@ -75,23 +133,47 @@ cyclingpath = st_read(dsn = "data/geospatial",
                       layer = "CyclingPathGazette")
 ```
 
+::: {.en}
 `cyclingpath` contains 4651 features and 19 fields, represented as multilinestring objects in **svy21** projected coordinates.
+:::
+
+::: {.zh}
+`cyclingpath` 含 4651 个要素、19 个字段，几何类型是 multilinestring，坐标已在 **svy21** 投影下。
+:::
 
 ### Importing GIS data in GeoJSON format
 
+::: {.en}
 For GeoJSON files, the full file path including the `.geojson` extension is provided directly to `st_read()`.
+:::
+
+::: {.zh}
+读 GeoJSON 时，直接把含 `.geojson` 扩展名的完整路径交给 `st_read()` 即可。
+:::
 
 ```{r}
 preschool = st_read("data/geospatial/PreSchoolsLocation.geojson")
 ```
 
+::: {.en}
 `preschool` is a point feature data frame with point features and location fields. It is in **wgs84** coordinate system. The projection transformation to svy21 will be performed later.
+:::
+
+::: {.zh}
+`preschool` 是点要素数据框，带有点几何和位置字段，坐标系统是 **wgs84**。投影到 svy21 的转换留到后面再做。
+:::
 
 ## Checking the Content of A Simple Feature Data Frame
 
 ### Working with `st_geometry()`
 
+::: {.en}
 `st_geometry()` retrieves the geometry list-column and prints basic information such as geometry type, geographic extent, and coordinate system.
+:::
+
+::: {.zh}
+`st_geometry()` 取出几何列表列，并打印几何类型、地理范围、坐标系统这些基本信息。
+:::
 
 ```{r}
 st_geometry(mpsz)
@@ -99,17 +181,35 @@ st_geometry(mpsz)
 
 ### Working with `glimpse()`
 
+::: {.en}
 `glimpse()` from **dplyr** reveals the data type of each field in the data frame.
+:::
+
+::: {.zh}
+**dplyr** 的 `glimpse()` 列出数据框每个字段的数据类型。
+:::
 
 ```{r}
 glimpse(mpsz)
 ```
 
+::: {.en}
 From the output, `FMEL-UPD_D` is a **date** field, and `X_ADDR`, `Y_ADDR`, `SHAPE_L`, and `SHAPE_AREA` are **double-precision** numeric fields.
+:::
+
+::: {.zh}
+从输出可见，`FMEL-UPD_D` 是日期字段，`X_ADDR`、`Y_ADDR`、`SHAPE_L`、`SHAPE_AREA` 是双精度数值字段。
+:::
 
 ### Working with `head()`
 
+::: {.en}
 `head()` from Base R displays the first few records of the feature object. The `n` argument controls how many rows to show.
+:::
+
+::: {.zh}
+Base R 的 `head()` 显示要素对象的前若干条记录，显示多少行由 `n` 控制。
+:::
 
 ```{r}
 head(mpsz, n=5)
@@ -117,25 +217,49 @@ head(mpsz, n=5)
 
 ## Plotting the Geospatial Data
 
+::: {.en}
 `plot()` provides a quick way to visualise a sf object. By default, it produces a multi-plot of all attributes.
+:::
+
+::: {.zh}
+`plot()` 是快速查看 sf 对象的办法，默认会把所有属性各画一张，拼成多图。
+:::
 
 ```{r}
 plot(mpsz)
 ```
 
+::: {.en}
 To plot only the geometry:
+:::
+
+::: {.zh}
+只画几何：
+:::
 
 ```{r}
 plot(st_geometry(mpsz))
 ```
 
+::: {.en}
 To plot by a specific attribute:
+:::
+
+::: {.zh}
+按某一个属性上色：
+:::
 
 ```{r}
 plot(mpsz["PLN_AREA_N"])
 ```
 
+::: {.en}
 Attempting to overlay the preschool points on the mpsz layer:
+:::
+
+::: {.zh}
+尝试把幼儿园点叠到 mpsz 图层上：
+:::
 
 ```{r}
 plot(st_geometry(mpsz))
@@ -150,13 +274,25 @@ The preschool points do not appear on the mpsz layer at this stage because `pres
 
 ### Checking the coordinate system of a simple feature data frame
 
+::: {.en}
 `st_crs()` is used to inspect the coordinate reference system of a sf object. Since `mpsz` was already transformed to svy21 during import, the EPSG code should be 3414:
+:::
+
+::: {.zh}
+`st_crs()` 用来查看 sf 对象的坐标参考系统。`mpsz` 在导入时已经转到 svy21，所以 EPSG 代码应当是 3414：
+:::
 
 ```{r}
 st_crs(mpsz)
 ```
 
+::: {.en}
 The output confirms `mpsz` is in **svy21** (EPSG: 3414).
+:::
+
+::: {.zh}
+输出确认 `mpsz` 处于 **svy21**（EPSG: 3414）。
+:::
 
 ::: callout-note
 In some workflows, particularly when importing shapefiles that were incorrectly labelled, the EPSG code may show as 9001 instead of 3414. In that case, `st_set_crs(mpsz, 3414)` can be used to assign the correct label. However, this only changes the label and does **not** mathematically reproject the coordinates. If the data is truly in WGS84 (as with GeoJSON files from data.gov.sg), `st_transform(crs = 3414)` must be used instead.
@@ -164,51 +300,105 @@ In some workflows, particularly when importing shapefiles that were incorrectly 
 
 ### Transforming the projection of preschool from wgs84 to svy21
 
+::: {.en}
 `st_set_crs()` only reassigns the label without mathematically reprojecting the coordinates. To actually reproject data from one CRS to another, `st_transform()` must be used:
+:::
+
+::: {.zh}
+`st_set_crs()` 只是改写标签，并不真正换算坐标。要把数据从一个坐标系真正投影到另一个，必须用 `st_transform()`：
+:::
 
 ```{r}
 preschool <- st_transform(preschool, crs = 3414)
 ```
 
+::: {.en}
 Verifying the transformation:
+:::
+
+::: {.zh}
+核对转换结果：
+:::
 
 ```{r}
 #| echo: false
 st_geometry(preschool)
 ```
 
+::: {.en}
 The preschool data is now in svy21. The bounding box values confirm this: the coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.
+:::
 
+::: {.zh}
+幼儿园数据现在处于 svy21。边界框的数值可以印证：坐标远远超出地理坐标系十进制度数的 0–360 范围。
+:::
+
+::: {.en}
 Now overlaying the preschool layer on mpsz works correctly:
+:::
+
+::: {.zh}
+此时再把幼儿园图层叠到 mpsz 上就正常了：
+:::
 
 ```{r}
 plot(st_geometry(mpsz))
 plot(st_geometry(preschool), add = TRUE)
 ```
 
+::: {.en}
 The composite map now displays as expected.
+:::
+
+::: {.zh}
+叠加后的地图显示符合预期。
+:::
 
 ## Importing and Converting An Aspatial Data
 
 ### Importing the aspatial data
 
+::: {.en}
 `listings.csv` from Inside Airbnb is imported using `read_csv()` from **readr**:
+:::
+
+::: {.zh}
+用 **readr** 的 `read_csv()` 导入 Inside Airbnb 的 `listings.csv`：
+:::
 
 ```{r}
 listings <- read_csv("data/aspatial/listings.csv")
 ```
 
+::: {.en}
 Checking the imported data:
+:::
+
+::: {.zh}
+查看导入结果：
+:::
 
 ```{r}
 list(listings)
 ```
 
+::: {.en}
 The `listings` tibble has 4252 rows and 16 columns. The `latitude` and `longitude` fields are in decimal degree format, indicating the data is likely in **wgs84** Geographic Coordinate System.
+:::
+
+::: {.zh}
+`listings` 这个 tibble 有 4252 行、16 列。`latitude` 和 `longitude` 两个字段是十进制度数，说明数据大概处于 **wgs84** 地理坐标系统。
+:::
 
 ### Creating a simple feature data frame from an aspatial data frame
 
+::: {.en}
 `st_as_sf()` converts the tibble to a simple feature data frame. The `coords` argument takes the x-coordinate (longitude) first, then y-coordinate (latitude). The data is then reprojected from wgs84 (EPSG: 4326) to svy21 (EPSG: 3414):
+:::
+
+::: {.zh}
+`st_as_sf()` 把 tibble 转成简单要素数据框。`coords` 的顺序是先 x（经度）后 y（纬度）。之后再从 wgs84（EPSG: 4326）投影到 svy21（EPSG: 3414）：
+:::
 
 ```{r}
 listings_sf <- st_as_sf(listings,
@@ -217,15 +407,33 @@ listings_sf <- st_as_sf(listings,
   st_transform(crs = 3414)
 ```
 
+::: {.en}
 Examining the result:
+:::
+
+::: {.zh}
+查看转换结果：
+:::
 
 ```{r}
 glimpse(listings_sf)
 ```
 
+::: {.en}
 A new `geometry` column has been added, while `longitude` and `latitude` columns have been dropped.
+:::
 
+::: {.zh}
+新增了 `geometry` 列，原来的 `longitude` 与 `latitude` 两列被移除。
+:::
+
+::: {.en}
 Plotting `listings_sf` on top of `mpsz`:
+:::
+
+::: {.zh}
+把 `listings_sf` 叠到 `mpsz` 上：
+:::
 
 ```{r}
 #| echo: false
@@ -239,11 +447,23 @@ plot(st_geometry(listings_sf), add = TRUE)
 
 #### The scenario
 
+::: {.en}
 The authority plans to upgrade existing cycling paths and needs to acquire 5 metres of reserved land on both sides of each path. The task is to determine the extent and total area of land to be acquired.
+:::
+
+::: {.zh}
+管理部门计划升级现有自行车道，需要在每条车道两侧各征收 5 米的保留地。任务是算出征地的范围和总面积。
+:::
 
 #### The solution
 
+::: {.en}
 First, `st_buffer()` is used to compute 5-metre buffers around cycling paths. The cycling path data is first transformed to svy21:
+:::
+
+::: {.zh}
+先用 `st_buffer()` 为自行车道生成 5 米缓冲区。自行车道数据先转到 svy21：
+:::
 
 ```{r}
 #| echo: false
@@ -254,20 +474,38 @@ cyclingpath <- st_transform(cyclingpath, crs = 3414)
 buffer_cycling <- st_buffer(cyclingpath, dist = 5, nQuadSegs = 30)
 ```
 
+::: {.en}
 Calculating the area of each buffer using the tidyverse approach:
+:::
+
+::: {.zh}
+用 tidyverse 的写法算出每个缓冲区的面积：
+:::
 
 ```{r}
 buffer_cycling <- buffer_cycling %>%
   mutate(AREA = st_area(geometry))
 ```
 
+::: {.en}
 Total land area to be acquired:
+:::
+
+::: {.zh}
+需要征收的土地总面积：
+:::
 
 ```{r}
 sum(buffer_cycling$AREA)
 ```
 
+::: {.en}
 To visualise the buffer within a specific planning subzone (Tampines West), `filter()` is used to extract the subzone polygon, followed by `st_intersection()` to clip the buffers:
+:::
+
+::: {.zh}
+若要看某一个规划分区（Tampines West）内的缓冲区，先用 `filter()` 取出该分区多边形，再用 `st_intersection()` 裁切缓冲区：
+:::
 
 ```{r}
 mpsz_selected <- mpsz %>%
@@ -287,36 +525,72 @@ plot(st_geometry(buffer_cycling_selected))
 
 #### The scenario
 
+::: {.en}
 The authority requires a count of pre-schools in each planning subzone to support forward planning.
+:::
+
+::: {.zh}
+管理部门需要知道每个规划分区内幼儿园的数量，以支持后续规划。
+:::
 
 #### The solution
 
+::: {.en}
 `st_intersects()` identifies which pre-schools fall within each planning subzone, and `lengths()` counts them:
+:::
+
+::: {.zh}
+`st_intersects()` 判断哪些幼儿园落在各个规划分区内，`lengths()` 把个数数出来：
+:::
 
 ```{r}
 mpsz$`PreSch Count` <- lengths(st_intersects(mpsz, preschool))
 ```
 
+::: {.en}
 Summary statistics of the new field:
+:::
+
+::: {.zh}
+新字段的描述统计：
+:::
 
 ```{r}
 summary(mpsz$`PreSch Count`)
 ```
 
+::: {.en}
 The planning subzone with the most pre-schools:
+:::
+
+::: {.zh}
+幼儿园最多的规划分区：
+:::
 
 ```{r}
 top_n(mpsz, 1, `PreSch Count`)
 ```
 
+::: {.en}
 Computing the area of each planning subzone:
+:::
+
+::: {.zh}
+计算每个规划分区的面积：
+:::
 
 ```{r}
 mpsz$Area <- mpsz %>%
   st_area()
 ```
 
+::: {.en}
 Computing pre-school density (per km²):
+:::
+
+::: {.zh}
+计算幼儿园密度（每平方公里）：
+:::
 
 ```{r}
 mpsz <- mpsz %>%
@@ -325,7 +599,13 @@ mpsz <- mpsz %>%
 
 ## Exploratory Data Analysis (EDA)
 
+::: {.en}
 Plotting the distribution of pre-school density using **ggplot2**:
+:::
+
+::: {.zh}
+用 **ggplot2** 画出幼儿园密度的分布：
+:::
 
 ```{r}
 ggplot(data = mpsz,
@@ -339,7 +619,13 @@ ggplot(data = mpsz,
        y = "Frequency")
 ```
 
+::: {.en}
 Plotting the relationship between pre-school density and pre-school count:
+:::
+
+::: {.zh}
+画出幼儿园密度与幼儿园数量之间的关系：
+:::
 
 ```{r}
 ggplot(data = mpsz,
@@ -354,4 +640,10 @@ ggplot(data = mpsz,
        y = "Pre-school count")
 ```
 
+::: {.en}
 The scatterplot shows a general positive relationship: planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.
+:::
+
+::: {.zh}
+散点图显示两者大体正相关：幼儿园密度较高的规划分区，其幼儿园绝对数量也往往较多。
+:::

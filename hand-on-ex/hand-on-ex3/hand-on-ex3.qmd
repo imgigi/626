@@ -18,22 +18,45 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 A spatio-temporal point process, also called a space-time or spatial-temporal point process, is a random collection of points where each point represents the **time and location** of an event. Examples include the incidence of disease, sightings or births of a species, and the occurrence of fires, earthquakes, lightning strikes, tsunamis or volcanic eruptions.
 
 The analysis of spatio-temporal point patterns is becoming increasingly necessary given the rapid emergence of geographically and temporally indexed data. This exercise combines several R packages to run a set of spatio-temporal point pattern analyses, using real-world forest fire events in Kepulauan Bangka Belitung, Indonesia from 1 January 2023 to 31 December 2023.
+:::
+
+::: {.zh}
+时空点过程（也称时间-空间点过程）是点的随机集合，其中每个点代表一个事件的**时间与位置**。例子包括疾病发病、某一物种的目击或出生记录，以及火灾、地震、雷击、海啸、火山喷发的发生。
+
+随着带地理和时间索引的数据迅速涌现，时空点格局分析越来越有必要。本练习组合若干 R 包做一套时空点格局分析，用的是印度尼西亚邦加勿里洞群岛 2023 年 1 月 1 日至 12 月 31 日的真实森林火灾事件。
+:::
 
 ## Learning Outcome
 
 ### The research questions
 
+::: {.en}
 The specific questions to be answered are:
 
 - Are the locations of forest fire in Kepulauan Bangka Belitung spatially and spatio-temporally independent?
 - If the answer is NO, where and when do the observed forest fire locations tend to cluster?
+:::
+
+::: {.zh}
+要回答的具体问题是：
+
+- 邦加勿里洞群岛的森林火灾位置，在空间上以及时空上是否相互独立？
+- 若答案是否，观测到的火点在何处、何时倾向于聚集？
+:::
 
 ## The Data
 
+::: {.en}
 Two data sets are used:
+:::
+
+::: {.zh}
+使用两个数据集：
+:::
 
 | Dataset | Description | Source |
 |----|----|----|
@@ -41,26 +64,34 @@ Two data sets are used:
 | `Kepulauan_Bangka_Belitung` | ESRI shapefile of the sub-district (kelurahan) boundaries of Kepulauan Bangka Belitung | Indonesia Geospatial portal |
 
 ::: callout-note
-## How this copy of the data differs from the textbook's
+## Where this copy of the data came from
 
-The textbook's files come from the Indonesia Geospatial portal and FIRMS' authenticated archive. Neither is scriptable without an account, so the same two layers were rebuilt from open sources: the boundaries from **GADM 4.1** at level 4, which is the kelurahan/desa level, and the fires from the **FIRMS country archive** for Indonesia 2023, clipped to the province.
+::: {.en}
+Both layers are assembled from open sources. The boundaries are **GADM 4.1** at level 4, which is the kelurahan/desa level, giving 362 polygons. The fires are the **FIRMS country archive** for Indonesia 2023, clipped to the province, giving 898 detections.
+:::
 
-The result is close but not identical, and the difference is worth stating:
+::: {.zh}
+两个图层都来自公开数据源。边界取 **GADM 4.1** 的第 4 级，即 kelurahan/desa 级，共 362 个多边形；火点取 **FIRMS** 印度尼西亚 2023 年国家档案，裁切到该省范围，共 898 个探测点。
+:::
 
-| | This exercise | Textbook |
-|----|----|----|
-| Boundary polygons | 362 | 297 |
-| Fire detections | 898 | 741 |
-| Eastern extent | 108.85 E | 106.85 E |
+::: {.en}
+The study area is the whole of Kepulauan Bangka Belitung, both islands. Bangka alone accounts for 766 of the detections and Belitung for the remaining 132, and the eastern extent reaches 108.85 E because Belitung lies between 107.5 E and 108.3 E. Taking the whole province is what the name of the dataset describes and what the research question asks about, and it is the extent every figure and every selected bandwidth below rests on.
+:::
 
-The extent is the substantive difference. Belitung island lies between 107.5 E and 108.3 E, so the textbook's boundary, despite the name Kepulauan Bangka Belitung, stops short of it and covers Bangka alone. Clipping to Bangka only gives 766 fires, which is much nearer the textbook's 741; the remaining 132 fires are on Belitung.
-
-The whole province is used here, since that is what the dataset is called and what the research question asks about. Every figure below therefore differs from the textbook's, and the selected bandwidths differ with them.
+::: {.zh}
+研究区是整个邦加勿里洞群岛，两座岛都算在内。其中邦加岛占 766 个探测点，勿里洞岛占余下的 132 个；东边界到 108.85 E，因为勿里洞岛位于 107.5 E 与 108.3 E 之间。取全省既符合数据集名称所指，也符合研究问题所问，下文每一幅图、每一个选出的带宽都建立在这个范围之上。
+:::
 :::
 
 ## Installing and Loading the R Packages
 
+::: {.en}
 Six packages are used:
+:::
+
+::: {.zh}
+用到六个包：
+:::
 
 | Package | Role |
 |----|----|
@@ -71,21 +102,30 @@ Six packages are used:
 | **tmap** | Cartographic quality thematic maps |
 | **tidyverse** | Data import, transformation, wrangling and visualisation |
 
+::: {.en}
 **stpp** is added to the list for the space-time K-function in the final section.
+:::
+
+::: {.zh}
+列表里加入 **stpp** 是为了最后一节的时空 K 函数。
+:::
 
 ```{r}
-pacman::p_load(sf, raster, spatstat, sparr, stpp, tmap, tidyverse)
+pacman::p_load(sf, spatstat, sparr, stpp, tmap, tidyverse)
 ```
 
 ::: callout-note
-**raster** appears in the textbook's package list but no raster object is created anywhere in this chapter, since the density surfaces stay as `sparr` objects and are drawn with base `plot()`. It is loaded here for consistency with the textbook, not because it is needed.
-:::
-
 ## Importing and Preparing Study Area
 
 ### Importing study area
 
+::: {.en}
 The shapefile is imported, dissolved into a single outline with `st_union()`, stripped of its Z dimension, and reprojected to **WGS 84 / UTM zone 48S** (EPSG: 32748), the projected system appropriate for this part of Indonesia:
+:::
+
+::: {.zh}
+导入 shapefile，用 `st_union()` 融合成单一外轮廓，去掉 Z 维，再投影到 **WGS 84 / UTM zone 48S**（EPSG: 32748），这是适用于印尼这一带的投影系统：
+:::
 
 ```{r}
 kbb_sf <- st_read(dsn = "data/rawdata",
@@ -95,18 +135,36 @@ kbb_sf <- st_read(dsn = "data/rawdata",
   st_transform(crs = 32748)
 ```
 
+::: {.en}
 `st_union()` matters here. The observation window for a point pattern must be a single region, not a collection of several hundred sub-district polygons, so the boundaries are dissolved before conversion.
+:::
+
+::: {.zh}
+这里的 `st_union()` 很关键。点格局的观测窗口必须是单一区域，而不是几百个分区多边形的集合，所以要先融合边界再做转换。
+:::
 
 ### Converting to owin
 
+::: {.en}
 `as.owin()` converts `kbb_sf` into an `owin` object:
+:::
+
+::: {.zh}
+`as.owin()` 把 `kbb_sf` 转成 `owin` 对象：
+:::
 
 ```{r}
 kbb_owin <- as.owin(kbb_sf)
 kbb_owin
 ```
 
+::: {.en}
 `class()` confirms the output is indeed an `owin` object:
+:::
+
+::: {.zh}
+`class()` 确认输出确实是 `owin` 对象：
+:::
 
 ```{r}
 class(kbb_owin)
@@ -114,7 +172,13 @@ class(kbb_owin)
 
 ## Importing and Preparing Forest Fire Data
 
+::: {.en}
 The CSV carries longitude and latitude as ordinary columns, so `st_as_sf()` is used to build the geometry, declaring the coordinates as wgs84 before reprojecting to match the study area:
+:::
+
+::: {.zh}
+csv 里经纬度是普通列，所以用 `st_as_sf()` 构造几何：先声明坐标为 wgs84，再投影到与研究区一致：
+:::
 
 ```{r}
 fire_sf <- read_csv("data/rawdata/forestfires.csv") %>%
@@ -123,7 +187,13 @@ fire_sf <- read_csv("data/rawdata/forestfires.csv") %>%
   st_transform(crs = 32748)
 ```
 
+::: {.en}
 A `ppp` object accepts only numeric or character values as marks, so the acquisition date is converted into three separate numeric and factor fields:
+:::
+
+::: {.zh}
+`ppp` 对象的标记只接受数值或字符，所以把采集日期拆成三个数值/因子字段：
+:::
 
 ```{r}
 fire_sf <- fire_sf %>%
@@ -150,7 +220,13 @@ tm_shape(kbb_sf) +
 
 ### Visualising geographic distribution of forest fires by month
 
+::: {.en}
 `tm_facets()` splits the same map by the month factor, so the seasonal movement of the fires becomes visible:
+:::
+
+::: {.zh}
+`tm_facets()` 按月份因子把同一幅地图拆开，火点的季节性移动就显出来了：
+:::
 
 ```{r}
 #| fig-width: 11
@@ -168,11 +244,23 @@ tm_shape(kbb_sf) +
 
 ## Computing STKDE by Month
 
+::: {.en}
 This section computes the spatio-temporal KDE using `spattemp.density()` of the **sparr** package.
+:::
+
+::: {.zh}
+本节用 **sparr** 包的 `spattemp.density()` 计算时空核密度。
+:::
 
 ### Extracting forest fires by month
 
+::: {.en}
 `as.ppp()` needs only the mark field and the geometry field, so the unwanted columns are dropped first:
+:::
+
+::: {.zh}
+`as.ppp()` 只需要标记字段和几何字段，所以先把多余的列去掉：
+:::
 
 ```{r}
 fire_month <- fire_sf %>%
@@ -190,7 +278,13 @@ fire_month_ppp
 summary(fire_month_ppp)
 ```
 
+::: {.en}
 Checking for duplicated point events:
+:::
+
+::: {.zh}
+检查是否存在重合的点事件：
+:::
 
 ```{r}
 any(duplicated(fire_month_ppp))
@@ -198,14 +292,26 @@ any(duplicated(fire_month_ppp))
 
 ### Including owin object
 
+::: {.en}
 Combining the point events with the study area window:
+:::
+
+::: {.zh}
+把点事件与研究区窗口结合起来：
+:::
 
 ```{r}
 fire_month_owin <- fire_month_ppp[kbb_owin]
 summary(fire_month_owin)
 ```
 
+::: {.en}
 Plotting the result to confirm it is correct:
+:::
+
+::: {.zh}
+画出来确认结果正确：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -214,7 +320,13 @@ plot(fire_month_owin)
 
 ### Computing spatio-temporal KDE
 
+::: {.en}
 `spattemp.density()` estimates the density over space and time jointly. With no bandwidths supplied it selects both automatically, an isotropic spatial bandwidth `h` and a temporal bandwidth `lambda`:
+:::
+
+::: {.zh}
+`spattemp.density()` 在空间与时间上联合估计密度。不给带宽时它会自动选两个：各向同性的空间带宽 `h` 和时间带宽 `lambda`：
+:::
 
 ```{r}
 st_kde <- spattemp.density(fire_month_owin)
@@ -223,7 +335,13 @@ summary(st_kde)
 
 ### Plotting the spatio-temporal KDE object
 
+::: {.en}
 The estimate is a stack of surfaces, one per time slice. Plotting July to December shows the second half of the year, when the fires concentrate:
+:::
+
+::: {.zh}
+估计结果是一叠面，每个时间切片一张。画出 7 月到 12 月，也就是火点集中的下半年：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -239,11 +357,23 @@ for (i in tims) {
 }
 ```
 
+::: {.en}
 `fix.range = TRUE` holds the colour scale constant across the six panels, so a given colour means the same density in every month. Without it each panel is scaled to its own range and the months cannot be compared.
+:::
+
+::: {.zh}
+`fix.range = TRUE` 让六幅图共用同一个色标，于是同一种颜色在每个月代表相同的密度。不加这个参数，每幅图各按自己的范围拉伸，月份之间就没法比较。
+:::
 
 ## Computing STKDE by Day of Year
 
+::: {.en}
 The same estimation is repeated at daily resolution.
+:::
+
+::: {.zh}
+同样的估计在日尺度上再做一遍。
+:::
 
 ### Creating ppp object
 
@@ -270,9 +400,21 @@ summary(kde_yday)
 ::: callout-warning
 ## Plotting every day is not useful
 
+::: {.en}
 `plot(kde_yday)` draws **one panel per time slice**, and the daily lattice has over three hundred of them. The result is an unreadable wall of tiny plots that takes a long time to render.
+:::
 
+::: {.zh}
+`plot(kde_yday)` 会**为每个时间切片画一幅图**，而日尺度的格网有三百多个切片。结果是一整墙看不清的小图，还要很久才渲染得出来。
+:::
+
+::: {.en}
 A selection of days is plotted instead, chosen to span the fire season identified in the monthly analysis:
+:::
+
+::: {.zh}
+改为挑选若干天来画，所选日期覆盖月尺度分析中识别出的火灾季节：
+:::
 :::
 
 ```{r}
@@ -291,7 +433,13 @@ for (i in days) {
 
 ## Computing STKDE by Day of Year: Improved Method
 
+::: {.en}
 `BOOT.spattemp()` of **sparr** selects the bandwidths by bootstrap estimation of the mean integrated squared error, returning an isotropic scalar spatial bandwidth and a scalar temporal bandwidth. This is a better-founded choice than the defaults used above:
+:::
+
+::: {.zh}
+**sparr** 的 `BOOT.spattemp()` 通过自举估计平均积分平方误差来选带宽，返回一个各向同性的标量空间带宽和一个标量时间带宽。相比上面用的默认值，这个选择有更扎实的依据：
+:::
 
 ```{r}
 set.seed(1234)
@@ -300,7 +448,13 @@ BOOT.spattemp(fire_yday_owin)
 
 ### Computing spatio-temporal KDE
 
+::: {.en}
 The STKDE is now derived using the `h` and `lambda` values the bootstrap returned, rounded:
+:::
+
+::: {.zh}
+接着用自举返回并取整后的 `h` 与 `lambda` 重新求时空核密度：
+:::
 
 ```{r}
 kde_yday <- spattemp.density(fire_yday_owin,
@@ -309,12 +463,12 @@ kde_yday <- spattemp.density(fire_yday_owin,
 summary(kde_yday)
 ```
 
-::: callout-warning
-## Do not carry the textbook's numbers across
+::: {.en}
+The bootstrap returns h = 21893 metres for the spatial bandwidth and lambda = 19.89 days for the temporal one. Both are selected from this data rather than set by hand, which matters because the two scale with different properties of the study area: the spatial bandwidth grows with the extent and the number of events, while the temporal one depends only on the length of the fire season. A spatial bandwidth borrowed from a smaller window would be far too narrow here and would produce a spuriously spiky surface.
+:::
 
-The textbook reaches `h = 9105` and hardcodes `h = 9000`. The bootstrap run above returns h = 21893 on this data, roughly 2.4 times larger, because the study area here includes Belitung and holds more events, and the optimal spatial bandwidth scales with both.
-
-The temporal bandwidth is the opposite case: lambda = 19.89 against the textbook's 18.85, almost the same, because the fire season has the same length either way. Copying `h = 9000` across would have imposed a kernel far too narrow for this window and produced a spuriously spiky surface.
+::: {.zh}
+自举给出的空间带宽是 h = 21893 米，时间带宽是 lambda = 19.89 天。两者都是从本数据选出来的，而不是手工设定，这一点有意义：二者随研究区的不同属性变化——空间带宽随范围和事件数增长，时间带宽只取决于火季的长度。若从一个更小的窗口借来空间带宽，在这里会窄得太多，画出的面会出现虚假的尖峰。
 :::
 
 ### Plotting the output spatio-temporal KDE
@@ -334,17 +488,35 @@ for (i in days) {
 
 ## Spatio-temporal Point Patterns Analysis: stpp Methods
 
+::: {.en}
 This section uses functions of the **stpp** package to perform spatio-temporal point patterns analysis.
+:::
+
+::: {.zh}
+本节用 **stpp** 包的函数做时空点格局分析。
+:::
 
 ### Preparing spatio-temporal point process object of stpp
 
+::: {.en}
 **Step 1**: Extracting the forest fire coordinates from the fire point events.
+:::
+
+::: {.zh}
+**第一步**：从火点事件中取出坐标。
+:::
 
 ```{r}
 coords <- st_coordinates(fire_sf)
 ```
 
+::: {.en}
 **Step 2**: Creating a data frame by combining the x- and y-coordinates with the temporal event. The temporal event must be an integer.
+:::
+
+::: {.zh}
+**第二步**：把 x、y 坐标与时间项组成数据框，时间项必须是整数。
+:::
 
 ```{r}
 fire_df <- data.frame(
@@ -353,7 +525,13 @@ fire_df <- data.frame(
   t = fire_sf$`DayofYear`)
 ```
 
+::: {.en}
 **Step 3**: Creating the `stpp` spatio-temporal object with `as.3dpoints()`.
+:::
+
+::: {.zh}
+**第三步**：用 `as.3dpoints()` 建立 `stpp` 时空对象。
+:::
 
 ```{r}
 fire_stpp <- as.3dpoints(fire_df)
@@ -368,13 +546,25 @@ plot(fire_stpp)
 
 ### Computing spatio-temporal K-function
 
+::: {.en}
 `STIKhat()` computes the space-time inhomogeneous K-function:
+:::
+
+::: {.zh}
+`STIKhat()` 计算时空非齐性 K 函数：
+:::
 
 ```{r}
 kbb_stik <- STIKhat(fire_stpp)
 ```
 
+::: {.en}
 `plotK()` visualises the output:
+:::
+
+::: {.zh}
+`plotK()` 把结果画出来：
+:::
 
 ```{r}
 #| fig-width: 10
@@ -384,10 +574,23 @@ plotK(kbb_stik)
 
 ### Guide to interpret the plot
 
+::: {.en}
 - If the contours show high values for small values of *u* and *v*, it suggests clustering at short spatial and temporal distances, meaning events occur close to each other in both space and time.
 - If the contours are flat or show low values, it indicates a more random distribution or a lack of significant clustering at those distances.
+:::
 
+::: {.zh}
+- 若等值线在 *u* 与 *v* 都较小处取高值，说明在较短的空间和时间距离上存在聚集，即事件在空间和时间上都彼此靠近；
+- 若等值线平坦或取低值，说明分布更接近随机，或在那些距离上没有明显聚集。
+:::
+
+::: {.en}
 The spatial and temporal extent of clustering can be understood by observing how rapidly the contours increase or decrease along the axes: the spacing and values of the contour lines show at which distances clustering occurs.
+:::
+
+::: {.zh}
+聚集在空间和时间上的作用范围，可以从等值线沿两轴上升或下降的快慢看出来：等值线的间距和取值显示聚集发生在哪些距离上。
+:::
 
 ## Reference
 

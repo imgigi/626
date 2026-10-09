@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ji Guofang">
-<meta name="dcterms.date" content="2026-09-19">
+<meta name="dcterms.date" content="2026-10-08">
 
 <title>Hands-on Exercise 3: Spatio-Temporal Point Patterns Analysis – ISSS626-GAA</title>
 <style>
@@ -188,6 +188,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex6/hand-on-ex6.html">
  <span class="dropdown-text">Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex7/hand-on-ex7.html">
+ <span class="dropdown-text">Exercise 7 · Hedonic Pricing Model with GWR</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -253,43 +258,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data">The Data</a></li>
   <li><a href="#installing-and-loading-the-r-packages" id="toc-installing-and-loading-the-r-packages" class="nav-link" data-scroll-target="#installing-and-loading-the-r-packages">Installing and Loading the R Packages</a></li>
-  <li><a href="#importing-and-preparing-study-area" id="toc-importing-and-preparing-study-area" class="nav-link" data-scroll-target="#importing-and-preparing-study-area">Importing and Preparing Study Area</a>
-  <ul>
-  <li><a href="#importing-study-area" id="toc-importing-study-area" class="nav-link" data-scroll-target="#importing-study-area">Importing study area</a></li>
-  <li><a href="#converting-to-owin" id="toc-converting-to-owin" class="nav-link" data-scroll-target="#converting-to-owin">Converting to owin</a></li>
-  </ul></li>
-  <li><a href="#importing-and-preparing-forest-fire-data" id="toc-importing-and-preparing-forest-fire-data" class="nav-link" data-scroll-target="#importing-and-preparing-forest-fire-data">Importing and Preparing Forest Fire Data</a></li>
-  <li><a href="#visualising-the-fire-points" id="toc-visualising-the-fire-points" class="nav-link" data-scroll-target="#visualising-the-fire-points">Visualising the Fire Points</a>
-  <ul>
-  <li><a href="#overall-plot" id="toc-overall-plot" class="nav-link" data-scroll-target="#overall-plot">Overall plot</a></li>
-  <li><a href="#visualising-geographic-distribution-of-forest-fires-by-month" id="toc-visualising-geographic-distribution-of-forest-fires-by-month" class="nav-link" data-scroll-target="#visualising-geographic-distribution-of-forest-fires-by-month">Visualising geographic distribution of forest fires by month</a></li>
-  </ul></li>
-  <li><a href="#computing-stkde-by-month" id="toc-computing-stkde-by-month" class="nav-link" data-scroll-target="#computing-stkde-by-month">Computing STKDE by Month</a>
-  <ul>
-  <li><a href="#extracting-forest-fires-by-month" id="toc-extracting-forest-fires-by-month" class="nav-link" data-scroll-target="#extracting-forest-fires-by-month">Extracting forest fires by month</a></li>
-  <li><a href="#creating-ppp" id="toc-creating-ppp" class="nav-link" data-scroll-target="#creating-ppp">Creating ppp</a></li>
-  <li><a href="#including-owin-object" id="toc-including-owin-object" class="nav-link" data-scroll-target="#including-owin-object">Including owin object</a></li>
-  <li><a href="#computing-spatio-temporal-kde" id="toc-computing-spatio-temporal-kde" class="nav-link" data-scroll-target="#computing-spatio-temporal-kde">Computing spatio-temporal KDE</a></li>
-  <li><a href="#plotting-the-spatio-temporal-kde-object" id="toc-plotting-the-spatio-temporal-kde-object" class="nav-link" data-scroll-target="#plotting-the-spatio-temporal-kde-object">Plotting the spatio-temporal KDE object</a></li>
-  </ul></li>
-  <li><a href="#computing-stkde-by-day-of-year" id="toc-computing-stkde-by-day-of-year" class="nav-link" data-scroll-target="#computing-stkde-by-day-of-year">Computing STKDE by Day of Year</a>
-  <ul>
-  <li><a href="#creating-ppp-object" id="toc-creating-ppp-object" class="nav-link" data-scroll-target="#creating-ppp-object">Creating ppp object</a></li>
-  <li><a href="#including-owin-object-1" id="toc-including-owin-object-1" class="nav-link" data-scroll-target="#including-owin-object-1">Including owin object</a></li>
-  <li><a href="#computing-the-stkde" id="toc-computing-the-stkde" class="nav-link" data-scroll-target="#computing-the-stkde">Computing the STKDE</a></li>
-  </ul></li>
-  <li><a href="#computing-stkde-by-day-of-year-improved-method" id="toc-computing-stkde-by-day-of-year-improved-method" class="nav-link" data-scroll-target="#computing-stkde-by-day-of-year-improved-method">Computing STKDE by Day of Year: Improved Method</a>
-  <ul>
-  <li><a href="#computing-spatio-temporal-kde-1" id="toc-computing-spatio-temporal-kde-1" class="nav-link" data-scroll-target="#computing-spatio-temporal-kde-1">Computing spatio-temporal KDE</a></li>
-  <li><a href="#plotting-the-output-spatio-temporal-kde" id="toc-plotting-the-output-spatio-temporal-kde" class="nav-link" data-scroll-target="#plotting-the-output-spatio-temporal-kde">Plotting the output spatio-temporal KDE</a></li>
-  </ul></li>
-  <li><a href="#spatio-temporal-point-patterns-analysis-stpp-methods" id="toc-spatio-temporal-point-patterns-analysis-stpp-methods" class="nav-link" data-scroll-target="#spatio-temporal-point-patterns-analysis-stpp-methods">Spatio-temporal Point Patterns Analysis: stpp Methods</a>
-  <ul>
-  <li><a href="#preparing-spatio-temporal-point-process-object-of-stpp" id="toc-preparing-spatio-temporal-point-process-object-of-stpp" class="nav-link" data-scroll-target="#preparing-spatio-temporal-point-process-object-of-stpp">Preparing spatio-temporal point process object of stpp</a></li>
-  <li><a href="#computing-spatio-temporal-k-function" id="toc-computing-spatio-temporal-k-function" class="nav-link" data-scroll-target="#computing-spatio-temporal-k-function">Computing spatio-temporal K-function</a></li>
-  <li><a href="#guide-to-interpret-the-plot" id="toc-guide-to-interpret-the-plot" class="nav-link" data-scroll-target="#guide-to-interpret-the-plot">Guide to interpret the plot</a></li>
-  </ul></li>
-  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a></li>
   </ul>
 </nav>
     </div>
@@ -315,14 +283,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 19, 2026</p>
+      <p class="date">October 8, 2026</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 19, 2026</p>
+      <p class="date-modified">October 8, 2026</p>
     </div>
   </div>
     
@@ -335,23 +303,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<div class="en">
 <p>A spatio-temporal point process, also called a space-time or spatial-temporal point process, is a random collection of points where each point represents the <strong>time and location</strong> of an event. Examples include the incidence of disease, sightings or births of a species, and the occurrence of fires, earthquakes, lightning strikes, tsunamis or volcanic eruptions.</p>
 <p>The analysis of spatio-temporal point patterns is becoming increasingly necessary given the rapid emergence of geographically and temporally indexed data. This exercise combines several R packages to run a set of spatio-temporal point pattern analyses, using real-world forest fire events in Kepulauan Bangka Belitung, Indonesia from 1 January 2023 to 31 December 2023.</p>
+</div>
+<div class="zh">
+<p>时空点过程（也称时间-空间点过程）是点的随机集合，其中每个点代表一个事件的<strong>时间与位置</strong>。例子包括疾病发病、某一物种的目击或出生记录，以及火灾、地震、雷击、海啸、火山喷发的发生。</p>
+<p>随着带地理和时间索引的数据迅速涌现，时空点格局分析越来越有必要。本练习组合若干 R 包做一套时空点格局分析，用的是印度尼西亚邦加勿里洞群岛 2023 年 1 月 1 日至 12 月 31 日的真实森林火灾事件。</p>
+</div>
 </section>
 <section id="learning-outcome" class="level2">
 <h2 class="anchored" data-anchor-id="learning-outcome">Learning Outcome</h2>
 <section id="the-research-questions" class="level3">
 <h3 class="anchored" data-anchor-id="the-research-questions">The research questions</h3>
+<div class="en">
 <p>The specific questions to be answered are:</p>
 <ul>
 <li>Are the locations of forest fire in Kepulauan Bangka Belitung spatially and spatio-temporally independent?</li>
 <li>If the answer is NO, where and when do the observed forest fire locations tend to cluster?</li>
 </ul>
+</div>
+<div class="zh">
+<p>要回答的具体问题是：</p>
+<ul>
+<li>邦加勿里洞群岛的森林火灾位置，在空间上以及时空上是否相互独立？</li>
+<li>若答案是否，观测到的火点在何处、何时倾向于聚集？</li>
+</ul>
+</div>
 </section>
 </section>
 <section id="the-data" class="level2">
 <h2 class="anchored" data-anchor-id="the-data">The Data</h2>
+<div class="en">
 <p>Two data sets are used:</p>
+</div>
+<div class="zh">
+<p>使用两个数据集：</p>
+</div>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -379,46 +367,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>How this copy of the data differs from the textbook’s
+<span class="screen-reader-only">Note</span>Where this copy of the data came from
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The textbook’s files come from the Indonesia Geospatial portal and FIRMS’ authenticated archive. Neither is scriptable without an account, so the same two layers were rebuilt from open sources: the boundaries from <strong>GADM 4.1</strong> at level 4, which is the kelurahan/desa level, and the fires from the <strong>FIRMS country archive</strong> for Indonesia 2023, clipped to the province.</p>
-<p>The result is close but not identical, and the difference is worth stating:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th></th>
-<th>This exercise</th>
-<th>Textbook</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Boundary polygons</td>
-<td>362</td>
-<td>297</td>
-</tr>
-<tr class="even">
-<td>Fire detections</td>
-<td>898</td>
-<td>741</td>
-</tr>
-<tr class="odd">
-<td>Eastern extent</td>
-<td>108.85 E</td>
-<td>106.85 E</td>
-</tr>
-</tbody>
-</table>
-<p>The extent is the substantive difference. Belitung island lies between 107.5 E and 108.3 E, so the textbook’s boundary, despite the name Kepulauan Bangka Belitung, stops short of it and covers Bangka alone. Clipping to Bangka only gives 766 fires, which is much nearer the textbook’s 741; the remaining 132 fires are on Belitung.</p>
-<p>The whole province is used here, since that is what the dataset is called and what the research question asks about. Every figure below therefore differs from the textbook’s, and the selected bandwidths differ with them.</p>
+<div class="en">
+<p>Both layers are assembled from open sources. The boundaries are <strong>GADM 4.1</strong> at level 4, which is the kelurahan/desa level, giving 362 polygons. The fires are the <strong>FIRMS country archive</strong> for Indonesia 2023, clipped to the province, giving 898 detections.</p>
+</div>
+<div class="zh">
+<p>两个图层都来自公开数据源。边界取 <strong>GADM 4.1</strong> 的第 4 级，即 kelurahan/desa 级，共 362 个多边形；火点取 <strong>FIRMS</strong> 印度尼西亚 2023 年国家档案，裁切到该省范围，共 898 个探测点。</p>
+</div>
+<div class="en">
+<p>The study area is the whole of Kepulauan Bangka Belitung, both islands. Bangka alone accounts for 766 of the detections and Belitung for the remaining 132, and the eastern extent reaches 108.85 E because Belitung lies between 107.5 E and 108.3 E. Taking the whole province is what the name of the dataset describes and what the research question asks about, and it is the extent every figure and every selected bandwidth below rests on.</p>
+</div>
+<div class="zh">
+<p>研究区是整个邦加勿里洞群岛，两座岛都算在内。其中邦加岛占 766 个探测点，勿里洞岛占余下的 132 个；东边界到 108.85 E，因为勿里洞岛位于 107.5 E 与 108.3 E 之间。取全省既符合数据集名称所指，也符合研究问题所问，下文每一幅图、每一个选出的带宽都建立在这个范围之上。</p>
+</div>
 </div>
 </div>
 </section>
 <section id="installing-and-loading-the-r-packages" class="level2">
 <h2 class="anchored" data-anchor-id="installing-and-loading-the-r-packages">Installing and Loading the R Packages</h2>
+<div class="en">
 <p>Six packages are used:</p>
+</div>
+<div class="zh">
+<p>用到六个包：</p>
+</div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -457,9 +432,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
+<div class="en">
 <p><strong>stpp</strong> is added to the list for the space-time K-function in the final section.</p>
+</div>
+<div class="zh">
+<p>列表里加入 <strong>stpp</strong> 是为了最后一节的时空 K 函数。</p>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, raster, spatstat, sparr, stpp, tmap, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, spatstat, sparr, stpp, tmap, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -467,19 +447,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Note
+<span class="screen-reader-only">Note</span>Importing and Preparing Study Area
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>raster</strong> appears in the textbook’s package list but no raster object is created anywhere in this chapter, since the density surfaces stay as <code>sparr</code> objects and are drawn with base <code>plot()</code>. It is loaded here for consistency with the textbook, not because it is needed.</p>
-</div>
-</div>
-</section>
-<section id="importing-and-preparing-study-area" class="level2">
-<h2 class="anchored" data-anchor-id="importing-and-preparing-study-area">Importing and Preparing Study Area</h2>
 <section id="importing-study-area" class="level3">
 <h3 class="anchored" data-anchor-id="importing-study-area">Importing study area</h3>
+<div class="en">
 <p>The shapefile is imported, dissolved into a single outline with <code>st_union()</code>, stripped of its Z dimension, and reprojected to <strong>WGS 84 / UTM zone 48S</strong> (EPSG: 32748), the projected system appropriate for this part of Indonesia:</p>
+</div>
+<div class="zh">
+<p>导入 shapefile，用 <code>st_union()</code> 融合成单一外轮廓，去掉 Z 维，再投影到 <strong>WGS 84 / UTM zone 48S</strong>（EPSG: 32748），这是适用于印尼这一带的投影系统：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>kbb_sf <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/rawdata"</span>,</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">layer =</span> <span class="st">"Kepulauan_Bangka_Belitung"</span>) <span class="sc">%&gt;%</span></span>
@@ -497,11 +476,21 @@ Bounding box:  xmin: 105.108 ymin: -3.416535 xmax: 108.848 ymax: -1.501757
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>st_union()</code> matters here. The observation window for a point pattern must be a single region, not a collection of several hundred sub-district polygons, so the boundaries are dissolved before conversion.</p>
+</div>
+<div class="zh">
+<p>这里的 <code>st_union()</code> 很关键。点格局的观测窗口必须是单一区域，而不是几百个分区多边形的集合，所以要先融合边界再做转换。</p>
+</div>
 </section>
 <section id="converting-to-owin" class="level3">
 <h3 class="anchored" data-anchor-id="converting-to-owin">Converting to owin</h3>
+<div class="en">
 <p><code>as.owin()</code> converts <code>kbb_sf</code> into an <code>owin</code> object:</p>
+</div>
+<div class="zh">
+<p><code>as.owin()</code> 把 <code>kbb_sf</code> 转成 <code>owin</code> 对象：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>kbb_owin <span class="ot">&lt;-</span> <span class="fu">as.owin</span>(kbb_sf)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>kbb_owin</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -510,7 +499,12 @@ Geodetic CRS:  WGS 84</code></pre>
 enclosing rectangle: [512010.4, 928107.4] x [9621858, 9833989] units</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>class()</code> confirms the output is indeed an <code>owin</code> object:</p>
+</div>
+<div class="zh">
+<p><code>class()</code> 确认输出确实是 <code>owin</code> 对象：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(kbb_owin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -518,17 +512,26 @@ enclosing rectangle: [512010.4, 928107.4] x [9621858, 9833989] units</code></pre
 </div>
 </div>
 </section>
-</section>
 <section id="importing-and-preparing-forest-fire-data" class="level2">
 <h2 class="anchored" data-anchor-id="importing-and-preparing-forest-fire-data">Importing and Preparing Forest Fire Data</h2>
+<div class="en">
 <p>The CSV carries longitude and latitude as ordinary columns, so <code>st_as_sf()</code> is used to build the geometry, declaring the coordinates as wgs84 before reprojecting to match the study area:</p>
+</div>
+<div class="zh">
+<p>csv 里经纬度是普通列，所以用 <code>st_as_sf()</code> 构造几何：先声明坐标为 wgs84，再投影到与研究区一致：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fire_sf <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/rawdata/forestfires.csv"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>),</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">32748</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>A <code>ppp</code> object accepts only numeric or character values as marks, so the acquisition date is converted into three separate numeric and factor fields:</p>
+</div>
+<div class="zh">
+<p><code>ppp</code> 对象的标记只接受数值或字符，所以把采集日期拆成三个数值/因子字段：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fire_sf <span class="ot">&lt;-</span> fire_sf <span class="sc">%&gt;%</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">DayofYear =</span> <span class="fu">yday</span>(acq_date)) <span class="sc">%&gt;%</span></span>
@@ -559,7 +562,12 @@ enclosing rectangle: [512010.4, 928107.4] x [9621858, 9833989] units</code></pre
 </section>
 <section id="visualising-geographic-distribution-of-forest-fires-by-month" class="level3">
 <h3 class="anchored" data-anchor-id="visualising-geographic-distribution-of-forest-fires-by-month">Visualising geographic distribution of forest fires by month</h3>
+<div class="en">
 <p><code>tm_facets()</code> splits the same map by the month factor, so the seasonal movement of the fires becomes visible:</p>
+</div>
+<div class="zh">
+<p><code>tm_facets()</code> 按月份因子把同一幅地图拆开，火点的季节性移动就显出来了：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(kbb_sf) <span class="sc">+</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"grey95"</span>, <span class="at">col =</span> <span class="st">"grey70"</span>, <span class="at">lwd =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
@@ -581,10 +589,20 @@ enclosing rectangle: [512010.4, 928107.4] x [9621858, 9833989] units</code></pre
 </section>
 <section id="computing-stkde-by-month" class="level2">
 <h2 class="anchored" data-anchor-id="computing-stkde-by-month">Computing STKDE by Month</h2>
+<div class="en">
 <p>This section computes the spatio-temporal KDE using <code>spattemp.density()</code> of the <strong>sparr</strong> package.</p>
+</div>
+<div class="zh">
+<p>本节用 <strong>sparr</strong> 包的 <code>spattemp.density()</code> 计算时空核密度。</p>
+</div>
 <section id="extracting-forest-fires-by-month" class="level3">
 <h3 class="anchored" data-anchor-id="extracting-forest-fires-by-month">Extracting forest fires by month</h3>
+<div class="en">
 <p><code>as.ppp()</code> needs only the mark field and the geometry field, so the unwanted columns are dropped first:</p>
+</div>
+<div class="zh">
+<p><code>as.ppp()</code> 只需要标记字段和几何字段，所以先把多余的列去掉：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fire_month <span class="ot">&lt;-</span> fire_sf <span class="sc">%&gt;%</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Month_num)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -619,7 +637,12 @@ Window: rectangle = [521564.1, 862416.4] x [9642001, 9828767] units
 Window area = 63659700000 square units</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Checking for duplicated point events:</p>
+</div>
+<div class="zh">
+<p>检查是否存在重合的点事件：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">any</span>(<span class="fu">duplicated</span>(fire_month_ppp))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -629,7 +652,12 @@ Window area = 63659700000 square units</code></pre>
 </section>
 <section id="including-owin-object" class="level3">
 <h3 class="anchored" data-anchor-id="including-owin-object">Including owin object</h3>
+<div class="en">
 <p>Combining the point events with the study area window:</p>
+</div>
+<div class="zh">
+<p>把点事件与研究区窗口结合起来：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>fire_month_owin <span class="ot">&lt;-</span> fire_month_ppp[kbb_owin]</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fire_month_owin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -923,7 +951,12 @@ Window area = 16761600000 square units
 Fraction of frame area: 0.19</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Plotting the result to confirm it is correct:</p>
+</div>
+<div class="zh">
+<p>画出来确认结果正确：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fire_month_owin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -937,7 +970,12 @@ Fraction of frame area: 0.19</code></pre>
 </section>
 <section id="computing-spatio-temporal-kde" class="level3">
 <h3 class="anchored" data-anchor-id="computing-spatio-temporal-kde">Computing spatio-temporal KDE</h3>
+<div class="en">
 <p><code>spattemp.density()</code> estimates the density over space and time jointly. With no bandwidths supplied it selects both automatically, an isotropic spatial bandwidth <code>h</code> and a temporal bandwidth <code>lambda</code>:</p>
+</div>
+<div class="zh">
+<p><code>spattemp.density()</code> 在空间与时间上联合估计密度。不给带宽时它会自动选两个：各向同性的空间带宽 <code>h</code> 和时间带宽 <code>lambda</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>st_kde <span class="ot">&lt;-</span> <span class="fu">spattemp.density</span>(fire_month_owin)</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(st_kde)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -966,7 +1004,12 @@ Evaluation
 </section>
 <section id="plotting-the-spatio-temporal-kde-object" class="level3">
 <h3 class="anchored" data-anchor-id="plotting-the-spatio-temporal-kde-object">Plotting the spatio-temporal KDE object</h3>
+<div class="en">
 <p>The estimate is a stack of surfaces, one per time slice. Plotting July to December shows the second half of the year, when the fires concentrate:</p>
+</div>
+<div class="zh">
+<p>估计结果是一叠面，每个时间切片一张。画出 7 月到 12 月，也就是火点集中的下半年：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>tims <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">9</span>, <span class="dv">10</span>, <span class="dv">11</span>, <span class="dv">12</span>)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfcol =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>))</span>
@@ -984,12 +1027,22 @@ Evaluation
 </div>
 </div>
 </div>
+<div class="en">
 <p><code>fix.range = TRUE</code> holds the colour scale constant across the six panels, so a given colour means the same density in every month. Without it each panel is scaled to its own range and the months cannot be compared.</p>
+</div>
+<div class="zh">
+<p><code>fix.range = TRUE</code> 让六幅图共用同一个色标，于是同一种颜色在每个月代表相同的密度。不加这个参数，每幅图各按自己的范围拉伸，月份之间就没法比较。</p>
+</div>
 </section>
 </section>
 <section id="computing-stkde-by-day-of-year" class="level2">
 <h2 class="anchored" data-anchor-id="computing-stkde-by-day-of-year">Computing STKDE by Day of Year</h2>
+<div class="en">
 <p>The same estimation is repeated at daily resolution.</p>
+</div>
+<div class="zh">
+<p>同样的估计在日尺度上再做一遍。</p>
+</div>
 <section id="creating-ppp-object" class="level3">
 <h3 class="anchored" data-anchor-id="creating-ppp-object">Creating ppp object</h3>
 <div class="cell">
@@ -1331,8 +1384,18 @@ Evaluation
 </div>
 </div>
 <div class="callout-body-container callout-body">
+<div class="en">
 <p><code>plot(kde_yday)</code> draws <strong>one panel per time slice</strong>, and the daily lattice has over three hundred of them. The result is an unreadable wall of tiny plots that takes a long time to render.</p>
+</div>
+<div class="zh">
+<p><code>plot(kde_yday)</code> 会<strong>为每个时间切片画一幅图</strong>，而日尺度的格网有三百多个切片。结果是一整墙看不清的小图，还要很久才渲染得出来。</p>
+</div>
+<div class="en">
 <p>A selection of days is plotted instead, chosen to span the fire season identified in the monthly analysis:</p>
+</div>
+<div class="zh">
+<p>改为挑选若干天来画，所选日期覆盖月尺度分析中识别出的火灾季节：</p>
+</div>
 </div>
 </div>
 <div class="cell">
@@ -1356,7 +1419,12 @@ Evaluation
 </section>
 <section id="computing-stkde-by-day-of-year-improved-method" class="level2">
 <h2 class="anchored" data-anchor-id="computing-stkde-by-day-of-year-improved-method">Computing STKDE by Day of Year: Improved Method</h2>
+<div class="en">
 <p><code>BOOT.spattemp()</code> of <strong>sparr</strong> selects the bandwidths by bootstrap estimation of the mean integrated squared error, returning an isotropic scalar spatial bandwidth and a scalar temporal bandwidth. This is a better-founded choice than the defaults used above:</p>
+</div>
+<div class="zh">
+<p><strong>sparr</strong> 的 <code>BOOT.spattemp()</code> 通过自举估计平均积分平方误差来选带宽，返回一个各向同性的标量空间带宽和一个标量时间带宽。相比上面用的默认值，这个选择有更扎实的依据：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">BOOT.spattemp</span>(fire_yday_owin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1400,7 +1468,12 @@ Done.</code></pre>
 </div>
 <section id="computing-spatio-temporal-kde-1" class="level3">
 <h3 class="anchored" data-anchor-id="computing-spatio-temporal-kde-1">Computing spatio-temporal KDE</h3>
+<div class="en">
 <p>The STKDE is now derived using the <code>h</code> and <code>lambda</code> values the bootstrap returned, rounded:</p>
+</div>
+<div class="zh">
+<p>接着用自举返回并取整后的 <code>h</code> 与 <code>lambda</code> 重新求时空核密度：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>kde_yday <span class="ot">&lt;-</span> <span class="fu">spattemp.density</span>(fire_yday_owin,</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">h =</span> <span class="dv">21900</span>,</span>
@@ -1428,19 +1501,11 @@ Evaluation
   Density range: [5.667365e-19, 1.142683e-12]</code></pre>
 </div>
 </div>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
+<div class="en">
+<p>The bootstrap returns h = 21893 metres for the spatial bandwidth and lambda = 19.89 days for the temporal one. Both are selected from this data rather than set by hand, which matters because the two scale with different properties of the study area: the spatial bandwidth grows with the extent and the number of events, while the temporal one depends only on the length of the fire season. A spatial bandwidth borrowed from a smaller window would be far too narrow here and would produce a spuriously spiky surface.</p>
 </div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Do not carry the textbook’s numbers across
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The textbook reaches <code>h = 9105</code> and hardcodes <code>h = 9000</code>. The bootstrap run above returns h = 21893 on this data, roughly 2.4 times larger, because the study area here includes Belitung and holds more events, and the optimal spatial bandwidth scales with both.</p>
-<p>The temporal bandwidth is the opposite case: lambda = 19.89 against the textbook’s 18.85, almost the same, because the fire season has the same length either way. Copying <code>h = 9000</code> across would have imposed a kernel far too narrow for this window and produced a spuriously spiky surface.</p>
-</div>
+<div class="zh">
+<p>自举给出的空间带宽是 h = 21893 米，时间带宽是 lambda = 19.89 天。两者都是从本数据选出来的，而不是手工设定，这一点有意义：二者随研究区的不同属性变化——空间带宽随范围和事件数增长，时间带宽只取决于火季的长度。若从一个更小的窗口借来空间带宽，在这里会窄得太多，画出的面会出现虚假的尖峰。</p>
 </div>
 </section>
 <section id="plotting-the-output-spatio-temporal-kde" class="level3">
@@ -1465,21 +1530,41 @@ Evaluation
 </section>
 <section id="spatio-temporal-point-patterns-analysis-stpp-methods" class="level2">
 <h2 class="anchored" data-anchor-id="spatio-temporal-point-patterns-analysis-stpp-methods">Spatio-temporal Point Patterns Analysis: stpp Methods</h2>
+<div class="en">
 <p>This section uses functions of the <strong>stpp</strong> package to perform spatio-temporal point patterns analysis.</p>
+</div>
+<div class="zh">
+<p>本节用 <strong>stpp</strong> 包的函数做时空点格局分析。</p>
+</div>
 <section id="preparing-spatio-temporal-point-process-object-of-stpp" class="level3">
 <h3 class="anchored" data-anchor-id="preparing-spatio-temporal-point-process-object-of-stpp">Preparing spatio-temporal point process object of stpp</h3>
+<div class="en">
 <p><strong>Step 1</strong>: Extracting the forest fire coordinates from the fire point events.</p>
+</div>
+<div class="zh">
+<p><strong>第一步</strong>：从火点事件中取出坐标。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(fire_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><strong>Step 2</strong>: Creating a data frame by combining the x- and y-coordinates with the temporal event. The temporal event must be an integer.</p>
+</div>
+<div class="zh">
+<p><strong>第二步</strong>：把 x、y 坐标与时间项组成数据框，时间项必须是整数。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>fire_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> coords[, <span class="dv">1</span>],</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> coords[, <span class="dv">2</span>],</span>
 <span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> fire_sf<span class="sc">$</span><span class="st">`</span><span class="at">DayofYear</span><span class="st">`</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><strong>Step 3</strong>: Creating the <code>stpp</code> spatio-temporal object with <code>as.3dpoints()</code>.</p>
+</div>
+<div class="zh">
+<p><strong>第三步</strong>：用 <code>as.3dpoints()</code> 建立 <code>stpp</code> 时空对象。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>fire_stpp <span class="ot">&lt;-</span> <span class="fu">as.3dpoints</span>(fire_df)</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(fire_stpp)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1500,22 +1585,45 @@ Evaluation
 </section>
 <section id="computing-spatio-temporal-k-function" class="level3">
 <h3 class="anchored" data-anchor-id="computing-spatio-temporal-k-function">Computing spatio-temporal K-function</h3>
+<div class="en">
 <p><code>STIKhat()</code> computes the space-time inhomogeneous K-function:</p>
+</div>
+<div class="zh">
+<p><code>STIKhat()</code> 计算时空非齐性 K 函数：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>kbb_stik <span class="ot">&lt;-</span> <span class="fu">STIKhat</span>(fire_stpp)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>plotK()</code> visualises the output:</p>
+</div>
+<div class="zh">
+<p><code>plotK()</code> 把结果画出来：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plotK</span>(kbb_stik)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="guide-to-interpret-the-plot" class="level3">
 <h3 class="anchored" data-anchor-id="guide-to-interpret-the-plot">Guide to interpret the plot</h3>
+<div class="en">
 <ul>
 <li>If the contours show high values for small values of <em>u</em> and <em>v</em>, it suggests clustering at short spatial and temporal distances, meaning events occur close to each other in both space and time.</li>
 <li>If the contours are flat or show low values, it indicates a more random distribution or a lack of significant clustering at those distances.</li>
 </ul>
+</div>
+<div class="zh">
+<ul>
+<li>若等值线在 <em>u</em> 与 <em>v</em> 都较小处取高值，说明在较短的空间和时间距离上存在聚集，即事件在空间和时间上都彼此靠近；</li>
+<li>若等值线平坦或取低值，说明分布更接近随机，或在那些距离上没有明显聚集。</li>
+</ul>
+</div>
+<div class="en">
 <p>The spatial and temporal extent of clustering can be understood by observing how rapidly the contours increase or decrease along the axes: the spacing and values of the contour lines show at which distances clustering occurs.</p>
+</div>
+<div class="zh">
+<p>聚集在空间和时间上的作用范围，可以从等值线沿两轴上升或下降的快慢看出来：等值线的间距和取值显示聚集发生在哪些距离上。</p>
+</div>
 </section>
 </section>
 <section id="reference" class="level2">
@@ -1529,6 +1637,9 @@ Evaluation
 </ul>
 
 
+</section>
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->

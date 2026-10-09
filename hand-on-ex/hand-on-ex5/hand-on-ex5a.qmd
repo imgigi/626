@@ -18,6 +18,7 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 A choropleth map can look clustered without being clustered. The eye is a poor judge of randomness. It finds pattern in noise, and it is easily led by whichever class breaks the cartographer happened to choose. Whether similar values really do sit next to one another more often than chance allows is a statistical question, and the statistics that answer it are the global measures of spatial autocorrelation.
 
 This exercise computes those measures for the 88 counties of Hunan province, using GDP per capita in 2012 as the variable of interest and the **spdep** package throughout. Three instruments are applied to the same data. Moran's I is a cross-product statistic that behaves like a correlation coefficient between each value and the average of its neighbours. Geary's C is a squared-difference statistic that compares the dissimilarity of neighbouring pairs with the dissimilarity of all pairs. The spatial correlogram recomputes either statistic at successive orders of contiguity, and so shows how far the dependence reaches.
@@ -31,11 +32,29 @@ Each of the first two is evaluated twice, once against its analytical sampling d
 - a statistically defensible reading of what those statistics say.
 
 The local counterpart of these measures, which asks not whether the province clusters but *where*, is the subject of [Hands-on Exercise 5b](hand-on-ex5b.qmd).
+:::
+
+::: {.zh}
+一幅分级统计图可以看起来很聚集，而实际并不聚集。人眼不是判断随机性的好工具：它会在噪声里看出规律，也很容易被制图者恰好选中的那组分级断点牵着走。相似的取值是否真的比随机情形更常彼此相邻，这是一个统计问题，回答它的统计量就是空间自相关的全局测度。
+
+本练习为湖南省 88 个县计算这些测度，关注变量是 2012 年的人均 GDP，全程使用 **spdep** 包。同一份数据上用三种工具。Moran's I 是交叉乘积型统计量，行为上像是每个取值与其邻居均值之间的相关系数；Geary's C 是平方差型统计量，把相邻点对之间的差异与所有点对之间的差异相比；空间相关图则在逐级提高的邻接阶数上重算其中任一统计量，从而显示依赖关系能延伸多远。
+
+前两者各算两遍：一次对照其解析抽样分布，一次对照蒙特卡洛置换分布。两条路径所依赖的假定不同，所以二者是否一致本身就有信息量。练习结束时应当完成：
+
+- 用 **sf** 的相应函数导入地理空间数据；
+- 用 **readr** 的相应函数导入 csv 文件；
+- 用 **dplyr** 的相应函数做关系连接；
+- 用 **spdep** 的相应函数计算全局空间自相关统计量；
+- 对这些统计量给出统计上站得住的解读。
+
+这些测度的局部对应物——问的不是全省是否聚集，而是聚集在*哪里*——是[练习 5b](hand-on-ex5b.qmd) 的内容。
+:::
 
 ## Getting Started
 
 ### The analytical question
 
+::: {.en}
 Equal distribution of development across a province is a standard objective of local government and planning. The analytical task that follows from it is a chain of three questions, each asked only if the previous one has been answered:
 
 1.  Is development evenly distributed geographically? If the answer is **no**, then
@@ -43,21 +62,50 @@ Equal distribution of development across a province is a standard objective of l
 3.  where are those clusters?
 
 This exercise settles the first two for GDP per capita in Hunan province, People's Republic of China. The third is left to [Exercise 5b](hand-on-ex5b.qmd). A global statistic is by construction a single number for the whole map, so it cannot locate anything.
+:::
+
+::: {.zh}
+让发展在全省范围内均衡分布，是地方政府与规划部门的常规目标。由此而来的分析任务是一串三个问题，每一个都只在上一个有了答案之后才问：
+
+1.  发展在地理上是否均衡分布？若答案是**否**，则
+2.  是否有空间聚集的迹象？若这一问的答案是**是**，则
+3.  这些聚集在哪里？
+
+本练习为中国湖南省的人均 GDP 解决前两问，第三问留给[练习 5b](hand-on-ex5b.qmd)。全局统计量按其构造就是整幅地图的一个数，因此定不了位。
+:::
 
 ### The Study Area and Data
 
+::: {.en}
 Two data sets are used:
+:::
+
+::: {.zh}
+使用两个数据集：
+:::
 
 | Dataset | Description |
 |----|----|
 | `Hunan` | County boundary layer of Hunan province, China, in ESRI shapefile format |
 | `Hunan_2012.csv` | Selected local development indicators for Hunan in 2012 |
 
+::: {.en}
 These are the same two files used in [Hands-on Exercise 4](../hand-on-ex4/hand-on-ex4.qmd), carried over unchanged, so the neighbour structure built below is identical to the Queen contiguity list constructed there.
+:::
+
+::: {.zh}
+这两个文件与[练习 4](../hand-on-ex4/hand-on-ex4.qmd) 所用的相同，原样沿用，所以下面构建的邻居结构与那里的 Queen 邻接列表完全一致。
+:::
 
 ### Setting the Analytical Tools
 
+::: {.en}
 Four packages are used:
+:::
+
+::: {.zh}
+用到四个包：
+:::
 
 | Package | Role |
 |----|----|
@@ -74,18 +122,36 @@ pacman::p_load(sf, spdep, tmap, tidyverse)
 
 ### Import shapefile into R environment
 
+::: {.en}
 `st_read()` of **sf** imports the Hunan shapefile as a simple feature object:
+:::
+
+::: {.zh}
+**sf** 的 `st_read()` 把湖南 shapefile 读成简单要素对象：
+:::
 
 ```{r}
 hunan <- st_read(dsn = "data/geospatial",
                  layer = "Hunan")
 ```
 
+::: {.en}
 The header reports 88 polygon features with seven attribute fields, in geographic coordinates on WGS 84. The coordinates are deliberately left unprojected. Every statistic in this document is computed from a contiguity relation, and whether two counties share a boundary does not depend on the coordinate system. [Exercise 5b](hand-on-ex5b.qmd) does project the layer, because the distance bands used there do depend on it.
+:::
+
+::: {.zh}
+表头显示 88 个多边形要素、七个属性字段，坐标是 WGS 84 下的地理坐标。坐标是有意不做投影的：本文每一个统计量都由邻接关系算出，而两县是否共边不依赖坐标系统。[练习 5b](hand-on-ex5b.qmd) 则会投影该图层，因为那里用到的距离带确实依赖坐标系统。
+:::
 
 ### Import csv file into R environment
 
+::: {.en}
 `read_csv()` of **readr** imports the indicator table. The output is a plain data frame with no geometry:
+:::
+
+::: {.zh}
+**readr** 的 `read_csv()` 导入指标表，输出是不带几何的普通数据框：
+:::
 
 ```{r}
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
@@ -93,18 +159,36 @@ hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 
 ### Performing relational join
 
+::: {.en}
 `left_join()` of **dplyr** attaches the indicator fields to the attribute table of the `hunan` simple feature object, and `select()` keeps the identifying fields and GDPPC:
+:::
+
+::: {.zh}
+**dplyr** 的 `left_join()` 把指标字段挂到 `hunan` 简单要素对象的属性表上，`select()` 保留标识字段与 GDPPC：
+:::
 
 ```{r}
 hunan <- left_join(hunan, hunan2012, by = "County") %>%
   select(1:4, 7, 15)
 ```
 
+::: {.en}
 The join key is written out rather than left to automatic matching, and `hunan` is named first so that the result keeps its geometry column and remains an `sf` object.
+:::
+
+::: {.zh}
+连接键显式写出而不交给自动匹配，且 `hunan` 放在前面，这样结果保留几何列、仍是 `sf` 对象。
+:::
 
 ### Visualising Regional Development Indicator
 
+::: {.en}
 Before any test is run, the variable is mapped. Two choropleths of the same column are drawn, one classified by equal interval and one by quantile, because the pair shows that the first question above cannot be settled by looking:
+:::
+
+::: {.zh}
+在做任何检验之前先把变量画出来。同一列画两幅分级统计图，一幅用等间距分级、一幅用分位数分级，因为这一对图正好说明上面第一问靠看是定不下来的：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -136,26 +220,56 @@ quantile <- tm_shape(hunan) +
 tmap_arrange(equal, quantile, asp = 1, ncol = 2)
 ```
 
+::: {.en}
 The two maps are drawn from identical numbers and tell different stories. GDPPC in Hunan ranges from 8,497 to 88,656 with a median of 20,433, so the distribution is strongly right-skewed. Under equal interval that skew puts 58 of the 88 counties into the lowest class and only nine into the top three, so most of the province is drawn in one pale colour and the map reads as broadly uniform. Under quantile the same data fill all five classes by construction, and a dark north-eastern corner appears around Changsha.
+:::
 
+::: {.zh}
+两幅图出自同一组数字，讲的故事却不同。湖南的 GDPPC 从 8,497 到 88,656，中位数 20,433，分布严重右偏。等间距分级下，这种偏态把 88 个县中的 58 个归入最低一级，只有九个落在最高的三级里，于是全省大部分被画成同一种浅色，地图读起来大体均匀。分位数分级下，同样的数据按构造把五个级别都填满，长沙一带出现一个深色的东北角。
+:::
+
+::: {.en}
 Neither map is wrong, and that is the difficulty. A classification choice has changed the apparent answer to question 1, which is why a statistic that does not depend on class breaks is needed.
+:::
+
+::: {.zh}
+两幅图都不算错，难处正在这里。一个分级选择就改变了第一问表面上的答案，这就是为什么需要一个不依赖分级断点的统计量。
+:::
 
 ## Global Measures of Spatial Autocorrelation
 
 ### Computing Contiguity Spatial Weights
 
+::: {.en}
 Every measure below is a weighted sum over pairs of counties, so the neighbour relation has to be fixed before anything can be computed. `poly2nb()` of **spdep** builds a neighbours list from regions with contiguous boundaries. Its `queen` argument defaults to `TRUE`, which returns first order neighbours under the Queen criterion, where a single shared point is enough to make two counties neighbours.
+:::
+
+::: {.zh}
+下面每一个测度都是对县对的加权求和，所以在计算任何东西之前必须先把邻居关系定下来。**spdep** 的 `poly2nb()` 从边界相接的区域构建邻居列表。它的 `queen` 参数默认为 `TRUE`，返回 Queen 准则下的一阶邻居——该准则下共有一个点就足以使两县成为邻居。
+:::
 
 ```{r}
 wm_q <- poly2nb(hunan, queen = TRUE)
 summary(wm_q)
 ```
 
+::: {.en}
 There are 88 area units, 448 non-zero links, and an average of 5.09 neighbours per county. The most connected unit has 11 neighbours, and two units have one neighbour each. No unit is isolated, which matters here: a county with no neighbours contributes nothing to the cross-products that make up these statistics, and has to be handled explicitly.
+:::
+
+::: {.zh}
+共 88 个面单元、448 条非零连边，每县平均 5.09 个邻居。连通度最高的单元有 11 个邻居，有两个单元各只有一个邻居。没有孤立单元，这一点在此有意义：没有邻居的县对构成这些统计量的交叉乘积毫无贡献，必须单独处理。
+:::
 
 ### Row-standardised weights matrix
 
+::: {.en}
 The neighbour list records *who* is a neighbour. The weights matrix records *how much* each neighbour counts, and `nb2listw()` converts one into the other. With `style = "W"` each of a county's neighbours receives the fraction 1/(number of neighbours), so the weights in every row sum to one and the spatial lag of a county is the plain average of its neighbours' values.
+:::
+
+::: {.zh}
+邻居列表记录的是*谁*是邻居，权重矩阵记录的是每个邻居各占*多少*，`nb2listw()` 完成两者之间的转换。`style = "W"` 下，一个县的每个邻居各得 1 /（邻居个数）的份额，于是每一行权重之和为 1，该县的空间滞后值就是其邻居取值的普通平均。
+:::
 
 ```{r}
 rswm_q <- nb2listw(wm_q,
@@ -167,17 +281,42 @@ rswm_q
 ::: callout-note
 ## What the arguments do
 
+::: {.en}
 The input to `nb2listw()` must be an object of class `nb`. Two arguments carry most of the meaning:
+:::
 
+::: {.zh}
+`nb2listw()` 的输入必须是 `nb` 类对象。其中两个参数承载了大部分含义：
+:::
+
+::: {.en}
 -   **`style`** takes `"W"`, `"B"`, `"C"`, `"U"`, `"minmax"` or `"S"`. `B` is basic binary coding; `W` is row standardised, summing over all links to *n*; `C` is globally standardised, also summing to *n*; `U` is `C` divided by the number of neighbours, summing to unity; and `S` is the variance-stabilising scheme of Tiefelsdorf et al. (1999, pp. 167-168).
 -   **`zero.policy = TRUE`** inserts a zero-length weights vector for any region with no neighbours, which produces a lag value of zero for that region. Whether zero is a sensible lag for an isolated unit is a substantive question, not a technical one. No unit is isolated here, so the argument never takes effect, and is set only so that the code does not depend on that remaining true.
 :::
 
+::: {.zh}
+-   **`style`** 可取 `"W"`、`"B"`、`"C"`、`"U"`、`"minmax"`、`"S"`。`B` 是基本二值编码；`W` 是行标准化，全部连边之和为 *n*；`C` 是全局标准化，总和同样为 *n*；`U` 是 `C` 再除以邻居个数，总和为 1；`S` 是 Tiefelsdorf 等人（1999，第 167-168 页）提出的方差稳定化方案。
+-   **`zero.policy = TRUE`** 会为没有邻居的区域插入一个零长度的权重向量，该区域的滞后值因而为零。对孤立单元而言，零是否算一个合理的滞后值，这是实质问题而非技术问题。此处没有孤立单元，所以该参数从未生效，设上它只是为了让代码不依赖这一点永远成立。
+:::
+:::
+
+::: {.en}
 The printed weights constants are the quantities the analytical tests are built from: *S~0~* = 88, the sum of all weights, which equals *n* exactly because each row sums to one; *S~1~* = 37.86; and *S~2~* = 365.91. Row standardisation carries one well-known cost. Counties on the provincial edge have fewer neighbours, so each of the neighbours they do have takes a larger weight, and their lagged values rest on a thinner base than interior counties'. `style = "B"` is the more robust alternative, and `"W"` is kept here for interpretability.
+:::
+
+::: {.zh}
+打印出的权重常数正是解析检验所依赖的量：*S~0~* = 88，即全部权重之和，它恰好等于 *n*，因为每一行之和为 1；*S~1~* = 37.86；*S~2~* = 365.91。行标准化有一个众所周知的代价：省界上的县邻居较少，于是它们每一个邻居占的权重更大，其滞后值所依据的基础比内陆县更薄。更稳健的替代是 `style = "B"`，此处为便于解读仍用 `"W"`。
+:::
 
 ## Global Measures of Spatial Autocorrelation: Moran's I
 
+::: {.en}
 Moran's I compares each value's deviation from the provincial mean with the deviations of its neighbours. It is bounded approximately by −1 and +1. Positive values mean that similar values sit together, negative values mean that high and low values alternate, and the expectation under no spatial pattern is not zero but −1/(*n*−1), here −0.0115.
+:::
+
+::: {.zh}
+Moran's I 把每个取值相对全省均值的偏差，与其邻居的偏差相比较。它的取值大致界于 −1 与 +1 之间。正值意味着相似的取值聚在一起，负值意味着高低值交替出现；而在没有空间格局时，它的期望不是零，而是 −1/(*n*−1)，此处为 −0.0115。
+:::
 
 ### Moran's I test
 
@@ -188,13 +327,31 @@ moran.test(hunan$GDPPC,
            na.action = na.omit)
 ```
 
+::: {.en}
 The observed I is 0.3007, against an expectation of −0.0115 and a variance of 0.004348 under the randomisation hypothesis. The standard deviate is 4.7351 and the one-sided p-value is 1.095 × 10^-6^, so the null hypothesis of spatial randomness is rejected at any conventional level. The sign is positive, which means the clustering is of like with like: counties with high GDPPC tend to border counties with high GDPPC, and the same holds at the low end. Development in Hunan is therefore **not** evenly distributed, and there **is** a sign of spatial clustering, which answers the first two of the three questions above.
+:::
 
+::: {.zh}
+观测到的 I 是 0.3007，而随机化假设下的期望是 −0.0115、方差是 0.004348。标准离差为 4.7351，单侧 p 值为 1.095 × 10^-6^，所以在任何通行水平上都拒绝空间随机的零假设。符号为正，说明聚集是同类相聚：GDPPC 高的县倾向于与 GDPPC 高的县相邻，低端同理。因此湖南的发展**不是**均衡分布的，而且**存在**空间聚集的迹象——上面三问中的前两问就此有了答案。
+:::
+
+::: {.en}
 The magnitude carries as much information as the p-value. An I of 0.30 is moderate rather than overwhelming. Neighbourhood explains a real but partial share of the variation in county income, and a great deal of that variation remains local to individual counties.
+:::
+
+::: {.zh}
+量级与 p 值同样有信息量。I = 0.30 属中等，而非压倒性。邻域解释了县域收入差异中真实但只是一部分的份额，其中相当大一部分差异仍属于各县自身。
+:::
 
 ### Computing Monte Carlo Moran's I
 
+::: {.en}
 The test above draws its p-value from an analytical approximation to the sampling distribution of I. That approximation is asymptotic and assumes a normality or randomisation null. A permutation test avoids the assumption entirely: `moran.mc()` reassigns the 88 observed GDPPC values to the 88 counties at random, recomputes I, and repeats, building the null distribution from the data rather than from theory. With `nsim = 999` the observed value is compared against 999 simulations, for 1000 values in total.
+:::
+
+::: {.zh}
+上面的检验从 I 抽样分布的解析近似中取 p 值。该近似是渐近的，并且假定正态或随机化零分布。置换检验完全避开这一假定：`moran.mc()` 把观测到的 88 个 GDPPC 值随机重新分配给 88 个县，重算 I，反复多次，从数据而不是从理论构建零分布。`nsim = 999` 时，观测值与 999 次模拟相比，合计 1000 个值。
+:::
 
 ```{r}
 set.seed(1234)
@@ -206,15 +363,39 @@ bperm <- moran.mc(hunan$GDPPC,
 bperm
 ```
 
+::: {.en}
 `set.seed()` is called first so that the permutations, and therefore the printed p-value, are reproducible across renders.
+:::
 
+::: {.zh}
+先调用 `set.seed()`，使置换过程、以及由此打印出的 p 值在多次渲染之间可复现。
+:::
+
+::: {.en}
 The observed I of 0.30075 has rank 1000 of 1000, meaning no permutation of the data produced a value as high. The pseudo p-value is 1/1000 = 0.001, the smallest value 999 simulations can deliver. That figure is a floor rather than a measurement: the true p-value is smaller than 0.001 by an unknown amount, and the analytical test's 1.1 × 10^-6^ is the better estimate of how much smaller.
+:::
 
+::: {.zh}
+观测到的 I = 0.30075 在 1000 个值中排第 1000 位，意味着没有任何一次置换给出这么高的值。伪 p 值为 1/1000 = 0.001，这是 999 次模拟所能给出的最小值。这个数字是下限而不是测量结果：真实 p 值比 0.001 还小，小多少未知，而解析检验的 1.1 × 10^-6^ 是对「小多少」更好的估计。
+:::
+
+::: {.en}
 The conclusion matches the analytical one, which is the point of running both. Had they disagreed, the randomisation-based p-value would have been the one to trust, since it makes no distributional assumption.
+:::
+
+::: {.zh}
+结论与解析检验一致，这正是两种都跑一遍的意义。若两者不一致，该信的是基于随机化的那个 p 值，因为它不作分布假定。
+:::
 
 ### Visualising Monte Carlo Moran's I
 
+::: {.en}
 The simulated statistics are examined directly, rather than only through the p-value derived from them. The mean and variance of the 999 simulated values come first:
+:::
+
+::: {.zh}
+这里直接考察模拟出的统计量本身，而不只看由它导出的 p 值。先看 999 个模拟值的均值与方差：
+:::
 
 ```{r}
 mean(bperm$res[1:999])
@@ -228,9 +409,21 @@ var(bperm$res[1:999])
 summary(bperm$res[1:999])
 ```
 
+::: {.en}
 The simulated mean is −0.01505, against the theoretical expectation of −0.01149, and the simulated variance is 0.004372 against the theoretical 0.004348. The permutation distribution has reproduced the analytical moments to three decimal places. That is empirical confirmation that the assumptions behind `moran.test()` hold for this data set.
+:::
 
+::: {.zh}
+模拟均值是 −0.01505，理论期望是 −0.01149；模拟方差是 0.004372，理论值是 0.004348。置换分布把解析矩复现到了小数点后三位，这是 `moran.test()` 背后的假定在本数据集上成立的实证确认。
+:::
+
+::: {.en}
 The distribution is then plotted with `hist()` and `abline()` of R Graphics:
+:::
+
+::: {.zh}
+接着用 R 基础图形的 `hist()` 与 `abline()` 把该分布画出来：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -243,11 +436,29 @@ abline(v = 0,
        col = "red")
 ```
 
+::: {.en}
 The simulated values form a roughly symmetric distribution centred just below zero and running from −0.183 to 0.276. The observed I of 0.30075 is the single bar at the far right, outside the range of all 999 simulations, which is what rank 1000 means.
+:::
 
+::: {.zh}
+模拟值构成一个大致对称的分布，中心略低于零，范围从 −0.183 到 0.276。观测到的 I = 0.30075 是最右端那根孤立的柱，落在全部 999 次模拟的范围之外——这就是排名第 1000 位的含义。
+:::
+
+::: {.en}
 The red line is drawn at zero rather than at the expectation of −0.0115. On this scale the difference is invisible, but it matters in principle. The null value of Moran's I for a finite sample is slightly negative, so treating zero as the benchmark introduces a small conservative bias into any visual reading.
+:::
 
+::: {.zh}
+红线画在零处，而不是期望值 −0.0115 处。在这个尺度上差别看不出来，但原则上有意义：有限样本下 Moran's I 的零值略小于零，所以把零当基准会给任何目视判断带来一点保守偏差。
+:::
+
+::: {.en}
 The base graphics call answers the question directly. The same distribution drawn with **ggplot2** carries both reference values explicitly, which makes the comparison easier to read:
+:::
+
+::: {.zh}
+基础图形的那次调用已经直接回答了问题。同一分布改用 **ggplot2** 画，可以把两个参考值都显式标出来，比较起来更好读：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -278,13 +489,31 @@ ggplot(data.frame(sim = bperm$res[1:999]),
   theme_minimal()
 ```
 
+::: {.en}
 The gap between the red line and the right-hand tail of the grey distribution is the visual form of the test result. The observed statistic is not merely in the tail; it is beyond it.
+:::
+
+::: {.zh}
+红线与灰色分布右尾之间的空隙，就是检验结果的图形形态。观测统计量不只是落在尾部，而是已经越过了尾部。
+:::
 
 ## Global Measures of Spatial Autocorrelation: Geary's C
 
+::: {.en}
 Moran's I is built from cross-products of deviations from the mean, so it responds to whether neighbouring counties fall on the same side of the provincial average. Geary's C is built from the squared differences between neighbouring values directly, so it responds to how far apart neighbours are in absolute terms. Geary's C is therefore the more sensitive to local differences and Moran's I the more sensitive to global structure, and the two need not agree.
+:::
 
+::: {.zh}
+Moran's I 由均值偏差的交叉乘积构成，所以它反应的是相邻两县是否落在全省均值的同一侧。Geary's C 直接由相邻取值之间的平方差构成，所以它反应的是邻居彼此相差多少的绝对量。因此 Geary's C 对局部差异更敏感，Moran's I 对全局结构更敏感，两者不必一致。
+:::
+
+::: {.en}
 The scale is also inverted. Geary's C has an expectation of exactly 1 under spatial randomness. Values **below** 1 indicate positive spatial autocorrelation, and values above 1 indicate negative autocorrelation.
+:::
+
+::: {.zh}
+标尺的方向也是反的。空间随机下 Geary's C 的期望恰为 1。**小于** 1 表示正空间自相关，大于 1 表示负自相关。
+:::
 
 ### Geary's C test
 
@@ -292,13 +521,31 @@ The scale is also inverted. Geary's C has an expectation of exactly 1 under spat
 geary.test(hunan$GDPPC, listw = rswm_q)
 ```
 
+::: {.en}
 The observed C is 0.6907, against an expectation of 1 and a variance of 0.007336. The standard deviate is 3.6108 and the p-value is 1.526 × 10^-4^. The alternative hypothesis is printed as *Expectation greater than statistic*, which is the direction corresponding to positive autocorrelation on this inverted scale. C is significantly below 1, so neighbouring counties differ from one another by less than randomly paired counties do. That is the conclusion Moran's I reached, obtained here from a different functional form.
+:::
 
+::: {.zh}
+观测到的 C 是 0.6907，期望为 1，方差为 0.007336。标准离差 3.6108，p 值 1.526 × 10^-4^。备择假设打印为 *Expectation greater than statistic*，在这个反向标尺上对应的正是正自相关的方向。C 显著小于 1，说明相邻两县之间的差异小于随机配对的两县，这与 Moran's I 得到的结论相同，只是出自另一种函数形式。
+:::
+
+::: {.en}
 The agreement is a genuine finding rather than a formality. Moran's I and Geary's C are inversely related but not equivalent, and a data set in which a few extreme local contrasts sit inside an otherwise smooth field can produce a significant I with an unremarkable C. Hunan does not: the clustering is visible both to a statistic that looks at the mean and to one that looks at differences.
+:::
+
+::: {.zh}
+两者一致是一个实在的发现，而不是形式上的重复。Moran's I 与 Geary's C 方向相反但并不等价：若一个数据集在整体平滑的场里嵌着少数几处极端的局部反差，就可能给出显著的 I 和平淡的 C。湖南不是这种情况——无论用看均值的统计量还是看差异的统计量，聚集都看得见。
+:::
 
 ### Computing Monte Carlo Geary's C
 
+::: {.en}
 As with Moran's I, the analytical result is checked against a permutation distribution, this time with `geary.mc()`:
+:::
+
+::: {.zh}
+与 Moran's I 一样，解析结果也要对照置换分布核验，这次用 `geary.mc()`：
+:::
 
 ```{r}
 set.seed(1234)
@@ -308,13 +555,31 @@ bperm <- geary.mc(hunan$GDPPC,
 bperm
 ```
 
+::: {.en}
 The observed C of 0.69072 has rank 1 of 1000, and the pseudo p-value is again 0.001. The two statements are consistent. On the Geary scale the evidence of clustering lies in the lower tail, so being the smallest of the 1000 values is the strongest possible result.
+:::
 
+::: {.zh}
+观测到的 C = 0.69072 在 1000 个值中排第 1 位，伪 p 值同样是 0.001。这两句话是一致的：在 Geary 的标尺上，聚集的证据位于下尾，所以成为 1000 个值中最小的那个就是可能得到的最强结果。
+:::
+
+::: {.en}
 This is worth spelling out, because the printed line `alternative hypothesis: greater` looks at first as though the wrong tail is being tested. Inside `geary.mc()` the p-value is computed from `nsim - rank`, so it falls as the observed rank falls. Inside `moran.mc()` it is computed so that it falls as the observed rank rises. The two functions carry the same label and read opposite ends of their respective distributions, which is correct, since a low C and a high I are the same substantive finding.
+:::
+
+::: {.zh}
+这一点值得写明，因为打印出的 `alternative hypothesis: greater` 一眼看去像是在检验错的那一侧。`geary.mc()` 内部由 `nsim - rank` 算 p 值，所以观测排名越低、p 值越小；`moran.mc()` 内部的算法则是观测排名越高、p 值越小。两个函数挂着同样的标签，读的却是各自分布相反的两端——这是对的，因为低 C 与高 I 说的是同一件事。
+:::
 
 ### Visualising the Monte Carlo Geary's C
 
+::: {.en}
 The moments of the simulated distribution are computed as before:
+:::
+
+::: {.zh}
+照前面的做法计算模拟分布的各阶矩：
+:::
 
 ```{r}
 mean(bperm$res[1:999])
@@ -328,7 +593,13 @@ var(bperm$res[1:999])
 summary(bperm$res[1:999])
 ```
 
+::: {.en}
 The simulated mean is 1.0044 against a theoretical expectation of exactly 1, and the simulated variance is 0.007436 against the theoretical 0.007336. Again the match is close, and again it is a reason to trust the analytical test.
+:::
+
+::: {.zh}
+模拟均值是 1.0044，理论期望恰为 1；模拟方差是 0.007436，理论值是 0.007336。同样吻合得很好，同样构成信赖解析检验的理由。
+:::
 
 ```{r}
 #| fig-width: 8
@@ -337,19 +608,49 @@ hist(bperm$res, freq = TRUE, breaks = 20, xlab = "Simulated Geary c")
 abline(v = 1, col = "red")
 ```
 
+::: {.en}
 The simulated values run from 0.714 to 1.272 and centre tightly on 1, where the red reference line is drawn. Here the line sits at the true expectation rather than near it, because for Geary's C the expectation is exactly 1 regardless of *n*.
+:::
 
+::: {.zh}
+模拟值从 0.714 到 1.272，紧紧以 1 为中心，红色参考线正画在那里。这一次线落在真正的期望值上而不是附近，因为 Geary's C 的期望恒为 1，与 *n* 无关。
+:::
+
+::: {.en}
 The observed C of 0.69072 falls just outside the left edge of the simulated range. Compared with the Moran's I histogram the margin is narrower: the observed value is barely beyond the most extreme simulation rather than well beyond it. That is the same information the two standard deviates carry, 3.61 for Geary's C against 4.74 for Moran's I. Both reject the null, but Moran's I rejects it more emphatically, which is the expected ordering when the clustering is driven by a compact cluster of very high values rather than by a uniform smoothness across the whole map.
+:::
+
+::: {.zh}
+观测到的 C = 0.69072 刚好落在模拟范围左端之外。与 Moran's I 的直方图相比，这个余量更窄：观测值只是略微越过最极端的那次模拟，而不是远远越过。这与两个标准离差所传达的信息一致——Geary's C 是 3.61，Moran's I 是 4.74。两者都拒绝零假设，但 Moran's I 拒绝得更决断；当聚集是由一小块取值极高的紧密簇驱动、而不是由整幅地图的均匀平滑驱动时，这正是预期中的次序。
+:::
 
 ## Spatial Correlogram
 
+::: {.en}
 Both statistics so far have used one neighbour definition, namely counties that touch. But spatial dependence does not stop at a shared boundary, and its reach is itself a property worth measuring. A spatial correlogram recomputes a global statistic at increasing orders of contiguity: lag 1 is counties that touch, lag 2 is counties two boundaries away, and so on. Plotting the statistic against lag shows how quickly dependence decays, and at what distance it disappears or reverses.
+:::
 
+::: {.zh}
+到目前为止两个统计量都只用了一种邻居定义，即相互接壤的县。但空间依赖并不止于共边，它能延伸多远本身就是值得测量的性质。空间相关图在逐级提高的邻接阶数上重算某个全局统计量：滞后 1 是接壤的县，滞后 2 是隔一道边界的县，以此类推。把统计量对滞后阶数作图，就能看出依赖衰减得多快，以及在多远处消失或反向。
+:::
+
+::: {.en}
 Correlograms are not as fundamental as variograms, the keystone concept of geostatistics, but for exploratory and descriptive work they provide richer information, since each point comes with its own significance test.
+:::
+
+::: {.zh}
+相关图不像变差函数那样基础——后者是地统计学的基石概念——但用于探索与描述时它提供的信息更丰富，因为图上每一个点都带有自己的显著性检验。
+:::
 
 ### Compute Moran's I correlogram
 
+::: {.en}
 `sp.correlogram()` of **spdep** computes a six-lag correlogram of GDPPC using Moran's I, and `plot()` of base graphics draws it:
+:::
+
+::: {.zh}
+**spdep** 的 `sp.correlogram()` 用 Moran's I 计算 GDPPC 的六阶相关图，基础图形的 `plot()` 把它画出来：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -362,27 +663,75 @@ MI_corr <- sp.correlogram(wm_q,
 plot(MI_corr)
 ```
 
+::: {.en}
 The plot alone does not support a complete interpretation, because not every plotted value is statistically significant. The full analysis report is needed:
+:::
+
+::: {.zh}
+只看图不足以给出完整解读，因为图上并非每个值都统计显著，需要看完整的分析报告：
+:::
 
 ```{r}
 print(MI_corr)
 ```
 
+::: {.en}
 The six estimates are 0.3008, 0.2060, 0.0668, 0.0299, −0.1530 and −0.1187, and the significance codes separate them into three regimes.
+:::
 
+::: {.zh}
+六个估计值是 0.3008、0.2060、0.0668、0.0299、−0.1530、−0.1187，显著性标记把它们分成三段。
+:::
+
+::: {.en}
 Lags 1 and 2 are strongly positive and highly significant, at p = 2.19 × 10^-6^ and 2.03 × 10^-6^. Dependence is not confined to counties that share a boundary. It survives a second step outward at two-thirds of its original strength.
+:::
 
+::: {.zh}
+滞后 1 与 2 强正且高度显著，p 分别为 2.19 × 10^-6^ 与 2.03 × 10^-6^。依赖关系并不局限于共边的县，向外再走一步仍保留了原有强度的约三分之二。
+:::
+
+::: {.en}
 Lags 3 and 4 fade to nothing. Lag 3 is 0.0668 with p = 0.040, statistically significant at 5% but substantively negligible, and lag 4 is 0.0299 with p = 0.226, which is indistinguishable from the null. Positive dependence has run out somewhere between the second and third ring of neighbours.
+:::
 
+::: {.zh}
+滞后 3 与 4 衰减到几乎没有。滞后 3 是 0.0668、p = 0.040，在 5% 水平上统计显著但实质上可以忽略；滞后 4 是 0.0299、p = 0.226，与零假设无法区分。正依赖在第二圈与第三圈邻居之间某处就耗尽了。
+:::
+
+::: {.en}
 Lags 5 and 6 turn significantly negative, at −0.1530 with p = 5.98 × 10^-5^ and −0.1187 with p = 0.0089. This is neither noise nor a failure of the method. At five or six steps from any given county one has crossed most of the province, so the comparison being made is essentially between the prosperous north-east and the poorer west and south. Distant pairs are systematically dissimilar, which is the signature of a single large gradient across the study area rather than of many small clusters.
+:::
 
+::: {.zh}
+滞后 5 与 6 转为显著负值，分别是 −0.1530（p = 5.98 × 10^-5^）与 −0.1187（p = 0.0089）。这既不是噪声，也不是方法失效。从任一县出发走五六步就已跨过大半个省，所以此时比较的实质上是富庶的东北与较贫的西部和南部。远距离的点对系统性地不相似，这是整个研究区存在单一大梯度的特征，而不是许多小聚集的特征。
+:::
+
+::: {.en}
 Read together, the three regimes give a description that no single statistic could. Hunan's development has a local neighbourhood effect reaching about two counties, embedded in a province-wide north-east to south-west gradient.
+:::
 
+::: {.zh}
+三段合起来读，给出的描述是任何单个统计量都给不出的：湖南的发展存在一个大约延伸两个县的局部邻域效应，而它嵌在一条自东北向西南的全省性梯度之中。
+:::
+
+::: {.en}
 One caution attaches to the p-values in this table. Each is computed for its own lag with no correction for the fact that six tests are being read together, and the estimates are not independent of one another, since the lag-2 neighbours of a county are defined relative to its lag-1 neighbours. The pattern of the sequence is more informative than any individual p-value in it.
+:::
+
+::: {.zh}
+这张表里的 p 值有一点需要留意：每个 p 值只针对自己那一阶计算，没有为「六个检验要一起读」做校正，而且各估计值之间并不独立——某县的滞后 2 邻居是相对其滞后 1 邻居定义的。整个序列的形态比其中任何单个 p 值都更有信息量。
+:::
 
 ### Compute Geary's C correlogram and plot
 
+::: {.en}
 The same call with `method = "C"` produces the Geary's C correlogram:
+:::
+
+::: {.zh}
+同一个调用改成 `method = "C"` 就得到 Geary's C 的相关图：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -399,13 +748,37 @@ plot(GC_corr)
 print(GC_corr)
 ```
 
+::: {.en}
 The Geary estimates are 0.6907, 0.7630, 0.9397, 1.0098, 1.2008 and 1.0773. On the inverted scale they tell the same story as the Moran sequence, mirrored about 1.
+:::
 
+::: {.zh}
+Geary 的估计值是 0.6907、0.7630、0.9397、1.0098、1.2008、1.0773。在反向标尺上，它们讲的故事与 Moran 序列相同，只是以 1 为轴镜像过来。
+:::
+
+::: {.en}
 Lags 1 and 2 are well below 1 and highly significant, at p = 3.05 × 10^-4^ and 7.22 × 10^-4^: neighbours, and neighbours of neighbours, are more alike than random pairs. Lags 3 and 4 sit at 0.94 and 1.01 with p = 0.389 and 0.876, indistinguishable from the null. Lag 5 rises to 1.2008 with p = 7.59 × 10^-4^, confirming the significant negative dependence the Moran correlogram found at the same lag.
+:::
 
+::: {.zh}
+滞后 1 与 2 远低于 1 且高度显著，p 分别为 3.05 × 10^-4^ 与 7.22 × 10^-4^：邻居、以及邻居的邻居，比随机配对更相似。滞后 3 与 4 为 0.94 与 1.01，p = 0.389 与 0.876，与零假设无法区分。滞后 5 升到 1.2008、p = 7.59 × 10^-4^，印证了 Moran 相关图在同一阶发现的显著负依赖。
+:::
+
+::: {.en}
 The two sequences differ in one place. At lag 6 Geary's C is 1.0773 with p = 0.310, which is not significant, where Moran's I was −0.1187 with p = 0.0089. The disagreement follows from what each statistic measures. At six steps the pairs being compared are the far corners of the province, which fall on opposite sides of the provincial mean, and Moran's I registers that reliably because it works from deviations about the mean. Geary's C works from the squared differences between the pairs themselves, and at that range those differences are large but variable, so the same structure produces a weaker signal.
+:::
 
+::: {.zh}
+两个序列只在一处不同。滞后 6 处 Geary's C 是 1.0773、p = 0.310，不显著，而 Moran's I 是 −0.1187、p = 0.0089。这种不一致源自两个统计量各自测量的东西：走到六步时比较的是全省的两个远端角落，它们落在全省均值的两侧，Moran's I 因为由均值偏差出发，能可靠地把这一点登记下来；Geary's C 由点对自身的平方差出发，在那个距离上这些差异虽大但变动也大，所以同样的结构给出的信号更弱。
+:::
+
+::: {.en}
 Where the two correlograms agree, at lags 1, 2 and 5, the finding can be treated as a property of the data rather than of the statistic chosen to measure it.
+:::
+
+::: {.zh}
+在两幅相关图一致的地方，也就是滞后 1、2、5，相应结论可以当作数据本身的性质，而不是所选统计量造成的产物。
+:::
 
 ## Reference
 

@@ -188,6 +188,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex6/hand-on-ex6.html">
  <span class="dropdown-text">Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="../../hand-on-ex/hand-on-ex7/hand-on-ex7.html">
+ <span class="dropdown-text">Exercise 7 · Hedonic Pricing Model with GWR</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -318,7 +323,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 19, 2026</p>
+      <p class="date-modified">October 8, 2026</p>
     </div>
   </div>
     
@@ -331,6 +336,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<div class="en">
 <p>In this hands-on exercise, I learn how to handle geospatial data in R using the <strong>sf</strong> package. Geospatial Data Science involves importing, wrangling, integrating, and processing geographically referenced datasets. By the end of this exercise, I am able to:</p>
 <ul>
 <li>install and load <strong>sf</strong> and <strong>tidyverse</strong> packages into R environment,</li>
@@ -343,9 +349,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>perform data wrangling using <strong>dplyr</strong>, and</li>
 <li>perform Exploratory Data Analysis (EDA) using <strong>ggplot2</strong>.</li>
 </ul>
+</div>
+<div class="zh">
+<p>本次练习学习用 <strong>sf</strong> 包在 R 中处理地理空间数据。地理空间数据科学所做的事，是把带有地理参照的数据集导入、整理、整合并加工。练习结束时应当能够：</p>
+<ul>
+<li>在 R 环境中安装并载入 <strong>sf</strong> 与 <strong>tidyverse</strong>；</li>
+<li>用 <strong>sf</strong> 的相应函数导入地理空间数据；</li>
+<li>用 <strong>readr</strong> 导入非空间数据；</li>
+<li>用 Base R 与 <strong>sf</strong> 的函数查看简单要素数据框；</li>
+<li>用 <strong>sf</strong> 的函数指定或转换坐标系统；</li>
+<li>把非空间数据转换成 sf 数据框；</li>
+<li>用 <strong>sf</strong> 完成地理处理任务；</li>
+<li>用 <strong>dplyr</strong> 做数据整理；</li>
+<li>用 <strong>ggplot2</strong> 做探索性数据分析。</li>
+</ul>
+</div>
 </section>
 <section id="data-acquisition" class="level2">
 <h2 class="anchored" data-anchor-id="data-acquisition">Data Acquisition</h2>
+<div class="en">
 <p>The following datasets are used in this exercise:</p>
 <ul>
 <li><strong>Master Plan 2014 Subzone Boundary (Web)</strong> from <a href="https://data.gov.sg/">data.gov.sg</a></li>
@@ -354,25 +376,56 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Singapore Airbnb listing data</strong> from <a href="http://insideairbnb.com/get-the-data.html">Inside Airbnb</a></li>
 </ul>
 <p>The geospatial files (<code>MP14_SUBZONE_WEB_PL</code>, <code>CyclingPathGazette</code>, and <code>PreSchoolsLocation.kml</code>) are placed in the <code>data/geospatial</code> sub-folder. The aspatial file <code>listings.csv</code> is placed in the <code>data/aspatial</code> sub-folder.</p>
+</div>
+<div class="zh">
+<p>本练习使用以下数据集：</p>
+<ul>
+<li><strong>Master Plan 2014 Subzone Boundary (Web)</strong>，来自 <a href="https://data.gov.sg/">data.gov.sg</a></li>
+<li><strong>Pre-Schools Location</strong>，来自 <a href="https://data.gov.sg/">data.gov.sg</a></li>
+<li><strong>Cycling Path</strong>，来自 <a href="https://www.mytransport.sg/content/mytransport/home/dataMall.html">LTADataMall</a></li>
+<li><strong>Singapore Airbnb listing data</strong>，来自 <a href="http://insideairbnb.com/get-the-data.html">Inside Airbnb</a></li>
+</ul>
+<p>三个地理空间文件（<code>MP14_SUBZONE_WEB_PL</code>、<code>CyclingPathGazette</code>、<code>PreSchoolsLocation.kml</code>）放在 <code>data/geospatial</code> 子目录下，非空间文件 <code>listings.csv</code> 放在 <code>data/aspatial</code> 子目录下。</p>
+</div>
 </section>
 <section id="getting-started" class="level2">
 <h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
+<div class="en">
 <p>Two R packages are used in this exercise:</p>
 <ul>
 <li><strong>sf</strong> for importing, managing, and processing geospatial data</li>
 <li><strong>tidyverse</strong> for data science tasks including importing, wrangling, and visualising data</li>
 </ul>
 <p>Within tidyverse, the following packages are specifically used: <strong>readr</strong> (importing csv), <strong>tidyr</strong> (manipulating data), <strong>dplyr</strong> (transforming data), and <strong>ggplot2</strong> (visualising data).</p>
+</div>
+<div class="zh">
+<p>本练习用到两个 R 包：</p>
+<ul>
+<li><strong>sf</strong>，负责地理空间数据的导入、管理与加工；</li>
+<li><strong>tidyverse</strong>，负责导入、整理、可视化等数据科学任务。</li>
+</ul>
+<p>tidyverse 当中具体用到的是：<strong>readr</strong>（读 csv）、<strong>tidyr</strong>（整形）、<strong>dplyr</strong>（变换）、<strong>ggplot2</strong>（绘图）。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p><code>p_load()</code> from the <strong>pacman</strong> package is used to install (if not yet installed) and load the packages into R.</p>
+</div>
+<div class="zh">
+<p><strong>pacman</strong> 包的 <code>p_load()</code> 会检查这些包是否已安装，未安装则先安装，然后一并载入 R。</p>
+</div>
 </section>
 <section id="importing-geospatial-data" class="level2">
 <h2 class="anchored" data-anchor-id="importing-geospatial-data">Importing Geospatial Data</h2>
 <section id="importing-polygon-feature-data-in-shapefile-format" class="level3">
 <h3 class="anchored" data-anchor-id="importing-polygon-feature-data-in-shapefile-format">Importing polygon feature data in shapefile format</h3>
+<div class="en">
 <p><code>st_read()</code> is used to import <code>MP14_SUBZONE_WEB_PL</code> shapefile as a polygon feature data frame. The <code>dsn</code> argument specifies the data path and <code>layer</code> provides the shapefile name (no file extension needed).</p>
+</div>
+<div class="zh">
+<p><code>st_read()</code> 把 <code>MP14_SUBZONE_WEB_PL</code> 这个 shapefile 读成多边形要素数据框。<code>dsn</code> 指定数据所在路径，<code>layer</code> 给出图层名，不需要带扩展名。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">=</span> <span class="fu">st_read</span>(<span class="st">"data/geospatial/MasterPlan2014SubzoneBoundaryNoSea.geojson"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -387,7 +440,12 @@ Bounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The GeoJSON file is in <strong>wgs84</strong> (EPSG: 4326) by default. <code>st_transform(crs = 3414)</code> is applied immediately upon import to reproject it to the <strong>svy21</strong> projected coordinate system (EPSG: 3414).</p>
+</div>
+<div class="zh">
+<p>这个 GeoJSON 文件默认是 <strong>wgs84</strong>（EPSG: 4326）。导入时紧接着调用 <code>st_transform(crs = 3414)</code>，把它投影到新加坡的 <strong>svy21</strong> 投影坐标系统（EPSG: 3414）。</p>
+</div>
 </section>
 <section id="importing-polyline-feature-data-in-shapefile-format" class="level3">
 <h3 class="anchored" data-anchor-id="importing-polyline-feature-data-in-shapefile-format">Importing polyline feature data in shapefile format</h3>
@@ -405,11 +463,21 @@ Bounding box:  xmin: 11721.1 ymin: 27550.13 xmax: 42809.37 ymax: 49702.59
 Projected CRS: SVY21</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>cyclingpath</code> contains 4651 features and 19 fields, represented as multilinestring objects in <strong>svy21</strong> projected coordinates.</p>
+</div>
+<div class="zh">
+<p><code>cyclingpath</code> 含 4651 个要素、19 个字段，几何类型是 multilinestring，坐标已在 <strong>svy21</strong> 投影下。</p>
+</div>
 </section>
 <section id="importing-gis-data-in-geojson-format" class="level3">
 <h3 class="anchored" data-anchor-id="importing-gis-data-in-geojson-format">Importing GIS data in GeoJSON format</h3>
+<div class="en">
 <p>For GeoJSON files, the full file path including the <code>.geojson</code> extension is provided directly to <code>st_read()</code>.</p>
+</div>
+<div class="zh">
+<p>读 GeoJSON 时，直接把含 <code>.geojson</code> 扩展名的完整路径交给 <code>st_read()</code> 即可。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>preschool <span class="ot">=</span> <span class="fu">st_read</span>(<span class="st">"data/geospatial/PreSchoolsLocation.geojson"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -424,14 +492,24 @@ z_range:       zmin: 0 zmax: 0
 Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
+<div class="en">
 <p><code>preschool</code> is a point feature data frame with point features and location fields. It is in <strong>wgs84</strong> coordinate system. The projection transformation to svy21 will be performed later.</p>
+</div>
+<div class="zh">
+<p><code>preschool</code> 是点要素数据框，带有点几何和位置字段，坐标系统是 <strong>wgs84</strong>。投影到 svy21 的转换留到后面再做。</p>
+</div>
 </section>
 </section>
 <section id="checking-the-content-of-a-simple-feature-data-frame" class="level2">
 <h2 class="anchored" data-anchor-id="checking-the-content-of-a-simple-feature-data-frame">Checking the Content of A Simple Feature Data Frame</h2>
 <section id="working-with-st_geometry" class="level3">
 <h3 class="anchored" data-anchor-id="working-with-st_geometry">Working with <code>st_geometry()</code></h3>
+<div class="en">
 <p><code>st_geometry()</code> retrieves the geometry list-column and prints basic information such as geometry type, geographic extent, and coordinate system.</p>
+</div>
+<div class="zh">
+<p><code>st_geometry()</code> 取出几何列表列，并打印几何类型、地理范围、坐标系统这些基本信息。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry</span>(mpsz)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -446,7 +524,12 @@ First 5 geometries:</code></pre>
 </section>
 <section id="working-with-glimpse" class="level3">
 <h3 class="anchored" data-anchor-id="working-with-glimpse">Working with <code>glimpse()</code></h3>
+<div class="en">
 <p><code>glimpse()</code> from <strong>dplyr</strong> reveals the data type of each field in the data frame.</p>
+</div>
+<div class="zh">
+<p><strong>dplyr</strong> 的 <code>glimpse()</code> 列出数据框每个字段的数据类型。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(mpsz)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -468,11 +551,21 @@ $ SHAPE_1.LEN  &lt;dbl&gt; 1822.1927, 3074.9632, 4297.5999, 871.5549, 1872.7522,
 $ geometry     &lt;MULTIPOLYGON [m]&gt; MULTIPOLYGON (((29099.02 29..., MULTIPOLYGON…</code></pre>
 </div>
 </div>
+<div class="en">
 <p>From the output, <code>FMEL-UPD_D</code> is a <strong>date</strong> field, and <code>X_ADDR</code>, <code>Y_ADDR</code>, <code>SHAPE_L</code>, and <code>SHAPE_AREA</code> are <strong>double-precision</strong> numeric fields.</p>
+</div>
+<div class="zh">
+<p>从输出可见，<code>FMEL-UPD_D</code> 是日期字段，<code>X_ADDR</code>、<code>Y_ADDR</code>、<code>SHAPE_L</code>、<code>SHAPE_AREA</code> 是双精度数值字段。</p>
+</div>
 </section>
 <section id="working-with-head" class="level3">
 <h3 class="anchored" data-anchor-id="working-with-head">Working with <code>head()</code></h3>
+<div class="en">
 <p><code>head()</code> from Base R displays the first few records of the feature object. The <code>n</code> argument controls how many rows to show.</p>
+</div>
+<div class="zh">
+<p>Base R 的 <code>head()</code> 显示要素对象的前若干条记录，显示多少行由 <code>n</code> 控制。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(mpsz, <span class="at">n=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -505,7 +598,12 @@ Projected CRS: SVY21 / Singapore TM
 </section>
 <section id="plotting-the-geospatial-data" class="level2">
 <h2 class="anchored" data-anchor-id="plotting-the-geospatial-data">Plotting the Geospatial Data</h2>
+<div class="en">
 <p><code>plot()</code> provides a quick way to visualise a sf object. By default, it produces a multi-plot of all attributes.</p>
+</div>
+<div class="zh">
+<p><code>plot()</code> 是快速查看 sf 对象的办法，默认会把所有属性各画一张，拼成多图。</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(mpsz)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -516,7 +614,12 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
+<div class="en">
 <p>To plot only the geometry:</p>
+</div>
+<div class="zh">
+<p>只画几何：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(mpsz))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -527,7 +630,12 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
+<div class="en">
 <p>To plot by a specific attribute:</p>
+</div>
+<div class="zh">
+<p>按某一个属性上色：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(mpsz[<span class="st">"PLN_AREA_N"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -538,7 +646,12 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
+<div class="en">
 <p>Attempting to overlay the preschool points on the mpsz layer:</p>
+</div>
+<div class="zh">
+<p>尝试把幼儿园点叠到 mpsz 图层上：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(mpsz))</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(preschool), <span class="at">add =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -568,7 +681,12 @@ Note
 <h2 class="anchored" data-anchor-id="working-with-projection">Working with Projection</h2>
 <section id="checking-the-coordinate-system-of-a-simple-feature-data-frame" class="level3">
 <h3 class="anchored" data-anchor-id="checking-the-coordinate-system-of-a-simple-feature-data-frame">Checking the coordinate system of a simple feature data frame</h3>
+<div class="en">
 <p><code>st_crs()</code> is used to inspect the coordinate reference system of a sf object. Since <code>mpsz</code> was already transformed to svy21 during import, the EPSG code should be 3414:</p>
+</div>
+<div class="zh">
+<p><code>st_crs()</code> 用来查看 sf 对象的坐标参考系统。<code>mpsz</code> 在导入时已经转到 svy21，所以 EPSG 代码应当是 3414：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_crs</span>(mpsz)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -615,7 +733,12 @@ PROJCRS["SVY21 / Singapore TM",
     ID["EPSG",3414]]</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The output confirms <code>mpsz</code> is in <strong>svy21</strong> (EPSG: 3414).</p>
+</div>
+<div class="zh">
+<p>输出确认 <code>mpsz</code> 处于 <strong>svy21</strong>（EPSG: 3414）。</p>
+</div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -632,11 +755,21 @@ Note
 </section>
 <section id="transforming-the-projection-of-preschool-from-wgs84-to-svy21" class="level3">
 <h3 class="anchored" data-anchor-id="transforming-the-projection-of-preschool-from-wgs84-to-svy21">Transforming the projection of preschool from wgs84 to svy21</h3>
+<div class="en">
 <p><code>st_set_crs()</code> only reassigns the label without mathematically reprojecting the coordinates. To actually reproject data from one CRS to another, <code>st_transform()</code> must be used:</p>
+</div>
+<div class="zh">
+<p><code>st_set_crs()</code> 只是改写标签，并不真正换算坐标。要把数据从一个坐标系真正投影到另一个，必须用 <code>st_transform()</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>preschool <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(preschool, <span class="at">crs =</span> <span class="dv">3414</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Verifying the transformation:</p>
+</div>
+<div class="zh">
+<p>核对转换结果：</p>
+</div>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>Geometry set for 2290 features 
@@ -648,8 +781,18 @@ Projected CRS: SVY21 / Singapore TM
 First 5 geometries:</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The preschool data is now in svy21. The bounding box values confirm this: the coordinates are well beyond the 0–360 range of decimal degrees used by geographic CRS.</p>
+</div>
+<div class="zh">
+<p>幼儿园数据现在处于 svy21。边界框的数值可以印证：坐标远远超出地理坐标系十进制度数的 0–360 范围。</p>
+</div>
+<div class="en">
 <p>Now overlaying the preschool layer on mpsz works correctly:</p>
+</div>
+<div class="zh">
+<p>此时再把幼儿园图层叠到 mpsz 上就正常了：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(mpsz))</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(preschool), <span class="at">add =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -661,18 +804,33 @@ First 5 geometries:</code></pre>
 </div>
 </div>
 </div>
+<div class="en">
 <p>The composite map now displays as expected.</p>
+</div>
+<div class="zh">
+<p>叠加后的地图显示符合预期。</p>
+</div>
 </section>
 </section>
 <section id="importing-and-converting-an-aspatial-data" class="level2">
 <h2 class="anchored" data-anchor-id="importing-and-converting-an-aspatial-data">Importing and Converting An Aspatial Data</h2>
 <section id="importing-the-aspatial-data" class="level3">
 <h3 class="anchored" data-anchor-id="importing-the-aspatial-data">Importing the aspatial data</h3>
+<div class="en">
 <p><code>listings.csv</code> from Inside Airbnb is imported using <code>read_csv()</code> from <strong>readr</strong>:</p>
+</div>
+<div class="zh">
+<p>用 <strong>readr</strong> 的 <code>read_csv()</code> 导入 Inside Airbnb 的 <code>listings.csv</code>：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>listings <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial/listings.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Checking the imported data:</p>
+</div>
+<div class="zh">
+<p>查看导入结果：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list</span>(listings)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -699,18 +857,33 @@ First 5 geometries:</code></pre>
 #   host_location &lt;chr&gt;, host_about &lt;chr&gt;, host_response_time &lt;lgl&gt;, …</code></pre>
 </div>
 </div>
+<div class="en">
 <p>The <code>listings</code> tibble has 4252 rows and 16 columns. The <code>latitude</code> and <code>longitude</code> fields are in decimal degree format, indicating the data is likely in <strong>wgs84</strong> Geographic Coordinate System.</p>
+</div>
+<div class="zh">
+<p><code>listings</code> 这个 tibble 有 4252 行、16 列。<code>latitude</code> 和 <code>longitude</code> 两个字段是十进制度数，说明数据大概处于 <strong>wgs84</strong> 地理坐标系统。</p>
+</div>
 </section>
 <section id="creating-a-simple-feature-data-frame-from-an-aspatial-data-frame" class="level3">
 <h3 class="anchored" data-anchor-id="creating-a-simple-feature-data-frame-from-an-aspatial-data-frame">Creating a simple feature data frame from an aspatial data frame</h3>
+<div class="en">
 <p><code>st_as_sf()</code> converts the tibble to a simple feature data frame. The <code>coords</code> argument takes the x-coordinate (longitude) first, then y-coordinate (latitude). The data is then reprojected from wgs84 (EPSG: 4326) to svy21 (EPSG: 3414):</p>
+</div>
+<div class="zh">
+<p><code>st_as_sf()</code> 把 tibble 转成简单要素数据框。<code>coords</code> 的顺序是先 x（经度）后 y（纬度）。之后再从 wgs84（EPSG: 4326）投影到 svy21（EPSG: 3414）：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>listings_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(listings,</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>),</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Examining the result:</p>
+</div>
+<div class="zh">
+<p>查看转换结果：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(listings_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -807,8 +980,18 @@ $ reviews_per_month                            &lt;dbl&gt; 0.11, 0.13, 0.25, 0.7
 $ geometry                                     &lt;POINT [m]&gt; POINT (41972.5 3639…</code></pre>
 </div>
 </div>
+<div class="en">
 <p>A new <code>geometry</code> column has been added, while <code>longitude</code> and <code>latitude</code> columns have been dropped.</p>
+</div>
+<div class="zh">
+<p>新增了 <code>geometry</code> 列，原来的 <code>longitude</code> 与 <code>latitude</code> 两列被移除。</p>
+</div>
+<div class="en">
 <p>Plotting <code>listings_sf</code> on top of <code>mpsz</code>:</p>
+</div>
+<div class="zh">
+<p>把 <code>listings_sf</code> 叠到 <code>mpsz</code> 上：</p>
+</div>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -826,27 +1009,52 @@ $ geometry                                     &lt;POINT [m]&gt; POINT (41972.5 
 <h3 class="anchored" data-anchor-id="use-case-1-land-acquisition-analysis">Use case 1: Land acquisition analysis</h3>
 <section id="the-scenario" class="level4">
 <h4 class="anchored" data-anchor-id="the-scenario">The scenario</h4>
+<div class="en">
 <p>The authority plans to upgrade existing cycling paths and needs to acquire 5 metres of reserved land on both sides of each path. The task is to determine the extent and total area of land to be acquired.</p>
+</div>
+<div class="zh">
+<p>管理部门计划升级现有自行车道，需要在每条车道两侧各征收 5 米的保留地。任务是算出征地的范围和总面积。</p>
+</div>
 </section>
 <section id="the-solution" class="level4">
 <h4 class="anchored" data-anchor-id="the-solution">The solution</h4>
+<div class="en">
 <p>First, <code>st_buffer()</code> is used to compute 5-metre buffers around cycling paths. The cycling path data is first transformed to svy21:</p>
+</div>
+<div class="zh">
+<p>先用 <code>st_buffer()</code> 为自行车道生成 5 米缓冲区。自行车道数据先转到 svy21：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>buffer_cycling <span class="ot">&lt;-</span> <span class="fu">st_buffer</span>(cyclingpath, <span class="at">dist =</span> <span class="dv">5</span>, <span class="at">nQuadSegs =</span> <span class="dv">30</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Calculating the area of each buffer using the tidyverse approach:</p>
+</div>
+<div class="zh">
+<p>用 tidyverse 的写法算出每个缓冲区的面积：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>buffer_cycling <span class="ot">&lt;-</span> buffer_cycling <span class="sc">%&gt;%</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">AREA =</span> <span class="fu">st_area</span>(geometry))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Total land area to be acquired:</p>
+</div>
+<div class="zh">
+<p>需要征收的土地总面积：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(buffer_cycling<span class="sc">$</span>AREA)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>3687875 [m^2]</code></pre>
 </div>
 </div>
+<div class="en">
 <p>To visualise the buffer within a specific planning subzone (Tampines West), <code>filter()</code> is used to extract the subzone polygon, followed by <code>st_intersection()</code> to clip the buffers:</p>
+</div>
+<div class="zh">
+<p>若要看某一个规划分区（Tampines West）内的缓冲区，先用 <code>filter()</code> 取出该分区多边形，再用 <code>st_intersection()</code> 裁切缓冲区：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>mpsz_selected <span class="ot">&lt;-</span> mpsz <span class="sc">%&gt;%</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(SUBZONE_N <span class="sc">==</span> <span class="st">"TAMPINES WEST"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -869,15 +1077,30 @@ $ geometry                                     &lt;POINT [m]&gt; POINT (41972.5 
 <h3 class="anchored" data-anchor-id="use-case-2-number-of-pre-schools-by-planning-subzone">Use case 2: Number of pre-schools by planning subzone</h3>
 <section id="the-scenario-1" class="level4">
 <h4 class="anchored" data-anchor-id="the-scenario-1">The scenario</h4>
+<div class="en">
 <p>The authority requires a count of pre-schools in each planning subzone to support forward planning.</p>
+</div>
+<div class="zh">
+<p>管理部门需要知道每个规划分区内幼儿园的数量，以支持后续规划。</p>
+</div>
 </section>
 <section id="the-solution-1" class="level4">
 <h4 class="anchored" data-anchor-id="the-solution-1">The solution</h4>
+<div class="en">
 <p><code>st_intersects()</code> identifies which pre-schools fall within each planning subzone, and <code>lengths()</code> counts them:</p>
+</div>
+<div class="zh">
+<p><code>st_intersects()</code> 判断哪些幼儿园落在各个规划分区内，<code>lengths()</code> 把个数数出来：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>mpsz<span class="sc">$</span><span class="st">`</span><span class="at">PreSch Count</span><span class="st">`</span> <span class="ot">&lt;-</span> <span class="fu">lengths</span>(<span class="fu">st_intersects</span>(mpsz, preschool))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Summary statistics of the new field:</p>
+</div>
+<div class="zh">
+<p>新字段的描述统计：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(mpsz<span class="sc">$</span><span class="st">`</span><span class="at">PreSch Count</span><span class="st">`</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -885,7 +1108,12 @@ $ geometry                                     &lt;POINT [m]&gt; POINT (41972.5 
    0.00    0.00    4.00    7.09   10.00   72.00 </code></pre>
 </div>
 </div>
+<div class="en">
 <p>The planning subzone with the most pre-schools:</p>
+</div>
+<div class="zh">
+<p>幼儿园最多的规划分区：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">top_n</span>(mpsz, <span class="dv">1</span>, <span class="st">`</span><span class="at">PreSch Count</span><span class="st">`</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -902,12 +1130,22 @@ Projected CRS: SVY21 / Singapore TM
 1 MULTIPOLYGON (((42196.76 38...           72</code></pre>
 </div>
 </div>
+<div class="en">
 <p>Computing the area of each planning subzone:</p>
+</div>
+<div class="zh">
+<p>计算每个规划分区的面积：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>mpsz<span class="sc">$</span>Area <span class="ot">&lt;-</span> mpsz <span class="sc">%&gt;%</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_area</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div class="en">
 <p>Computing pre-school density (per km²):</p>
+</div>
+<div class="zh">
+<p>计算幼儿园密度（每平方公里）：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> mpsz <span class="sc">%&gt;%</span></span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">PreSch Density</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">PreSch Count</span><span class="st">`</span> <span class="sc">/</span> Area <span class="sc">*</span> <span class="dv">1000000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -917,7 +1155,12 @@ Projected CRS: SVY21 / Singapore TM
 </section>
 <section id="exploratory-data-analysis-eda" class="level2">
 <h2 class="anchored" data-anchor-id="exploratory-data-analysis-eda">Exploratory Data Analysis (EDA)</h2>
+<div class="en">
 <p>Plotting the distribution of pre-school density using <strong>ggplot2</strong>:</p>
+</div>
+<div class="zh">
+<p>用 <strong>ggplot2</strong> 画出幼儿园密度的分布：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> mpsz,</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">as.numeric</span>(<span class="st">`</span><span class="at">PreSch Density</span><span class="st">`</span>))) <span class="sc">+</span></span>
@@ -936,7 +1179,12 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
+<div class="en">
 <p>Plotting the relationship between pre-school density and pre-school count:</p>
+</div>
+<div class="zh">
+<p>画出幼儿园密度与幼儿园数量之间的关系：</p>
+</div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> mpsz,</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="st">`</span><span class="at">PreSch Count</span><span class="st">`</span>,</span>
@@ -956,7 +1204,12 @@ Projected CRS: SVY21 / Singapore TM
 </div>
 </div>
 </div>
+<div class="en">
 <p>The scatterplot shows a general positive relationship: planning subzones with higher pre-school density also tend to have a higher absolute count of pre-schools.</p>
+</div>
+<div class="zh">
+<p>散点图显示两者大体正相关：幼儿园密度较高的规划分区，其幼儿园绝对数量也往往较多。</p>
+</div>
 
 
 </section>

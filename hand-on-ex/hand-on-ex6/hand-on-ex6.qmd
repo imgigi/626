@@ -18,6 +18,7 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 Regionalisation is the problem of taking a large number of geographical units and grouping them into a smaller number of regions that are internally homogeneous *and* occupy contiguous territory. The first half of that requirement is ordinary multivariate cluster analysis. The second half is what makes the problem spatial, and it is the half a conventional clustering algorithm cannot see: `hclust()` is handed a distance matrix computed from attribute values and has no idea which units touch which.
 
 This exercise delineates homogeneous regions in Shan State, Myanmar, using measures of information and communication technology adoption at household level. Three routes to the same six-region target are run on the same data, so that the cost of the contiguity requirement can be read off directly:
@@ -25,38 +26,94 @@ This exercise delineates homogeneous regions in Shan State, Myanmar, using measu
 -   **hierarchical cluster analysis** with no spatial constraint at all, which maximises attribute homogeneity and produces regions that are not regions,
 -   **SKATER**, which prunes a minimum spanning tree built on the contiguity graph and so is contiguous by construction, and
 -   **ClustGeo**, which mixes an attribute dissimilarity matrix with a geographical one through a parameter α and lets the analyst choose where on the trade-off to sit.
+:::
 
+::: {.zh}
+区域化要解决的问题是：把大量地理单元归并成较少的区域，这些区域内部同质，*并且*占据连片的地域。前一半要求就是普通的多元聚类分析；后一半才使这个问题成为空间问题，而这一半恰恰是常规聚类算法看不见的——`hclust()` 拿到的只是由属性值算出的距离矩阵，它根本不知道哪些单元彼此相接。
+
+本练习用家庭层面的信息与通信技术（ICT）采用度指标，在缅甸掸邦划分同质区域。同一份数据上走三条路线、都以六个区域为目标，这样连片性这个要求的代价就可以直接读出来：
+
+-   **层次聚类分析**，完全不加空间约束，它把属性同质性最大化，产出的「区域」其实不成区域；
+-   **SKATER**，在连通图上建最小生成树再修剪，所以按构造就是连片的；
+-   **ClustGeo**，通过参数 α 把属性相异矩阵与地理相异矩阵混合，让分析者自己选择落在权衡曲线的哪一点上。
+:::
+
+::: {.en}
 By the end of the exercise the following are in place:
+:::
 
+::: {.zh}
+练习结束时应当完成：
+:::
+
+::: {.en}
 -   geospatial and aspatial data imported, joined, and converted from counts into rates,
 -   redundant clustering variables identified by correlation analysis and dropped,
 -   a hierarchical clustering solution with a defended number of clusters,
 -   spatially constrained solutions from both SKATER and ClustGeo, and
 -   a quantified comparison of how much attribute homogeneity each contiguity requirement costs.
+:::
 
+::: {.zh}
+-   导入并连接地理空间与非空间数据，把计数换算成比率；
+-   通过相关分析识别并剔除冗余的聚类变量；
+-   给出一个聚类数有依据的层次聚类方案；
+-   分别用 SKATER 与 ClustGeo 得到带空间约束的方案；
+-   量化比较每种连片性要求各自损失多少属性同质性。
+:::
+
+::: {.en}
 This is the first exercise in the course where the geometry enters as a *constraint* rather than as a weight. [Hands-on Exercise 4](../hand-on-ex4/hand-on-ex4.qmd) and [Exercise 5](../hand-on-ex5/hand-on-ex5a.qmd) used the neighbour list to compute a statistic; here it restricts which solutions are admissible at all.
+:::
+
+::: {.zh}
+这是本课程中几何第一次以*约束*而非权重的身份进入分析。[练习 4](../hand-on-ex4/hand-on-ex4.qmd) 与[练习 5](../hand-on-ex5/hand-on-ex5a.qmd) 用邻居列表去计算统计量；在这里，它限定了哪些解根本算是可行解。
+:::
 
 ## Getting Started
 
 ### The analytical question
 
+::: {.en}
 The task is set by a planner who has to allocate ICT infrastructure spending across Shan State and needs to do it by region rather than by township, because 55 separate programmes are not administrable. The requirement is a small number of groups that are
 
 1.  similar in their current ICT profile, so that one intervention suits every township in the group, and
 2.  geographically contiguous, so that a group is a place that can be staffed, reached and governed.
 
 A grouping that satisfies only the first is a typology, not a regionalisation. The point of the exercise is that the two requirements conflict, and that the conflict can be measured rather than argued about.
+:::
+
+::: {.zh}
+任务由一位规划者提出：他要在掸邦分配 ICT 基础设施投入，而且必须按区域而不是按镇区来分，因为 55 个各自独立的项目没法管理。要求是数量不多的若干组，并且
+
+1.  组内各镇区当前的 ICT 面貌相似，这样同一项干预对组内每个镇区都适用；
+2.  组在地理上连片，这样一个组才是一个能派人、能到达、能治理的地方。
+
+只满足第一条的分组是类型学，不是区域化。本练习的要点在于：这两条要求相互冲突，而这种冲突可以被测量，不必靠争论。
+:::
 
 ### The Study Area and Data
 
+::: {.en}
 Two data sets are used:
+:::
+
+::: {.zh}
+使用两个数据集：
+:::
 
 | Dataset | Description |
 |----|----|
 | `myanmar_township_boundaries` | Township boundary layer of Myanmar in ESRI shapefile format, from the Myanmar Information Management Unit |
 | `Shan-ICT.csv` | Household counts of ICT device ownership by township, from *The 2014 Myanmar Population and Housing Census* |
 
+::: {.en}
 Shan State is the largest of Myanmar's states by area and is administered as three sub-national units, Shan (East), Shan (North) and Shan (South). The boundary layer covers the whole country, so it is filtered down.
+:::
+
+::: {.zh}
+掸邦是缅甸面积最大的邦，行政上分为三个次级单位：掸邦东部、掸邦北部、掸邦南部。边界图层覆盖全国，所以需要筛选。
+:::
 
 ### Setting the Analytical Tools
 
@@ -84,7 +141,13 @@ pacman::p_load(spdep, tmap, sf, ClustGeo,
 
 ### Importing geospatial data into R environment
 
+::: {.en}
 `st_read()` of **sf** imports the township layer. The whole country is read, filtered to the three Shan units, and reduced to the identifier fields that matter:
+:::
+
+::: {.zh}
+**sf** 的 `st_read()` 导入镇区图层。先读入全国，再筛出掸邦三个单位，最后只留下有用的标识字段：
+:::
 
 ```{r}
 shan_sf <- st_read(dsn = "data/geospatial",
@@ -93,7 +156,13 @@ shan_sf <- st_read(dsn = "data/geospatial",
   select(c(2:7))
 ```
 
+::: {.en}
 The file holds 330 townships with 14 attribute fields on WGS 84; the filter leaves 55, split 10 / 24 / 21 between Shan (East), Shan (North) and Shan (South) and spread over 13 districts. The `select(c(2:7))` keeps `ST`, `ST_PCODE`, `DT`, `DT_PCODE`, `TS` and `TS_PCODE`, which are the state, district and township names with their P-codes. Everything dropped is either an alternative transliteration of a name or an area figure, and none of it is used.
+:::
+
+::: {.zh}
+该文件含 330 个镇区、14 个属性字段，坐标为 WGS 84；筛选后剩 55 个，在掸邦东部、北部、南部的分布是 10 / 24 / 21，分属 13 个县。`select(c(2:7))` 保留 `ST`、`ST_PCODE`、`DT`、`DT_PCODE`、`TS`、`TS_PCODE`，即邦、县、镇区的名称及其 P 码。被丢掉的要么是名称的另一种音译，要么是面积数字，本练习都不用。
+:::
 
 ```{r}
 shan_sf
@@ -113,11 +182,23 @@ ict <- read_csv("data/aspatial/Shan-ICT.csv")
 summary(ict)
 ```
 
+::: {.en}
 The table has 55 rows and 11 columns: four identifier fields, a household count, and six device counts. The household count runs from 3,318 in the smallest township to 82,604 in Taunggyi, a factor of 25.
+:::
+
+::: {.zh}
+该表有 55 行、11 列：四个标识字段、一个家庭数，以及六个设备数。家庭数从最小镇区的 3,318 到东枝的 82,604，相差 25 倍。
+:::
 
 ### Derive new variables using dplyr package
 
+::: {.en}
 That factor of 25 is the problem with the six device columns. A township with 82,604 households will own more radios than a township with 3,318 households whatever its actual adoption rate, so clustering on counts would recover township size rather than ICT penetration. Each count is therefore converted into a rate per 1,000 households. The imported names, which contain spaces and so need back-ticking at every use, are renamed at the same time:
+:::
+
+::: {.zh}
+这 25 倍的差距正是那六个设备列的问题所在。无论实际采用率如何，有 82,604 户的镇区拥有的收音机数一定多于只有 3,318 户的镇区，所以拿计数去聚类，得到的是镇区规模而不是 ICT 普及程度。因此把每个计数都换算成「每千户」的比率。导入时的字段名带空格、每次使用都要加反引号，顺便一并改名：
+:::
 
 ```{r}
 ict_derived <- ict %>%
@@ -139,13 +220,25 @@ ict_derived <- ict %>%
 summary(ict_derived)
 ```
 
+::: {.en}
 Six new fields now sit at the end of the table. Television is the most widely held device at a median of 517 sets per 1,000 households, mobile phone follows at 305 and radio at 211, and the two computing variables are an order of magnitude rarer, at a median of 19 computers and 23 internet connections per 1,000 households. The rates are not bounded by 1,000 in principle, and `TV_PR` reaches 843, meaning some townships report more televisions than households.
+:::
+
+::: {.zh}
+表尾现在多了六个字段。电视是持有最普遍的设备，中位数为每千户 517 台；手机次之 305，收音机 211；两个计算类变量稀有一个数量级，中位数分别是每千户 19 台电脑、23 个互联网连接。这些比率原则上不以 1,000 为上界，`TV_PR` 最高达到 843，意味着有些镇区报告的电视机数多于家庭数。
+:::
 
 ## Exploratory Data Analysis (EDA)
 
 ### EDA using statistical graphics
 
+::: {.en}
 The reason for the rate conversion shows up immediately in the distribution of the raw radio count:
+:::
+
+::: {.zh}
+换算成比率的理由，在原始收音机计数的分布上立刻就能看到：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -166,7 +259,13 @@ ggplot(data=ict_derived,
                fill="light blue")
 ```
 
+::: {.en}
 The count distribution is strongly right-skewed with a long tail of outliers, exactly as a size distribution is. The rate is better behaved:
+:::
+
+::: {.zh}
+计数的分布严重右偏、带一条长长的离群尾巴，规模型分布正是这个样子。比率的表现要好得多：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -187,9 +286,21 @@ ggplot(data=ict_derived,
                fill="light blue")
 ```
 
+::: {.en}
 The conversion also reorders the townships, which is the substantive point rather than a cosmetic one. Taunggyi has the most radios in absolute terms, 30,176, but at 365 per 1,000 households it is not the most radio-saturated township in the state. That is Ywangan, with 8,890 radios among 18,348 households, or 485 per 1,000. It is a township that is invisible on a count map, and one that will turn out to matter a great deal to SKATER.
+:::
 
+::: {.zh}
+换算还会改变镇区的排序，这是实质性的而非表面的变化。东枝的收音机绝对数最多，30,176 台，但按每千户 365 台计，它并不是全邦收音机最饱和的镇区。那是 Ywangan：18,348 户里有 8,890 台，即每千户 485 台。这个镇区在计数地图上是看不见的，而它后面对 SKATER 影响极大。
+:::
+
+::: {.en}
 The six rates are then plotted together, since a clustering variable with no spread contributes nothing and one with a single extreme value will dominate:
+:::
+
+::: {.zh}
+接着把六个比率一起画出来，因为没有离散度的聚类变量毫无贡献，而只有一个极端值的变量会主导整个结果：
+:::
 
 ```{r}
 radio <- ggplot(data=ict_derived,
@@ -237,13 +348,25 @@ ggarrange(radio, tv, llphone, mphone, computer, internet,
           nrow = 2)
 ```
 
+::: {.en}
 Radio, television and mobile phone are roughly symmetric and well spread. Land line phone and computer are both strongly right-skewed, with most townships near zero and a handful far out. That asymmetry matters twice below: once for the choice of standardisation, and once for SKATER, which spends its cuts isolating exactly these outlying townships.
+:::
+
+::: {.zh}
+收音机、电视、手机大致对称、离散度良好。固定电话与电脑都严重右偏，多数镇区贴近零，少数几个远远在外。这种不对称在下文出现两次影响：一次体现在标准化方式的选择上，一次体现在 SKATER 上——它把切割机会都花在隔离这些离群镇区上。
+:::
 
 ### EDA using choropleth map
 
 #### Joining geospatial data with aspatial data
 
+::: {.en}
 The join key is the township P-code, which is present in both tables and is stable in a way that township names are not:
+:::
+
+::: {.zh}
+连接键是镇区 P 码，两张表都有，而且它不像镇区名称那样会变：
+:::
 
 ```{r}
 shan_sf <- left_join(shan_sf,
@@ -256,11 +379,23 @@ write_rds(shan_sf, "data/rds/shan_sf.rds")
 shan_sf <- read_rds("data/rds/shan_sf.rds")
 ```
 
+::: {.en}
 All 55 townships match and no ICT field comes back `NA`. The result carries 22 attribute fields, three of them duplicated by the join: `DT`, `DT_PCODE` and `TS` arrive from both tables and are suffixed `.x` for the boundary layer and `.y` for the census table. `TS.x` is used from here on.
+:::
+
+::: {.zh}
+55 个镇区全部匹配上，没有任何 ICT 字段返回 `NA`。结果含 22 个属性字段，其中三个因连接而重复：`DT`、`DT_PCODE`、`TS` 两张表都有，边界图层的加后缀 `.x`，普查表的加 `.y`。此后使用 `TS.x`。
+:::
 
 #### Preparing a choropleth map
 
+::: {.en}
 A single rate mapped with `qtm()` is enough to see that ICT adoption in Shan State is not spatially random:
+:::
+
+::: {.zh}
+用 `qtm()` 画出其中一个比率，就足以看出掸邦的 ICT 采用在空间上并非随机：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -268,7 +403,13 @@ A single rate mapped with `qtm()` is enough to see that ICT adoption in Shan Sta
 qtm(shan_sf, "RADIO_PR")
 ```
 
+::: {.en}
 The more useful map is the pair that justifies the rate conversion cartographically. Household count and radio count are drawn side by side under identical classification:
+:::
+
+::: {.zh}
+更有用的是那一对从制图上证明比率换算必要性的图。家庭数与收音机数在同一分级方案下并排绘出：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -301,7 +442,13 @@ tmap_arrange(TT_HOUSEHOLDS.map, RADIO.map,
              asp=NA, ncol=2)
 ```
 
+::: {.en}
 The two maps are nearly the same map. Townships with many households have many radios, which tells us about population distribution and nothing about radio ownership. Replacing the count with the rate breaks that correspondence:
+:::
+
+::: {.zh}
+两幅图几乎是同一幅。家庭多的镇区收音机也多，这只说明了人口分布，对收音机持有情况一无所言。把计数换成比率，这种对应关系就被打破了：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -318,11 +465,23 @@ tm_shape(shan_sf) +
   tm_facets(sync = TRUE, ncol = 2)
 ```
 
+::: {.en}
 `tm_facets(sync = TRUE)` holds the two panels on a common extent and zoom, which is what makes the visual comparison legitimate. The right panel is no longer a population map: several small western townships of Shan (South) are radio-saturated, and the populous northern corridor is only mid-range.
+:::
+
+::: {.zh}
+`tm_facets(sync = TRUE)` 把两幅面板锁在同一范围与同一缩放级别上，这才使视觉比较成立。右面板已不再是人口图：掸邦南部西侧有几个小镇区收音机高度饱和，而人口密集的北部走廊只处于中段。
+:::
 
 ## Correlation Analysis
 
+::: {.en}
 Cluster analysis treats every variable as an independent dimension of similarity. Two variables measuring the same underlying thing therefore enter the distance calculation twice and silently receive double weight, so the correlation structure has to be checked before any clustering:
+:::
+
+::: {.zh}
+聚类分析把每个变量都当作相似性的一个独立维度。于是两个测量同一件底层事物的变量会两次进入距离计算、悄悄获得双倍权重，所以在做任何聚类之前必须先检查相关结构：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -336,15 +495,33 @@ corrplot.mixed(cluster_vars.cor,
                tl.col = "black")
 ```
 
+::: {.en}
 `COMPUTER_PR` and `INTERNET_PR` correlate at 0.870, which is the kind of value that means one variable rather than two: in 2014 a household internet connection in Shan State almost always came with a computer. `INTERNET_PR` is dropped and the clustering proceeds on five variables.
+:::
 
+::: {.zh}
+`COMPUTER_PR` 与 `INTERNET_PR` 的相关系数是 0.870，这个量级意味着它们其实是一个变量而不是两个：2014 年掸邦家庭有互联网连接几乎必然伴随着一台电脑。于是剔除 `INTERNET_PR`，聚类在五个变量上进行。
+:::
+
+::: {.en}
 Three other pairs deserve a note, because the rule is applied only to the strongest one. `MPHONE_PR` with `COMPUTER_PR` is 0.737 and `TV_PR` with `MPHONE_PR` is 0.722, both high enough to mean that the four non-radio variables substantially measure a single "modern device" gradient. `RADIO_PR` is the exception: 0.238 with television, −0.069 with mobile phone, −0.310 with land line. Radio is the one genuinely independent axis in this data, the technology that is most common where the others are least common, and that is why it drives so much of what follows.
+:::
+
+::: {.zh}
+另外三对也值得记一笔，因为剔除规则只对最强的那一对动了手。`MPHONE_PR` 与 `COMPUTER_PR` 为 0.737，`TV_PR` 与 `MPHONE_PR` 为 0.722，都高到足以说明：除收音机以外的四个变量在很大程度上测量的是同一条「现代设备」梯度。`RADIO_PR` 是例外：与电视 0.238，与手机 −0.069，与固定电话 −0.310。收音机是这份数据里唯一真正独立的轴——它恰恰在其他设备最少的地方最普遍，这也是后文许多结果都由它驱动的原因。
+:::
 
 ## Hierarchy Cluster Analysis
 
 ### Extracting clustering variables
 
+::: {.en}
 Clustering works on a plain numeric table, so the geometry is dropped and the township name is kept only long enough to become the row name:
+:::
+
+::: {.zh}
+聚类作用于纯数值表，所以要去掉几何，镇区名称只保留到足以转成行名为止：
+:::
 
 ```{r}
 cluster_vars <- shan_sf %>%
@@ -368,35 +545,77 @@ write_rds(shan_ict, "data/rds/shan_ict.rds")
 shan_ict <- read_rds("data/rds/shan_ict.rds")
 ```
 
+::: {.en}
 The row names are not decoration. Every object downstream identifies townships by them: the dendrogram labels, the `cutree()` output, the heatmap rows. Dropping the name column without first promoting it would leave the dendrogram labelled 1 to 55.
+:::
+
+::: {.zh}
+行名不是装饰。下游每个对象都靠它来识别镇区：谱系图的标签、`cutree()` 的输出、热图的行。若不先把名称列提升为行名就直接丢掉，谱系图上就只会标 1 到 55。
+:::
 
 ### Data Standardisation
 
+::: {.en}
 The five variables are all rates per 1,000 households, so they share a unit, but they do not share a range. `TV_PR` runs to 843 and `COMPUTER_PR` to 92. Euclidean distance is a sum of squared differences across dimensions, so a dimension with a wide range contributes more to every distance than a narrow one, whatever its substantive importance.
+:::
+
+::: {.zh}
+五个变量都是每千户的比率，单位相同，但取值范围并不相同：`TV_PR` 到 843，`COMPUTER_PR` 到 92。欧氏距离是各维度平方差之和，所以范围宽的维度对每一个距离的贡献都大于范围窄的，无论其实质重要性如何。
+:::
 
 ### Min-Max standardisation
 
+::: {.en}
 `normalize()` of **heatmaply** rescales each column onto [0, 1]:
+:::
+
+::: {.zh}
+**heatmaply** 的 `normalize()` 把每一列缩放到 [0, 1]：
+:::
 
 ```{r}
 shan_ict.std <- normalize(shan_ict)
 summary(shan_ict.std)
 ```
 
+::: {.en}
 Every column now has minimum 0 and maximum 1. The method is sensitive to outliers by construction: a single extreme township sets the upper anchor and compresses all the others into the lower part of the range. That is why the two right-skewed variables come out with means of 0.24 for `COMPUTER_PR` and 0.27 for `LLPHONE_PR`, well below the 0.5 midpoint, while the symmetric `TV_PR` sits at 0.54.
+:::
+
+::: {.zh}
+现在每列的最小值为 0、最大值为 1。这个方法按构造就对离群值敏感：单个极端镇区决定了上端锚点，把其余全部压到范围的下半部。这就是为什么两个右偏变量的均值分别只有 `COMPUTER_PR` 的 0.24 与 `LLPHONE_PR` 的 0.27，远低于 0.5 的中点，而对称的 `TV_PR` 停在 0.54。
+:::
 
 ### Z-score standardisation
 
+::: {.en}
 `scale()` of base R centres each column on zero and divides by its standard deviation:
+:::
+
+::: {.zh}
+base R 的 `scale()` 把每列中心化到零，再除以其标准差：
+:::
 
 ```{r}
 shan_ict.z <- scale(shan_ict)
 describe(shan_ict.z)
 ```
 
+::: {.en}
 Mean 0 and standard deviation 1 for all five columns, as expected. `describe()` of **psych** is used rather than `summary()` because it reports the standard deviation, which is the quantity the transformation is supposed to have fixed.
+:::
 
+::: {.zh}
+如预期，五列的均值为 0、标准差为 1。这里用 **psych** 的 `describe()` 而不是 `summary()`，因为它会报出标准差——而标准差正是这次变换本应固定住的量。
+:::
+
+::: {.en}
 Z-score standardisation assumes the variables are roughly normal, and the skewness column shows that two of them are not: `LLPHONE_PR` at 1.37 and `COMPUTER_PR` at 1.80. Standardisation is a linear transformation, so it moves and rescales a distribution without changing its shape; the skew in the standardised data is identical to the skew in the raw data.
+:::
+
+::: {.zh}
+Z 分数标准化假定变量大致正态，而偏度一列显示其中两个并非如此：`LLPHONE_PR` 为 1.37，`COMPUTER_PR` 为 1.80。标准化是线性变换，只平移和缩放分布而不改变其形状；标准化后数据的偏度与原始数据完全相同。
+:::
 
 ### Visualising the standardised clustering variables
 
@@ -457,11 +676,23 @@ ggarrange(r, s, z,
           nrow = 1)
 ```
 
+::: {.en}
 The three distributions have the same shape and differ only in the numbers on the horizontal axis. That is the correct result and it is worth seeing once, because it rules out standardisation as a remedy for skewness; only a non-linear transformation would do that.
+:::
+
+::: {.zh}
+三个分布形状一致，差别只在横轴上的数字。这是正确的结果，也值得亲眼看一次，因为它排除了「用标准化来纠正偏态」这条路；只有非线性变换才做得到。
+:::
 
 ### Computing proximity matrix
 
+::: {.en}
 `dist()` computes the matrix of pairwise distances. It supports six measures (Euclidean, maximum, Manhattan, Canberra, binary and Minkowski), and Euclidean is both the default and what Ward's method assumes:
+:::
+
+::: {.zh}
+`dist()` 计算两两距离矩阵。它支持六种度量（欧氏、最大、曼哈顿、Canberra、二值、Minkowski），欧氏既是默认值，也是 Ward 方法所假定的：
+:::
 
 ```{r}
 proxmat <- dist(shan_ict, method = 'euclidean')
@@ -471,23 +702,53 @@ proxmat <- dist(shan_ict, method = 'euclidean')
 proxmat
 ```
 
+::: {.en}
 The 1,485 distinct pairwise distances run from 38.5 to 995.7.
+:::
+
+::: {.zh}
+1,485 个不同的两两距离从 38.5 到 995.7。
+:::
 
 ::: callout-warning
 ## The proximity matrix is built from unstandardised data
 
+::: {.en}
 `proxmat` is computed from `shan_ict`, not from `shan_ict.std` or `shan_ict.z`. The two standardisations above were constructed, inspected and then not used; every clustering in this chapter, SKATER and ClustGeo included, runs on the raw rates.
+:::
 
+::: {.zh}
+`proxmat` 是从 `shan_ict` 算出的，不是从 `shan_ict.std` 或 `shan_ict.z`。上面那两种标准化构造出来、看过，然后并未使用；本章所有聚类，包括 SKATER 与 ClustGeo，都跑在原始比率上。
+:::
+
+::: {.en}
 That is not a neutral choice. The share of the total sum of squares each variable contributes on the raw scale is:
+:::
+
+::: {.zh}
+这不是一个中立的选择。在原始尺度上，各变量对总平方和的贡献份额是：
+:::
 
 ```{r}
 v <- apply(shan_ict, 2, function(x) sum((x - mean(x))^2))
 round(100 * v / sum(v), 1)
 ```
 
+::: {.en}
 `MPHONE_PR` and `TV_PR` together account for 81% of the variance the distance matrix can see, and `COMPUTER_PR` for 0.6%. The five-variable clustering is in practice a two-variable clustering, and the computer rate, the variable the correlation analysis went to the trouble of de-duplicating, has almost no influence on the outcome.
+:::
 
+::: {.zh}
+`MPHONE_PR` 与 `TV_PR` 合计占距离矩阵所能看到的方差的 81%，而 `COMPUTER_PR` 只占 0.6%。五变量聚类实际上是两变量聚类；而电脑持有率——相关分析费了功夫去重的那个变量——对结果几乎没有影响。
+:::
+
+::: {.en}
 Clustering the z-scores instead gives noticeably more balanced groups and a better fit on the standardised scale:
+:::
+
+::: {.zh}
+改用 z 分数聚类，得到的分组明显更均衡，在标准化尺度上的拟合也更好：
+:::
 
 ```{r}
 gz <- cutree(hclust(dist(scale(shan_ict)), method = "ward.D"), k = 6)
@@ -495,12 +756,18 @@ gr <- cutree(hclust(proxmat, method = "ward.D"), k = 6)
 rbind(raw = table(gr), z = table(gz))
 ```
 
-Sizes of 20, 4, 13, 6, 7, 5 on the raw scale against 11, 12, 9, 8, 9, 6 on the standardised one, and the standardised solution explains 67.1% of the standardised variance against 60.5% for the raw-based one. The raw matrix is kept below so that the results match the chapter, but for this data standardising first is the better analysis.
+Sizes of 20, 4, 13, 6, 7, 5 on the raw scale against 11, 12, 9, 8, 9, 6 on the standardised one, and the standardised solution explains 67.1% of the standardised variance against 60.5% for the raw-based one. The raw matrix is the one carried forward below, so the clustering that follows is driven mainly by the two variables with the widest raw range; the comparison above is what that choice has to be weighed against.
 :::
 
 ### Computing hierarchical clustering
 
+::: {.en}
 `hclust()` agglomerates from 55 singleton clusters upwards. It offers eight agglomeration methods (`ward.D`, `ward.D2`, `single`, `complete`, `average`, `mcquitty`, `median` and `centroid`), and the choice between them is settled in the next section rather than assumed here. Ward's method merges the pair of clusters whose union adds least to the total within-cluster sum of squares:
+:::
+
+::: {.zh}
+`hclust()` 从 55 个单点簇开始自下而上合并。它提供八种聚合方法（`ward.D`、`ward.D2`、`single`、`complete`、`average`、`mcquitty`、`median`、`centroid`），具体选哪一种在下一节解决，这里不预设。Ward 方法每次合并的是那一对并集对簇内总平方和增加最少的簇：
+:::
 
 ```{r}
 hclust_ward <- hclust(proxmat, method = 'ward.D')
@@ -512,11 +779,23 @@ hclust_ward <- hclust(proxmat, method = 'ward.D')
 plot(hclust_ward, cex = 0.6)
 ```
 
+::: {.en}
 The height at which two townships join is the cost of merging them, so a tall join is a reluctant one and the structure worth reading is in the long vertical stems near the top.
+:::
+
+::: {.zh}
+两个镇区合并时的高度就是合并它们的代价，所以高处的合并是「勉强」的；值得读的结构在靠顶部那些长的竖干上。
+:::
 
 ### Selecting the optimal clustering algorithm
 
+::: {.en}
 The choice of linkage is not a matter of taste. `agnes()` of **cluster** reports an agglomerative coefficient, the average over all observations of how early an observation joins its first cluster relative to the final merge, which measures how clear the structure a given linkage finds actually is:
+:::
+
+::: {.zh}
+连接方式的选择不是口味问题。**cluster** 的 `agnes()` 会报出聚合系数：对全部观测取平均，衡量每个观测相对最终合并有多早加入它的第一个簇——这个量度量的正是某种连接方式所找到的结构有多清晰：
+:::
 
 ```{r}
 m <- c( "average", "single", "complete", "ward")
@@ -529,15 +808,33 @@ ac <- function(x) {
 map_dbl(m, ac)
 ```
 
+::: {.en}
 Ward scores 0.943, complete 0.895, average 0.813 and single 0.663. Ward's method gives the strongest structure and is used from here on. Single linkage coming last is the expected result rather than a surprise: it merges on the nearest pair of points, so it chains outliers onto existing clusters one at a time and produces long straggly groups with no clear cut height.
+:::
+
+::: {.zh}
+Ward 得 0.943，complete 0.895，average 0.813，single 0.663。Ward 方法给出的结构最强，此后一律用它。single 排在最后是预期中的结果而非意外：它按最近的一对点合并，于是把离群值一个接一个地挂到已有簇上，产出长条散乱的组，也没有清晰的切割高度。
+:::
 
 ### Determining Optimal Clusters
 
+::: {.en}
 Ward's method produces a complete hierarchy, from 55 clusters down to one. Choosing where to cut it is a separate question, and the hardest one in the exercise. Three approaches are in common use: the elbow method, the average silhouette method and the gap statistic. Only the third is applied below.
+:::
+
+::: {.zh}
+Ward 方法给出的是一整条层次结构，从 55 个簇一直到 1 个。在哪里切是另一个问题，也是本练习里最难的一个。常用的有三种办法：肘部法、平均轮廓法、间隙统计量。下面只用第三种。
+:::
 
 #### Gap Statistic Method
 
+::: {.en}
 The gap statistic compares the observed within-cluster dispersion at each k with the dispersion expected under a reference distribution that has no clustering at all, and prefers the k at which the observed dispersion falls furthest below that expectation:
+:::
+
+::: {.zh}
+间隙统计量把每个 k 下观测到的簇内离散度，与完全无聚类结构的参照分布下的期望离散度相比，取观测离散度低于期望最多的那个 k：
+:::
 
 ```{r}
 set.seed(12345)
@@ -556,15 +853,39 @@ print(gap_stat, method = "firstmax")
 fviz_gap_stat(gap_stat)
 ```
 
+::: {.en}
 The honest reading of this output is that the gap statistic does not support splitting the data at all. The largest gap, 0.274, is at k = 1, and `firstmax`, `firstSEmax` and `globalmax` all return 1. One cluster is not a regionalisation, so the question becomes which k is best among those that are usable, and there the answer is six: the gap rises from 0.210 at k = 3 through 0.218 and 0.222 to a local maximum of 0.2222 at k = 6, then falls away. The margin over k = 5 (0.2216) is far inside one standard error of 0.039, so k = 6 is a defensible choice rather than a demonstrated optimum, and the rest of the exercise should be read with that in mind.
+:::
 
+::: {.zh}
+对这段输出如实的读法是：间隙统计量根本不支持把数据切开。最大的间隙 0.274 出现在 k = 1，而 `firstmax`、`firstSEmax`、`globalmax` 返回的都是 1。一个簇不成区域化，所以问题变成「在可用的那些 k 里哪个最好」，答案是六：间隙从 k = 3 的 0.210 经 0.218、0.222 升到 k = 6 的局部最大值 0.2222，随后回落。它对 k = 5（0.2216）的领先幅度远远落在一个标准误 0.039 之内，所以 k = 6 是一个站得住的选择，而不是被证明的最优解，本练习余下部分都应带着这一点来读。
+:::
+
+::: {.en}
 `B = 50` sets the number of Monte Carlo reference datasets and `set.seed()` makes the result reproducible; without the seed the gap values, and possibly the chosen k, would change on every render. `FUN = hcut` is **factoextra**'s hierarchical cutting function, so the reference comparison is made against the same family of clusterings used here rather than against k-means.
+:::
 
+::: {.zh}
+`B = 50` 设定蒙特卡洛参照数据集的个数，`set.seed()` 使结果可复现；不设种子的话，间隙值乃至所选的 k 每次渲染都可能变。`FUN = hcut` 是 **factoextra** 的层次切割函数，这样参照比较所针对的就是这里用的同一族聚类，而不是 k 均值。
+:::
+
+::: {.en}
 The **NbClust** package loaded at the top offers a third route: it computes 30 separate indices over combinations of k, distance measure and linkage and reports the majority verdict. It is not run here, because one index that says 1 is already enough to show that the structure in this data is weak, and 30 indices disagreeing would not make k = 6 any better founded.
+:::
+
+::: {.zh}
+开头载入的 **NbClust** 提供第三条路：它在 k、距离度量、连接方式的各种组合上计算 30 个独立指标，再报出多数意见。这里没有运行它，因为已经有一个指标给出 1，足以说明这份数据里的结构很弱；30 个指标互相不一致，也不会让 k = 6 的依据变得更充分。
+:::
 
 ### Interpreting the dendrograms
 
+::: {.en}
 With k = 6 settled, `rect.hclust()` draws the cut on the dendrogram:
+:::
+
+::: {.zh}
+k = 6 定下来之后，`rect.hclust()` 在谱系图上画出这一刀：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -575,13 +896,25 @@ rect.hclust(hclust_ward,
             border = 2:5)
 ```
 
+::: {.en}
 The six boxes are badly unbalanced at 20, 4, 13, 6, 7 and 5 townships, which is the raw-scale variance problem of the callout above showing through in the structure itself.
+:::
+
+::: {.zh}
+六个框严重不均衡，分别是 20、4、13、6、7、5 个镇区——这正是上面那条注记里提到的原始尺度方差问题，在结构本身上显露出来。
+:::
 
 ### Visually-driven hierarchical clustering analysis
 
 #### Transforming the data frame into a matrix
 
+::: {.en}
 A heatmap needs a matrix, not a data frame:
+:::
+
+::: {.zh}
+热图需要矩阵，而不是数据框：
+:::
 
 ```{r}
 shan_ict_mat <- data.matrix(shan_ict)
@@ -608,13 +941,31 @@ heatmaply(normalize(shan_ict_mat),
           )
 ```
 
+::: {.en}
 `Colv = NA` suppresses clustering of the columns, because the five variables are not a sample of anything and reordering them by similarity would only make it harder to find a given variable. `k_row = 6` cuts the row dendrogram at the chosen k and colours the branches accordingly, and `seriate = "OLO"` applies optimal leaf ordering, which picks between the two possible orientations of every branch so that adjacent rows are as similar as possible.
+:::
 
+::: {.zh}
+`Colv = NA` 关闭列方向的聚类，因为这五个变量不是任何东西的样本，按相似度重排只会让人更难找到某个特定变量。`k_row = 6` 在所选的 k 处切开行谱系并给分支上色，`seriate = "OLO"` 启用最优叶序：它为每个分支在两种可能的朝向中选一种，使相邻的行尽可能相似。
+:::
+
+::: {.en}
 The heatmap is the clearest single statement of what the six groups are, and it is the one output here worth hovering over: the township names are small, and the tooltip is how they are read. `normalize()` is for display only: it puts the five columns on a common colour scale so they are comparable by eye, and it does not affect the clustering being shown, which came from the raw matrix.
+:::
+
+::: {.zh}
+热图是对「这六组究竟是什么」最清晰的单一表述，也是本文唯一值得用鼠标悬停去看的输出：镇区名很小，要靠提示框来读。这里的 `normalize()` 只为显示服务——它把五列放到同一色标上以便目视比较，并不影响所展示的聚类，后者来自原始矩阵。
+:::
 
 ### Mapping the clusters formed
 
+::: {.en}
 `cutree()` converts the hierarchy into a flat six-group membership vector:
+:::
+
+::: {.zh}
+`cutree()` 把层次结构转成一个扁平的六组归属向量：
+:::
 
 ```{r}
 groups <- as.factor(cutree(hclust_ward, k=6))
@@ -625,7 +976,13 @@ shan_sf_cluster <- cbind(shan_sf, as.matrix(groups)) %>%
   rename(`CLUSTER`=`as.matrix.groups.`)
 ```
 
+::: {.en}
 `cbind()` is safe here only because `groups` is in the same order as the rows of `shan_sf`. It is a positional join with no key, and nothing would warn if that order had changed.
+:::
+
+::: {.zh}
+这里的 `cbind()` 之所以安全，仅因为 `groups` 的顺序与 `shan_sf` 的行序一致。它是按位置而非按键的连接，一旦顺序变过，不会有任何警告。
+:::
 
 ```{r}
 #| fig-width: 8
@@ -640,13 +997,31 @@ tm_shape(shan_sf_cluster) +
   tm_title("Hierarchical clustering, k = 6, no spatial constraint")
 ```
 
+::: {.en}
 This is the map the whole lesson is built around. The clusters are fragmented: each colour appears in several disconnected patches scattered across the state, and only one of the six is a single piece. Counting the connected components of each cluster on the contiguity graph puts a number on it: the six clusters occupy **24 separate pieces of territory**, and that figure is computed explicitly in the comparison at the end. A planner cannot administer cluster 3.
+:::
 
+::: {.zh}
+整节课就是围绕这幅图展开的。这些簇是碎的：每种颜色都以若干互不相连的斑块散布全邦，六个簇里只有一个是整块。在连通图上数每个簇的连通分量就能给出数字：六个簇占据着 **24 块彼此分离的地域**，这个数字在最后的比较里会显式算出来。规划者没法管理第 3 簇。
+:::
+
+::: {.en}
 The fragmentation is not an artefact or a bug. It is the correct answer to the question that was asked, and the question contained no reference to geography at all.
+:::
+
+::: {.zh}
+碎裂不是假象，也不是 bug。它是对所提问题的正确回答——而那个问题里根本没提到地理。
+:::
 
 ## Spatially Constrained Clustering: SKATER approach
 
+::: {.en}
 SKATER, or Spatial 'K'luster Analysis by Tree Edge Removal, asks a different question. It builds the contiguity graph, weights each edge by how dissimilar the two townships it joins are, reduces the graph to its minimum spanning tree, and then cuts the tree. Because every cut of a tree yields connected subtrees, and because every edge of the tree is a contiguity edge, each cluster it produces is guaranteed contiguous.
+:::
+
+::: {.zh}
+SKATER（Spatial 'K'luster Analysis by Tree Edge Removal）问的是另一个问题。它先建连通图，按两端镇区的相异程度给每条边赋权，再把图化简为最小生成树，然后切树。由于对树的任何一刀都产出连通的子树，而树上每条边都是连通边，它产出的每个簇都保证连片。
+:::
 
 ### Computing Neighbour List
 
@@ -655,15 +1030,27 @@ shan.nb <- poly2nb(shan_sf)
 summary(shan.nb)
 ```
 
+::: {.en}
 The 55 townships have 264 non-zero links, an average of 4.8 neighbours each, from two for the five least connected townships to nine for the most connected. The graph is fully connected with no island, which matters: SKATER cannot span a disconnected graph.
-
-::: callout-note
-## Working in sf rather than converting to sp
-
-The chapter converts `shan_sf` to a `SpatialPolygonsDataFrame` with `as_Spatial()` before calling `poly2nb()`, on the grounds that the function does not accept an `sf` object. That restriction was lifted several versions ago. With **spdep** `r as.character(packageVersion("spdep"))`, `poly2nb()` takes the `sf` object directly, as above, and `nbcosts()`, `mstree()` and `skater()` need only the neighbour list and a plain data frame. The conversion step is omitted, which also avoids carrying a second copy of the geometry in memory.
 :::
 
+::: {.zh}
+55 个镇区共有 264 条非零连边，平均每个 4.8 个邻居，最少的五个镇区各 2 个，最多的 9 个。该图完全连通、没有孤岛，这一点很要紧：SKATER 无法在不连通的图上建生成树。
+:::
+
+::: callout-note
+## Working in sf throughout
+
+With **spdep** `r as.character(packageVersion("spdep"))`, `poly2nb()` takes an `sf` object directly, as above, and `nbcosts()`, `mstree()` and `skater()` need only the neighbour list and a plain data frame. No conversion to the older `SpatialPolygonsDataFrame` class is required anywhere in this section, which keeps one copy of the geometry in memory instead of two.
+:::
+
+::: {.en}
 Plotting the graph requires coordinates for the nodes, and township centroids serve:
+:::
+
+::: {.zh}
+画这张图需要节点坐标，用镇区质心即可：
+:::
 
 ```{r}
 coords <- st_coordinates(
@@ -681,23 +1068,53 @@ plot(shan.nb,
      add=TRUE)
 ```
 
+::: {.en}
 The centroids are taken from `st_geometry()` alone rather than from the whole `sf` object, which keeps `st_centroid()` from warning about attributes that are not constant over the geometry, the same point as in [Exercise 2](../hand-on-ex2/hand-on-ex2a.qmd).
+:::
 
+::: {.zh}
+质心只从 `st_geometry()` 取，而不是从整个 `sf` 对象取，这样 `st_centroid()` 就不会就「属性在几何上并非常量」发出警告——与[练习 2](../hand-on-ex2/hand-on-ex2a.qmd) 是同一回事。
+:::
+
+::: {.en}
 The boundaries are drawn before the graph rather than after. The plotting region is fixed by the first `plot()` call, and the boundary extent is the larger of the two, so plotting the network first would clip the edges of the state off the figure.
+:::
+
+::: {.zh}
+边界先画、图后画，不能反过来。绘图区域由第一次 `plot()` 调用定下，而边界的范围是两者中较大的那个，所以先画网络会把邦的边缘裁出画面之外。
+:::
 
 ### Computing minimum spanning tree
 
 #### Calculating edge costs
 
+::: {.en}
 `nbcosts()` gives each edge of the contiguity graph a cost: the attribute distance between the two townships it connects, in the same five-dimensional space the dendrogram used.
+:::
+
+::: {.zh}
+`nbcosts()` 给连通图的每条边一个代价：它所连接的两个镇区之间的属性距离，所处空间与谱系图用的是同一个五维空间。
+:::
 
 ```{r}
 lcosts <- nbcosts(shan.nb, shan_ict)
 ```
 
+::: {.en}
 This is the line where attribute space and geographical space meet. The *existence* of an edge is purely geographical; its *cost* is purely attributive. Everything SKATER does afterwards follows from that division of labour.
+:::
 
+::: {.zh}
+这一行就是属性空间与地理空间交汇之处。一条边*是否存在*纯属地理问题，它的*代价*纯属属性问题。SKATER 之后做的一切都源自这种分工。
+:::
+
+::: {.en}
 The costs are then attached to the neighbour list as weights, and `style = "B"` keeps them as they are:
+:::
+
+::: {.zh}
+随后把这些代价作为权重附到邻居列表上，`style = "B"` 保持其原值不变：
+:::
 
 ```{r}
 shan.w <- nb2listw(shan.nb,
@@ -706,7 +1123,13 @@ shan.w <- nb2listw(shan.nb,
 summary(shan.w)
 ```
 
+::: {.en}
 Row-standardising here, as `style = "W"` would, would divide each cost by the number of neighbours its township has and so make an edge look cheap merely because one of its endpoints is well connected. These weights are distances, not shares of influence, and they have to stay unnormalised.
+:::
+
+::: {.zh}
+若在此做行标准化（即用 `style = "W"`），每条边的代价会被除以其所属镇区的邻居个数，于是一条边仅因某一端连通度高就显得「便宜」。这些权重是距离，不是影响力份额，必须保持未归一化。
+:::
 
 ### Computing minimum spanning tree
 
@@ -722,13 +1145,25 @@ class(shan.mst)
 dim(shan.mst)
 ```
 
+::: {.en}
 54 rows for 55 townships, which is the defining property of a spanning tree: it connects every node using the fewest possible edges and contains no cycle. The three columns are the two endpoint node numbers and the cost of the edge between them.
+:::
+
+::: {.zh}
+55 个镇区对应 54 行，这正是生成树的定义性性质：用尽可能少的边连通所有节点，且不含回路。三列分别是两个端点的节点编号，以及它们之间那条边的代价。
+:::
 
 ```{r}
 head(shan.mst)
 ```
 
+::: {.en}
 The retained edges cost between 47.8 and 432.1 and sum to 9,686.6. No other set of 54 contiguity edges connecting all 55 townships has a smaller total.
+:::
+
+::: {.zh}
+保留下来的边代价在 47.8 到 432.1 之间，总和为 9,686.6。在所有能连通 55 个镇区的 54 条连通边的集合中，没有别的组合总和更小。
+:::
 
 ```{r}
 #| fig-width: 9
@@ -743,11 +1178,23 @@ plot.mst(shan.mst,
          add=TRUE)
 ```
 
+::: {.en}
 Against the contiguity graph above, 78 of its 132 distinct edges are gone; `summary()` counts every edge twice, once from either end, which is why it reported 264 links for 132 pairs. What is left is the cheapest skeleton of the state, and the most expensive edges still in it are the ones SKATER is about to cut.
+:::
+
+::: {.zh}
+与上面那张连通图相比，它 132 条不同的边中有 78 条被去掉了；`summary()` 把每条边从两端各数一次，所以 132 对边它报成了 264 条连边。剩下的是全邦最便宜的骨架，而其中仍然最贵的那些边，正是 SKATER 接下来要切的。
+:::
 
 ### Computing spatially constrained clusters using SKATER method
 
+::: {.en}
 `ncuts = 5` asks for five cuts, which leaves six subtrees and so six regions:
+:::
+
+::: {.zh}
+`ncuts = 5` 要求切五刀，留下六棵子树，也就是六个区域：
+:::
 
 ```{r}
 clust6 <- spdep::skater(edges = shan.mst[,1:2],
@@ -760,7 +1207,13 @@ clust6 <- spdep::skater(edges = shan.mst[,1:2],
 str(clust6)
 ```
 
+::: {.en}
 The object is large because it records the full state of the procedure, including the candidate cuts it evaluated and rejected. The membership vector is the part that is needed:
+:::
+
+::: {.zh}
+这个对象很大，因为它记录了整个过程的完整状态，包括评估过又被否决的候选切割。真正需要的是归属向量这一部分：
+:::
 
 ```{r}
 ccs6 <- clust6$groups
@@ -771,9 +1224,21 @@ ccs6
 table(ccs6)
 ```
 
+::: {.en}
 The six regions hold 22, 18, 11, 2, 1 and 1 townships. `ssw` tracks the objective through the five cuts, from 12,612.5 before any cut to 8,735.2 after the fifth, a reduction of 30.7%.
+:::
 
+::: {.zh}
+六个区域分别含 22、18、11、2、1、1 个镇区。`ssw` 记录目标函数在五刀中的变化：从未切之前的 12,612.5 到第五刀之后的 8,735.2，下降 30.7%。
+:::
+
+::: {.en}
 That size distribution deserves attention, because it is the characteristic behaviour of the method rather than a property of Shan State. SKATER cuts the most expensive remaining edge at each step, and the most expensive edge in a tree is usually the one attaching an outlier to its neighbour. So the procedure spends its cuts isolating extreme townships:
+:::
+
+::: {.zh}
+这个规模分布值得注意，因为它是方法本身的典型行为，而不是掸邦的性质。SKATER 每一步切的都是剩余边中最贵的那一条，而树里最贵的边通常就是把某个离群值挂到其邻居上的那一条。于是整个过程把切割机会都花在隔离极端镇区上：
+:::
 
 ```{r}
 shan_sf %>%
@@ -783,7 +1248,13 @@ shan_sf %>%
   select(TS.x, ST, SP_CLUSTER, RADIO_PR, TV_PR, MPHONE_PR, COMPUTER_PR)
 ```
 
+::: {.en}
 Cluster 6 is Ywangan alone, the township with the highest radio rate in the state, 485, and almost no computers, 4.4. Cluster 5 is Narphan alone, which has the *lowest* radio rate, 75, and the lowest computer rate, 3.3. Cluster 4 is Mongpan and Langkho, two southern townships with unusually high computer rates for their surroundings. Three of the six "regions" are outlier townships, and the substantive regionalisation is carried by the three large clusters. Asking SKATER for six regions produced three regions and three exceptions.
+:::
+
+::: {.zh}
+第 6 簇只有 Ywangan 一个镇区，它的收音机比率全邦最高，485，而电脑几乎没有，4.4。第 5 簇只有 Narphan，它的收音机比率*最低*，75，电脑比率也最低，3.3。第 4 簇是 Mongpan 与 Langkho，南部两个电脑比率相对其周边异常高的镇区。六个「区域」里有三个其实是离群镇区，实质的区域化是由那三个大簇承担的。向 SKATER 要六个区域，得到的是三个区域加三个例外。
+:::
 
 ```{r}
 #| fig-width: 9
@@ -831,28 +1302,64 @@ tmap_arrange(hclust.map, shclust.map,
              asp=NA, ncol=2)
 ```
 
+::: {.en}
 The comparison is the result of the exercise. On the left, six colours in 24 patches. On the right, six colours in six patches: every region is one connected piece of territory, and the three large ones divide the state into a northern block, a southern-and-eastern block, and a third that cuts across both.
+:::
 
+::: {.zh}
+这个对比就是本练习的结果。左边是六种颜色散在 24 块斑块里；右边是六种颜色落在六块里：每个区域都是一整片连通的地域，其中三个大区域把全邦分成北部一块、南部与东部一块，以及横跨两者的第三块。
+:::
+
+::: {.en}
 Cross-tabulating the two memberships shows that the constraint did not merely tidy up the unconstrained solution, it rearranged it:
+:::
+
+::: {.zh}
+把两套归属交叉列表，可以看出约束并不只是把无约束的解收拾整齐，而是重排了它：
+:::
 
 ```{r}
 table(hclust = shan_sf_cluster$CLUSTER,
       skater = shan_sf_spatialcluster$SP_CLUSTER)
 ```
 
+::: {.en}
 The 20 townships of unconstrained cluster 1 are split 14 / 2 / 4 across three SKATER regions, and SKATER region 2 draws on five of the six unconstrained clusters. Contiguity is not a filter applied after the fact; it changes which townships count as similar in the first place.
+:::
+
+::: {.zh}
+无约束第 1 簇的 20 个镇区被拆成 14 / 2 / 4 分落在三个 SKATER 区域里，而 SKATER 的第 2 区域取自无约束六个簇中的五个。连片性不是事后施加的过滤器，它从一开始就改变了哪些镇区算作相似。
+:::
 
 ## Spatially Constrained Clustering: ClustGeo Method
 
 ### A short note about ClustGeo package
 
+::: {.en}
 ClustGeo reaches the same requirement by another route. Instead of restricting which merges are admissible, it modifies the dissimilarity being minimised. Two matrices are supplied: `D0`, the dissimilarity in feature space, and `D1`, the dissimilarity in constraint space, here geographical distance. At each step the Ward-like criterion minimised is a convex combination of the homogeneity computed from `D0` and the homogeneity computed from `D1`, weighted by a mixing parameter α ∈ [0, 1].
+:::
 
+::: {.zh}
+ClustGeo 以另一条路径达到同一要求。它不限制哪些合并可行，而是修改被最小化的那个相异度。需要给它两个矩阵：`D0` 是特征空间的相异度，`D1` 是约束空间的相异度（此处为地理距离）。每一步被最小化的类 Ward 准则，是由 `D0` 算出的同质性与由 `D1` 算出的同质性的凸组合，权重由混合参数 α ∈ [0, 1] 给定。
+:::
+
+::: {.en}
 At α = 0 geography is ignored and the result is ordinary Ward clustering. At α = 1 the attributes are ignored and the result is a partition of the map into compact blocks regardless of what is in them. The useful solutions are in between. Unlike SKATER, the method offers no contiguity guarantee at any α: it makes contiguity cheaper, not mandatory.
+:::
+
+::: {.zh}
+α = 0 时完全不理地理，结果就是普通的 Ward 聚类；α = 1 时完全不理属性，结果是把地图切成若干紧凑的块，不管块里装着什么。有用的解在两者之间。与 SKATER 不同，这个方法在任何 α 下都不保证连片：它只是让连片变得更「便宜」，而不是强制。
+:::
 
 ### Ward-like hierarchical clustering: ClustGeo
 
+::: {.en}
 With `D0` alone, `hclustgeo()` is a plain Ward clustering:
+:::
+
+::: {.zh}
+只给 `D0` 时，`hclustgeo()` 就是普通的 Ward 聚类：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -865,9 +1372,15 @@ rect.hclust(nongeo_cluster,
 ```
 
 ::: callout-warning
-## `hclustgeo(D0)` is `ward.D2`, not `ward.D`
+## `hclustgeo(D0)` implements `ward.D2`
 
-This dendrogram is usually described as reproducing the `hclust()` result from earlier in the chapter, and it does not. `hclust()` was called with `method = "ward.D"`; `hclustgeo()` implements the Ward criterion the other way:
+::: {.en}
+`hclustgeo()` with no spatial term is a Ward clustering of the same proximity matrix, but it implements the criterion as `ward.D2` rather than as the `ward.D` used earlier in this document:
+:::
+
+::: {.zh}
+不带空间项的 `hclustgeo()` 是对同一个邻近矩阵做 Ward 聚类，但它实现的准则是 `ward.D2`，而本文前面用的是 `ward.D`：
+:::
 
 ```{r}
 identical(unname(hclustgeo(proxmat)$merge),
@@ -879,9 +1392,21 @@ rbind(ward.D   = table(cutree(hclust(proxmat, method = "ward.D"), 6)),
       clustgeo = table(cutree(nongeo_cluster, 6)))
 ```
 
+::: {.en}
 The merge sequences of `hclustgeo(proxmat)` and `hclust(proxmat, method = "ward.D2")` are identical, and their six-group memberships agree exactly. Against `ward.D` they do not: the first cluster of 20 townships splits 16 / 4, and eight townships change group.
+:::
 
-The difference is that `ward.D` applies Ward's update formula to the distances it is given, while `ward.D2` squares them first, which is what Ward (1963) actually specified. So the α = 0 baseline in this section is not the same partition as the one mapped further up, and the α = 0 to α = 0.2 comparison below is internally consistent only because both sides of it come from `hclustgeo()`.
+::: {.zh}
+`hclustgeo(proxmat)` 与 `hclust(proxmat, method = "ward.D2")` 的合并序列完全相同，六组归属也完全一致。对 `ward.D` 则不然：那个含 20 个镇区的第一簇被拆成 16 / 4，另有八个镇区换了组。
+:::
+
+::: {.en}
+The difference is that `ward.D` applies Ward's update formula to the distances it is given, while `ward.D2` squares them first, which is what Ward (1963) specified. The α = 0 baseline in this section is therefore a different partition from the one mapped further up, and the α = 0 to α = 0.2 comparison below is read as internally consistent because both sides of it come from `hclustgeo()`.
+:::
+
+::: {.zh}
+差别在于 `ward.D` 把 Ward 的更新公式直接作用在给它的距离上，而 `ward.D2` 先把距离平方——后者才是 Ward（1963）所规定的。所以本节 α = 0 的基准与前面地图上那一套是不同的划分；而下面 α = 0 与 α = 0.2 的比较之所以被当作内部一致，是因为它的两边都出自 `hclustgeo()`。
+:::
 :::
 
 #### Mapping the clusters formed
@@ -908,11 +1433,23 @@ tm_shape(shan_sf_ngeo_cluster) +
   tm_title("ClustGeo with D0 only (alpha = 0)")
 ```
 
+::: {.en}
 Sizes of 16, 8, 13, 6, 7 and 5, and a map that is if anything more fragmented than the `ward.D` one, at 28 pieces of territory against 24. With α = 0 there is no reason for it to be otherwise.
+:::
+
+::: {.zh}
+规模为 16、8、13、6、7、5，而地图比 `ward.D` 那幅更碎：28 块地域对 24 块。在 α = 0 下，没有理由不是这样。
+:::
 
 ### Spatially Constrained Hierarchical Clustering
 
+::: {.en}
 `D1` is the geographical dissimilarity matrix. `st_distance()` returns the full matrix and `as.dist()` reduces it to the lower triangle that `hclustgeo()` expects:
+:::
+
+::: {.zh}
+`D1` 是地理相异矩阵。`st_distance()` 返回完整矩阵，`as.dist()` 把它化简为 `hclustgeo()` 所需的下三角：
+:::
 
 ```{r}
 dist <- st_distance(shan_sf, shan_sf)
@@ -922,7 +1459,13 @@ distmat <- as.dist(dist)
 ::: callout-note
 ## What `st_distance()` measures between polygons
 
+::: {.en}
 `st_distance()` on polygons returns the shortest distance between their boundaries, not between their centroids. Two townships that share a border are therefore separated by exactly zero:
+:::
+
+::: {.zh}
+`st_distance()` 作用在多边形上，返回的是它们边界之间的最短距离，而不是质心之间的距离。因此共边的两个镇区之间的距离恰为零：
+:::
 
 ```{r}
 dnum <- units::drop_units(dist)
@@ -931,12 +1474,30 @@ c(pairs = sum(upper.tri(dnum)),
   adjacent_pairs = sum(card(shan.nb)) / 2)
 ```
 
+::: {.en}
 132 of the 1,485 pairs sit at distance zero, and that is exactly the number of adjacent pairs in the contiguity list. So `D1` as built here is not quite "geographical distance". It is a hybrid that collapses all contiguity into a single tie at zero and then measures the gaps between non-neighbours, which run from 0.7 km to 444 km. Centroid distances, which run from 24 km to 509 km and are what the ClustGeo vignette uses, would spread the adjacent pairs out instead of tying them.
-
-For this problem the polygon version is arguably the better choice, since it is contiguity information expressed as a distance, but it is a different matrix from the one the lesson slides describe, and it is worth knowing which one is in play before reading α off a curve.
 :::
 
+::: {.zh}
+1,485 对中有 132 对距离为零，而这恰好等于连通列表里相邻对的数目。所以这里构建出的 `D1` 并不完全是「地理距离」：它是个混合物，把所有连片关系塌缩成零处的一个并列，再去量非邻居之间的间隔，后者从 0.7 公里到 444 公里。质心距离（范围 24 公里到 509 公里，也是 ClustGeo 文档所用的）会把相邻对拉开，而不是让它们并列。
+:::
+
+::: {.en}
+For this problem the polygon version is arguably the better choice, since it is contiguity information expressed as a distance. It is nevertheless a different matrix from one built on centroid distances, and it is worth knowing which one is in play before reading α off a curve.
+:::
+
+::: {.zh}
+对本问题而言，多边形版本可以说是更好的选择，因为它就是以距离形式表达的连片信息；但它毕竟不同于按质心距离构建的那个矩阵，在从曲线上读取 α 之前，值得先弄清用的是哪一个。
+:::
+:::
+
+::: {.en}
 `choicealpha()` runs the clustering at each α on a grid and reports two quality measures: `Q0`, the proportion of feature-space inertia the partition explains, and `Q1`, the same quantity computed in constraint space.
+:::
+
+::: {.zh}
+`choicealpha()` 在一组 α 网格上各跑一次聚类，并报出两个质量指标：`Q0` 是该划分所解释的特征空间惯量比例，`Q1` 是在约束空间中算出的同一个量。
+:::
 
 ```{r}
 #| fig-width: 12
@@ -952,9 +1513,21 @@ round(cr$Q, 3)
 round(cr$Qnorm, 3)
 ```
 
+::: {.en}
 The two curves do what the theory says they must. `Q0` is highest at α = 0, where it reaches 0.757, meaning the six-cluster partition explains 75.7% of the variance in the five ICT rates, and falls monotonically to 0.191 at α = 1. `Q1` runs the other way, from 0.131 at α = 0 to 0.941 at α = 1. `Qnorm` expresses each as a fraction of its own maximum, so the trade-off can be read directly as a percentage loss.
+:::
 
-α = 0.2 is the choice the lesson recommends, and the numbers support it. Feature homogeneity falls to 85.5% of its maximum, a loss of 14.5%, while geographical homogeneity climbs from 13.9% to 66.5% of its maximum, a gain of 52.6 points. It is also the last grid point before the two curves cross, which happens between 0.2 and 0.3; beyond the crossing, more is being given up in attribute space than is being bought in geographical space.
+::: {.zh}
+两条曲线的走势与理论所要求的一致。`Q0` 在 α = 0 处最高，达到 0.757，即六簇划分解释了五个 ICT 比率中 75.7% 的方差，随后单调下降到 α = 1 时的 0.191。`Q1` 走的是反方向，从 α = 0 的 0.131 到 α = 1 的 0.941。`Qnorm` 把两者各表示为其自身最大值的比例，于是这个权衡可以直接按百分比损失来读。
+:::
+
+::: {.en}
+α = 0.2 is the choice taken here, and the numbers support it. Feature homogeneity falls to 85.5% of its maximum, a loss of 14.5%, while geographical homogeneity climbs from 13.9% to 66.5% of its maximum, a gain of 52.6 points. It is also the last grid point before the two curves cross, which happens between 0.2 and 0.3; beyond the crossing, more is being given up in attribute space than is being bought in geographical space.
+:::
+
+::: {.zh}
+α = 0.2 是这里采用的取值，数字也支持它：特征同质性降到其最大值的 85.5%，损失 14.5%；而地理同质性从最大值的 13.9% 升到 66.5%，提高 52.6 个百分点。它同时也是两条曲线相交之前的最后一个网格点——交点落在 0.2 与 0.3 之间；越过交点之后，在属性空间里让出的就多于在地理空间里买到的。
+:::
 
 ```{r}
 clustG <- hclustgeo(proxmat, distmat, alpha = 0.2)
@@ -982,7 +1555,13 @@ tm_shape(shan_sf_Gcluster) +
   tm_title("ClustGeo with alpha = 0.2")
 ```
 
+::: {.en}
 The clusters are far more balanced than any solution so far, at 10, 9, 7, 9, 12 and 8 townships, and visibly more compact than the α = 0 map. They are not contiguous. The six clusters occupy 18 pieces of territory, down from 28 at α = 0 but a long way from the six that SKATER delivers, and one cluster alone is in seven pieces: the high-ICT group, which holds Taunggyi in the south, Tachileik in the east, and Muse and Lashio in the north. Those are the largest urban centres in the state and they are hundreds of kilometres apart. No value of α short of ignoring the attributes entirely will make them touch.
+:::
+
+::: {.zh}
+这些簇比此前任何方案都均衡得多，分别是 10、9、7、9、12、8 个镇区，也明显比 α = 0 那幅图紧凑。但它们并不连片：六个簇占据 18 块地域，比 α = 0 时的 28 块少，但离 SKATER 给出的 6 块还差得远；而且单是一个簇就分成七块——那是高 ICT 组，里面装着南部的东枝、东部的大其力、北部的木姐与腊戌。这些是全邦最大的城市中心，彼此相距数百公里。除非完全不理属性，否则没有任何 α 取值能让它们相接。
+:::
 
 ```{r}
 #| fig-width: 12
@@ -1000,11 +1579,23 @@ tmap_arrange(shclust.map, Gcluster.map,
              asp=NA, ncol=2)
 ```
 
+::: {.en}
 The two spatially aware solutions answer different needs. SKATER guarantees administrable regions and pays for the guarantee with three single-township regions. ClustGeo returns six groups of workable size and admits a handful of exclaves.
+:::
+
+::: {.zh}
+这两个考虑了空间的方案满足的是不同的需求。SKATER 保证区域可管理，代价是出现三个只含单个镇区的区域；ClustGeo 给出六个规模可用的组，但容许少数几处飞地。
+:::
 
 ## Visual Interpretation of Clusters
 
+::: {.en}
 A membership vector is not an interpretation. The clusters have to be described in terms of the variables that produced them before they can be named, let alone acted on.
+:::
+
+::: {.zh}
+归属向量不等于解释。必须先用产生这些簇的那些变量来描述它们，才能给它们命名，更不用说据以行动。
+:::
 
 ### Visualising individual clustering variable
 
@@ -1016,11 +1607,23 @@ ggplot(data = shan_sf_ngeo_cluster,
   geom_boxplot()
 ```
 
+::: {.en}
 Cluster 3 holds the highest radio rates. Ordered by mean the sequence runs 3, 2, 1, 4, 5, 6, so the lowest group is cluster 6 at 98.6 radios per 1,000 households, not cluster 5. One boxplot per variable is the right first look, but five of them cannot be compared by eye.
+:::
+
+::: {.zh}
+第 3 簇的收音机比率最高。按均值排序的次序是 3、2、1、4、5、6，所以最低的一组是第 6 簇、每千户 98.6 台，而不是第 5 簇。每个变量画一个箱线图是合适的第一眼，但五个箱线图没法靠目视相互比较。
+:::
 
 ### Multivariate Visualisation
 
+::: {.en}
 A parallel coordinates plot puts all five variables on one set of axes with one line per township, so a cluster's profile becomes the shape of its bundle of lines:
+:::
+
+::: {.zh}
+平行坐标图把五个变量放在同一组轴上、每个镇区一条线，于是一个簇的面貌就成了它那束线的形状：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -1040,13 +1643,37 @@ ggparcoord(data = shan_pc,
   theme(axis.text.x = element_text(angle = 30))
 ```
 
+::: {.en}
 `scale = "globalminmax"` is the argument that matters, and what it does is nothing: no scaling is applied, and the vertical range is set by the global minimum and maximum across all five variables. That keeps each cluster's absolute level readable and comparable between panels, at the price of flattening the two rare variables: `LLPHONE_PR` and `COMPUTER_PR` cannot rise far off the floor when the axis has to reach `TV_PR` at 843.
+:::
 
+::: {.zh}
+`scale = "globalminmax"` 是关键参数，而它做的事是「什么都不做」：不施加任何缩放，纵向范围由五个变量的全局最小值与最大值确定。这样每个簇的绝对水平都可读、面板之间也可比，代价是把两个稀有变量压平了——当纵轴必须够到 `TV_PR` 的 843 时，`LLPHONE_PR` 与 `COMPUTER_PR` 就抬不起多高。
+:::
+
+::: {.en}
 The alternatives trade that off the other way. `std` centres each variable and divides by its standard deviation, `robust` does the same with the median and the median absolute deviation, `uniminmax` puts each variable on [0, 1], and `center` and `centerObs` standardise the height and then centre on a summary value or on one chosen observation. None of them is best in general; `globalminmax` is right here because the question is how well equipped each group is, which is a question about levels.
+:::
 
+::: {.zh}
+其他选项把这个取舍反过来：`std` 对每个变量做中心化并除以标准差，`robust` 用中位数和中位绝对偏差做同样的事，`uniminmax` 把每个变量放到 [0, 1]，而 `center` 与 `centerObs` 先标准化高度、再以某个汇总值或某个选定观测为中心。没有哪个在一般意义上最好；这里 `globalminmax` 合适，是因为要问的是各组装备得如何，而这是一个关于水平的问题。
+:::
+
+::: {.en}
 `columns` is given as indices rather than names because `ggparcoord()` errors on a character vector, which is why the five variables are pulled into a small data frame of their own first.
+:::
 
+::: {.zh}
+`columns` 传的是索引而不是名称，因为 `ggparcoord()` 收到字符向量会报错——这也是先把那五个变量单独抽成一个小数据框的原因。
+:::
+
+::: {.en}
 The group means make the profiles explicit:
+:::
+
+::: {.zh}
+各组均值把这些面貌写明：
+:::
 
 ```{r}
 shan_sf_ngeo_cluster %>%
@@ -1060,7 +1687,13 @@ shan_sf_ngeo_cluster %>%
             mean_COMPUTER_PR = mean(COMPUTER_PR))
 ```
 
+::: {.en}
 Read together with the parallel coordinates plot, the six groups have clear identities:
+:::
+
+::: {.zh}
+与平行坐标图合起来看，这六组有清晰的身份：
+:::
 
 | Cluster | n | Profile |
 |----|----|----|
@@ -1071,11 +1704,23 @@ Read together with the parallel coordinates plot, the six groups have clear iden
 | 5 | 7 | Lowest television, mobile and computer rates in the state; the poorest group |
 | 6 | 5 | Lowest radio but high land line and mobile; modern devices without the old one |
 
+::: {.en}
 Cluster 4 is the big towns and two of their neighbours, and its mean computer rate of 65 per 1,000 households is nearly three times the state average of 24. Cluster 5 is usually read as the lowest on all five variables, and it is not: cluster 6 has a lower radio rate, 98.6 against 124, and cluster 2 a lower land line rate, 23.9 against 38.0. Cluster 5 is lowest on television, mobile phone and computer, which is enough to make it the least equipped group overall but is not the same claim. Clusters 2 and 6 are the interesting pair: both are peripheral and neither is well equipped, but 2 is radio-rich and device-poor while 6 is the reverse. That contrast is the independent radio axis found in the correlation analysis, and it would have been lost had radio been dropped as an obsolete technology.
+:::
+
+::: {.zh}
+第 4 簇是几个大城镇加它们的两个邻居，其电脑比率均值为每千户 65 台，接近全邦平均 24 的三倍。第 5 簇常被读作在五个变量上都最低，其实不是：第 6 簇的收音机比率更低，98.6 对 124；第 2 簇的固定电话比率更低，23.9 对 38.0。第 5 簇是在电视、手机、电脑三项上最低，这足以使它整体上成为装备最差的一组，但那不是同一个论断。第 2 与第 6 簇是有意思的一对：两者都处于边缘、装备都不好，但第 2 簇收音机多而其他设备少，第 6 簇正相反。这种反差正是相关分析中发现的那条独立的收音机轴；若当初以「收音机已是过时技术」为由把它剔除，这一点就会丢失。
+:::
 
 ### Comparing the three segmentations
 
+::: {.en}
 The three methods can be compared on exactly the two criteria the planner set. Attribute homogeneity is the share of the total sum of squares in the five ICT rates that falls between clusters rather than within them. Administrability is the number of connected pieces of territory the six clusters occupy: six is the ideal, and any more means at least one region comes in several parts.
+:::
+
+::: {.zh}
+三种方法恰好可以按规划者设定的那两条标准来比较。属性同质性是五个 ICT 比率的总平方和中落在簇间（而非簇内）的份额；可管理性是六个簇占据的连通地域块数：六块是理想值，多于六块就意味着至少有一个区域是分成几片的。
+:::
 
 ```{r}
 pieces <- function(groups) {
@@ -1119,9 +1764,21 @@ tibble(
                        pieces(clust6$groups)))
 ```
 
+::: {.en}
 The table is the exercise in four rows. Unconstrained Ward explains 76.1% of the variance across 24 pieces of territory. ClustGeo at α = 0.2 explains 64.7% across 18. SKATER explains 50.0% across 6. Contiguity costs 26 percentage points of attribute homogeneity on this data, and no method avoids paying it.
+:::
 
+::: {.zh}
+这张表用四行概括了整个练习。无约束 Ward 解释 76.1% 的方差，代价是 24 块地域；ClustGeo 在 α = 0.2 下解释 64.7%，18 块；SKATER 解释 50.0%，6 块。在这份数据上，连片性要花掉 26 个百分点的属性同质性，而没有哪种方法能免掉这笔账。
+:::
+
+::: {.en}
 Running ClustGeo across the α grid shows that the exchange rate is smooth rather than a threshold:
+:::
+
+::: {.zh}
+把 ClustGeo 在整条 α 网格上跑一遍，可以看出这个「兑换率」是平滑的，而不是某个阈值：
+:::
 
 ```{r}
 map_dfr(c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7), function(a) {
@@ -1132,9 +1789,21 @@ map_dfr(c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7), function(a) {
 })
 ```
 
+::: {.en}
 Fragmentation falls from 28 pieces to 9 while explained variance falls from 75.7% to 48.0%, and the two move together at every step. The `explained_pct` column reproduces the `Q0` row of `choicealpha()` exactly, which is a useful confirmation that `Q0` is the explained pseudo-inertia and not something else. Notably, α never buys full contiguity: even at 0.7, with a third of the attribute homogeneity given away, the six clusters are still in nine pieces. If contiguity is a hard requirement rather than a preference, SKATER is the method; the α slider is for the case where it is a preference.
+:::
 
+::: {.zh}
+碎裂度从 28 块降到 9 块，同时被解释的方差从 75.7% 降到 48.0%，两者每一步都同向变动。`explained_pct` 一列与 `choicealpha()` 的 `Q0` 行完全吻合，这是一个有用的确认：`Q0` 就是被解释的伪惯量，不是别的东西。值得注意的是，α 始终买不到完全的连片：哪怕取到 0.7、让出三分之一的属性同质性，六个簇仍然分成九块。若连片是硬性要求而不是偏好，那就该用 SKATER；α 这个滑块适用的是「连片只是偏好」的情形。
+:::
+
+::: {.en}
 Which solution to use follows from the decision it has to support. For describing ICT adoption in Shan State, which is a typology for a report, unconstrained Ward on standardised variables is the right analysis, and the fragmentation is not a defect in it. For allocating a programme budget to administrative regions, SKATER is the only one of the three that returns something a planner can actually administer, and its three single-township regions are an honest signal that six is more than this state's contiguity structure will support. Four cuts rather than five would be the next thing to try.
+:::
+
+::: {.zh}
+该用哪个方案，取决于它要支撑什么决定。若目的是描述掸邦的 ICT 采用情况——那是给报告用的类型学——在标准化变量上做无约束 Ward 才是对的分析，碎裂在那里并不算缺陷。若目的是把项目预算分配到行政区域，三者之中只有 SKATER 返回了规划者真能管理的东西，而它那三个单镇区区域是一个诚实的信号：对这个邦的连片结构而言，六个区域已经偏多。下一步该试的是切四刀而不是五刀。
+:::
 
 ## Reference
 

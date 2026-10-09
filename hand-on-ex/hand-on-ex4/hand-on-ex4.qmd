@@ -18,6 +18,7 @@ editor: visual
 
 ## Overview
 
+::: {.en}
 Every measure of spatial association, from Moran's I and Geary's C to the local indicators that follow in later exercises, rests on a prior decision that is rarely stated explicitly: which areas count as neighbours of which. That decision is encoded in a **spatial weights matrix**, an *n* × *n* object whose entry *w~ij~* records how strongly area *i* is linked to area *j*. The matrix is not given by the data; it is constructed, and the construction is a modelling choice.
 
 This exercise builds that matrix four different ways for the 88 counties of Hunan province, then puts it to work by computing spatially lagged versions of a development indicator. By the end of it the following are in place:
@@ -26,25 +27,43 @@ This exercise builds that matrix four different ways for the 88 counties of Huna
 - an attribute table imported with **readr** and attached by a relational join with **dplyr**,
 - spatial weights computed with the appropriate functions of **spdep**, and
 - spatially lagged variables calculated with **spdep**.
+:::
+
+::: {.zh}
+每一个空间关联测度，从 Moran's I、Geary's C 到后续练习中的局部指标，都建立在一个很少被明说的前置判断之上：哪些区域算作彼此的邻居。这个判断被编码进**空间权重矩阵**——一个 *n* × *n* 的对象，其元素 *w~ij~* 记录区域 *i* 与区域 *j* 的联系强度。这个矩阵不是数据自带的，而是构造出来的，构造方式本身就是一种建模选择。
+
+本练习为湖南省 88 个县以四种不同方式构建该矩阵，再用它计算某个发展指标的空间滞后版本。练习结束时应当完成：
+
+- 用 **sf** 的相应函数导入地理空间数据；
+- 用 **readr** 导入属性表，并用 **dplyr** 做关系连接挂上去；
+- 用 **spdep** 的相应函数计算空间权重；
+- 用 **spdep** 计算空间滞后变量。
+:::
 
 ## The Study Area and Data
 
+::: {.en}
 Two data sets are used:
+:::
+
+::: {.zh}
+使用两个数据集：
+:::
 
 | Dataset | Description |
 |----|----|
 | `Hunan` | County boundary layer of Hunan province, China, in ESRI shapefile format |
 | `Hunan_2012.csv` | Selected local development indicators for Hunan in 2012 |
 
-::: callout-note
-## Where this copy of the data came from
-
-The import below confirms what arrived: 88 polygons, seven attribute fields, a bounding box of 108.7831–114.2544 E by 24.6342–30.1281 N, and geodetic CRS WGS 84.
-:::
-
 ### Getting Started
 
+::: {.en}
 Five packages are used:
+:::
+
+::: {.zh}
+用到五个包：
+:::
 
 | Package | Role |
 |----|----|
@@ -60,22 +79,46 @@ pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
 
 ## Getting the Data Into R Environment
 
+::: {.en}
 The geospatial data arrives as an ESRI shapefile and the attribute table as a csv. They are brought in separately and then joined on the county name.
+:::
+
+::: {.zh}
+地理空间数据是 ESRI shapefile，属性表是 csv。两者分别导入，再按县名连接起来。
+:::
 
 ### Import shapefile into R environment
 
+::: {.en}
 `st_read()` of **sf** imports the Hunan shapefile. The result is a simple feature object:
+:::
+
+::: {.zh}
+**sf** 的 `st_read()` 导入湖南 shapefile，得到一个简单要素对象：
+:::
 
 ```{r}
 hunan <- st_read(dsn = "data/geospatial",
                  layer = "Hunan")
 ```
 
+::: {.en}
 The header reports 88 polygon features with seven attribute fields, in geographic coordinates on WGS 84. The coordinates are left unprojected: the **spdep** functions used below accept longitude–latitude input directly and compute great circle distances in kilometres when asked to, so no reprojection is required.
+:::
+
+::: {.zh}
+表头显示 88 个多边形要素、七个属性字段，坐标是 WGS 84 下的地理坐标。坐标不做投影：下面用到的 **spdep** 函数可以直接接受经纬度输入，需要时按大圆距离以公里计算，因此无需重投影。
+:::
 
 ### Import csv file into R environment
 
+::: {.en}
 `read_csv()` of **readr** imports the indicator table. The output is a plain data frame with no geometry:
+:::
+
+::: {.zh}
+**readr** 的 `read_csv()` 导入指标表，输出是不带几何的普通数据框：
+:::
 
 ```{r}
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
@@ -83,18 +126,36 @@ hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 
 ### Performing relational join
 
+::: {.en}
 `left_join()` of **dplyr** attaches the indicator fields to the attribute table of the `hunan` simple feature object. Both tables carry a `County` field, so that is the join key. `select()` then keeps only the identifying fields and GDPPC, gross domestic product per capita, which is the variable carried through the rest of the exercise:
+:::
+
+::: {.zh}
+**dplyr** 的 `left_join()` 把指标字段挂到 `hunan` 简单要素对象的属性表上。两张表都有 `County` 字段，就以它为连接键。接着 `select()` 只保留标识字段和 GDPPC（人均国内生产总值），这是贯穿本练习余下部分的变量：
+:::
 
 ```{r}
 hunan <- left_join(hunan, hunan2012, by = "County") %>%
   select(1:4, 7, 15)
 ```
 
+::: {.en}
 The join is written with an explicit `by =` rather than left to automatic matching, so the key is visible in the document rather than reported in a message. The order of the join matters: `hunan` comes first, which keeps the result an `sf` object with its geometry column intact.
+:::
+
+::: {.zh}
+连接时显式写出 `by =` 而不交给自动匹配，这样连接键在文档里直接可见，而不是藏在一条提示信息里。连接的顺序有讲究：`hunan` 放在前面，结果才仍是带完整几何列的 `sf` 对象。
+:::
 
 ## Visualising Regional Development Indicator
 
+::: {.en}
 Before any weights are built, a basemap of county names and a choropleth of GDPPC give a sense of what the province looks like and where its wealth sits:
+:::
+
+::: {.zh}
+在构建权重之前，先画一幅带县名的底图和一幅 GDPPC 分级统计图，对该省的样貌和财富分布有个概念：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -109,13 +170,27 @@ gdppc <- qtm(hunan, "GDPPC") +
 tmap_arrange(basemap, gdppc, asp = 1, ncol = 2)
 ```
 
+::: {.en}
 GDPPC is concentrated in the north-east, around Changsha and its neighbours. Whether that concentration amounts to spatial clustering is precisely the question a weights matrix is needed to answer.
+:::
+
+::: {.zh}
+GDPPC 集中在东北部，长沙及其周边一带。这种集中是否构成空间聚集，正是需要靠权重矩阵来回答的问题。
+:::
 
 ## Computing Contiguity Spatial Weights
 
+::: {.en}
 `poly2nb()` of **spdep** builds a neighbours list from regions with contiguous boundaries. Its `queen` argument takes `TRUE` or `FALSE`; the default is `TRUE`, so omitting it returns first order neighbours under the Queen criterion.
 
 The two criteria differ in what counts as contact. Under the **Rook** criterion two counties are neighbours only if their boundaries share a line segment. Under the **Queen** criterion a single shared point is enough, so counties meeting only at a corner are also counted.
+:::
+
+::: {.zh}
+**spdep** 的 `poly2nb()` 从边界相接的区域构建邻居列表。它的 `queen` 参数取 `TRUE` 或 `FALSE`，默认是 `TRUE`，所以不写该参数时返回的是 Queen 准则下的一阶邻居。
+
+两种准则的差别在于什么算"相接"。**Rook** 准则下，只有两县边界共有一段线才算邻居；**Queen** 准则下，共有一个点就够了，所以仅在一角相触的县也算邻居。
+:::
 
 ### Computing (QUEEN) contiguity based neighbours
 
@@ -124,27 +199,57 @@ wm_q <- poly2nb(hunan, queen = TRUE)
 summary(wm_q)
 ```
 
+::: {.en}
 The summary reports 88 area units. The most connected has 11 neighbours; two units have a single neighbour each. The average of 5.09 links is the baseline against which every other criterion below is measured.
+:::
 
+::: {.zh}
+摘要显示 88 个面单元。连通度最高的有 11 个邻居；有两个单元各只有一个邻居。平均 5.09 条连边是下文其他各准则的比较基准。
+:::
+
+::: {.en}
 For each polygon `wm_q` lists all neighbouring polygons. The neighbours of the first polygon are:
+:::
+
+::: {.zh}
+`wm_q` 为每个多边形列出其所有邻接多边形。第一个多边形的邻居是：
+:::
 
 ```{r}
 wm_q[[1]]
 ```
 
+::: {.en}
 Polygon 1 has five neighbours. The numbers are the polygon IDs as stored in the `hunan` object, which are row positions rather than county identifiers. The name behind ID 1 is recovered with:
+:::
+
+::: {.zh}
+1 号多边形有五个邻居。这些数字是 `hunan` 对象里存的多边形 ID，也就是行位置，不是县的标识码。ID 1 对应的名称这样取出：
+:::
 
 ```{r}
 hunan$County[1]
 ```
 
+::: {.en}
 Polygon ID 1 is Anxiang county. The names of its five neighbours follow from the same indexing:
+:::
+
+::: {.zh}
+ID 1 是安乡县。它那五个邻居的名称按同样的索引方式取出：
+:::
 
 ```{r}
 hunan$NAME_3[c(2, 3, 4, 57, 85)]
 ```
 
+::: {.en}
 And their GDPPC values:
+:::
+
+::: {.zh}
+以及它们的 GDPPC 值：
+:::
 
 ```{r}
 nb1 <- wm_q[[1]]
@@ -152,9 +257,21 @@ nb1 <- hunan$GDPPC[nb1]
 nb1
 ```
 
+::: {.en}
 The five Queen neighbours of Anxiang have GDPPC of 20981, 34592, 24473, 21311 and 22879 respectively. These five numbers reappear in the final section, where their weighted average becomes the spatial lag of Anxiang.
+:::
 
+::: {.zh}
+安乡的五个 Queen 邻居的 GDPPC 分别是 20981、34592、24473、21311、22879。这五个数在最后一节会再次出现，它们的加权平均就是安乡的空间滞后值。
+:::
+
+::: {.en}
 The complete neighbour list is displayed with `str()`. The output runs to 88 entries, so it is folded away here:
+:::
+
+::: {.zh}
+完整的邻居列表用 `str()` 显示。输出共 88 条，这里折叠起来：
+:::
 
 ::: {.callout-note collapse="true"}
 ## The full Queen neighbour list
@@ -166,38 +283,80 @@ str(wm_q)
 
 ### Creating (ROOK) contiguity based neighbours
 
+::: {.en}
 The same function with `queen = FALSE` applies the Rook criterion:
+:::
+
+::: {.zh}
+同一个函数加上 `queen = FALSE` 就是 Rook 准则：
+:::
 
 ```{r}
 wm_r <- poly2nb(hunan, queen = FALSE)
 summary(wm_r)
 ```
 
+::: {.en}
 Eight links are lost, 440 against 448, and the average number of links falls from 5.09 to 5.00. Those eight are the corner touches that the Queen criterion admits and the Rook criterion rejects. The most connected unit drops from 11 neighbours to 10, and the same two units remain with one neighbour each. For irregular administrative polygons of this kind the two criteria rarely diverge much, since exact corner contacts are uncommon; the difference is far more consequential on a regular grid.
+:::
+
+::: {.zh}
+连边少了八条，440 对 448，平均连边数从 5.09 降到 5.00。这八条正是 Queen 准则接受而 Rook 准则排除的角接触。连通度最高的单元从 11 个邻居降到 10 个，那两个只有一个邻居的单元不变。对这类不规则的行政多边形，两种准则的差别通常不大，因为恰好在一角相触的情形并不常见；换成规则格网，差别就显著得多。
+:::
 
 ### Visualising contiguity weights
 
+::: {.en}
 A connectivity graph takes a point and draws a line to each neighbouring point. The units here are polygons, so points have to be derived before the graph can be drawn, and the usual choice is the polygon centroid.
+:::
 
+::: {.zh}
+连通图的画法是从一个点出发，向它的每个邻居点连一条线。这里的单元是多边形，所以得先导出点才能画图，通常取多边形的质心。
+:::
+
+::: {.en}
 The coordinates are needed as a plain matrix rather than as an `sf` geometry, which rules out running `st_centroid()` on the object as a whole. Instead the function is mapped over the geometry column one feature at a time. `map_dbl()` of **purrr** applies a given function to each element of a vector and returns a vector of the same length, so mapping `st_centroid()` over the geometry column and taking the first element of each result gives the longitudes:
+:::
+
+::: {.zh}
+这里需要的是普通矩阵形式的坐标，而不是 `sf` 几何，所以不能对整个对象直接跑 `st_centroid()`。改为在几何列上逐要素映射该函数。**purrr** 的 `map_dbl()` 把给定函数作用于向量的每个元素、返回等长向量，因此在几何列上映射 `st_centroid()` 并取每个结果的第一个元素，就得到经度：
+:::
 
 ```{r}
 longitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[1]])
 ```
 
+::: {.en}
 Latitude is obtained the same way, with the second element of each centroid instead of the first:
+:::
+
+::: {.zh}
+纬度同理，取每个质心的第二个元素：
+:::
 
 ```{r}
 latitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[2]])
 ```
 
+::: {.en}
 `cbind()` puts the two into a single object:
+:::
+
+::: {.zh}
+`cbind()` 把两者合成一个对象：
+:::
 
 ```{r}
 coords <- cbind(longitude, latitude)
 ```
 
+::: {.en}
 The first few rows confirm the format, a two column matrix in the order expected by the **spdep** plotting and distance functions:
+:::
+
+::: {.zh}
+前几行可以确认格式：两列的矩阵，列序正是 **spdep** 的绘图与距离函数所要求的：
+:::
 
 ```{r}
 head(coords)
@@ -223,7 +382,13 @@ plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
 
 #### Plotting both Queen and Rook contiguity based neighbours maps
 
+::: {.en}
 Side by side, the eight extra Queen links are easier to find than in either map alone:
+:::
+
+::: {.zh}
+并排放在一起，比单看任一幅更容易找出那八条多出来的 Queen 连边：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -235,20 +400,43 @@ plot(hunan$geometry, border = "lightgrey", main = "Rook Contiguity")
 plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
 ```
 
+::: {.en}
 Both graphs are fully connected, meaning every county is reachable from every other, which is what the absence of isolated units in the two summaries already implied.
+:::
+
+::: {.zh}
+两幅图都是全连通的，即任意两县之间都可达，这也正是两份摘要中没有孤立单元所已经暗示的。
+:::
 
 ## Computing distance based neighbours
 
+::: {.en}
 Contiguity is not the only way to define a neighbour. `dnearneigh()` of **spdep** identifies neighbours of region points by Euclidean distance, within a band whose lower and upper bounds are set by `d1=` and `d2=`. If the coordinates are unprojected and `longlat = TRUE` is passed, great circle distances in kilometres are calculated on the WGS 84 reference ellipsoid, which is the case here, since `coords` holds longitude and latitude.
+:::
+
+::: {.zh}
+邻接并不是定义邻居的唯一方式。**spdep** 的 `dnearneigh()` 按欧氏距离确定区域点的邻居，距离带的上下界由 `d1=` 与 `d2=` 给出。若坐标未投影且传入 `longlat = TRUE`，则按 WGS 84 参考椭球以公里计算大圆距离——此处正是如此，因为 `coords` 存的是经纬度。
+:::
 
 ### Determine the cut-off distance
 
+::: {.en}
 The upper limit of the distance band has to be chosen rather than assumed. A defensible choice is the smallest radius at which no county is left without a neighbour, and that is found in four steps:
 
 - `knearneigh()` of **spdep** returns a matrix of the indices of the *k* nearest neighbours of each point,
 - `knn2nb()` converts that object into a neighbours list of class `nb`,
 - `nbdists()` returns the lengths of the neighbour relationship edges, in the units of the coordinates if projected and in kilometres otherwise, and
 - `unlist()` removes the list structure so the lengths can be summarised.
+:::
+
+::: {.zh}
+距离带的上限需要选，而不能想当然。一个站得住的选法是：取使得没有任何县失去邻居的最小半径。分四步求得：
+
+- **spdep** 的 `knearneigh()` 返回每个点的 *k* 个最近邻的索引矩阵；
+- `knn2nb()` 把该对象转成 `nb` 类的邻居列表；
+- `nbdists()` 返回各邻接边的长度，坐标已投影时用坐标单位，否则用公里；
+- `unlist()` 去掉列表结构，便于对长度做汇总。
+:::
 
 ```{r}
 k1 <- knn2nb(knearneigh(coords))
@@ -256,26 +444,56 @@ k1dists <- unlist(nbdists(k1, coords, longlat = TRUE))
 summary(k1dists)
 ```
 
+::: {.en}
 The largest first nearest neighbour distance is 61.79 km. Using that as the upper threshold guarantees that every unit has at least one neighbour, since by construction each county's single closest neighbour lies within it.
+:::
+
+::: {.zh}
+最大的第一最近邻距离是 61.79 公里。以它作上限阈值可以保证每个单元至少有一个邻居，因为按构造，每个县最近的那一个邻居必然落在该半径内。
+:::
 
 ::: callout-note
 ## What the k = 1 graph is, and what it is not
 
+::: {.en}
 `knearneigh(coords)` with no `k` returns the single nearest neighbour of each county, and **spdep** notes that the resulting object has 25 sub-graphs. This is expected and is not a defect in the data: linking every point only to its closest partner produces mutual pairs and short chains rather than one connected network, which is why the k = 1 graph is used here purely as a ruler for distances and never as a weights matrix in its own right.
+:::
+
+::: {.zh}
+`knearneigh(coords)` 不给 `k` 时返回每个县的单一最近邻，**spdep** 会提示所得对象含 25 个子图。这是预期之中的，不是数据有缺陷：只把每个点连到它最近的那一个伙伴，得到的是互为最近邻的点对和短链，而不是一个连通网络。正因如此，k = 1 的图在这里只当量距离的尺子用，绝不作为权重矩阵本身。
+:::
 :::
 
 ### Computing fixed distance weight matrix
 
+::: {.en}
 With the threshold settled, the distance weight matrix is computed:
+:::
+
+::: {.zh}
+阈值定下来之后，计算距离权重矩阵：
+:::
 
 ```{r}
 wm_d62 <- dnearneigh(coords, 0, 62, longlat = TRUE)
 wm_d62
 ```
 
+::: {.en}
 The average number of links is 3.68, meaning that across the province each county has on average 3.68 other counties whose centroids lie within 62 km of its own. That is well below the 5.09 of the Queen criterion, and the gap is informative: a fixed radius that is generous enough to reach the most isolated county is still not generous enough to reproduce contiguity everywhere, because Hunan's counties vary considerably in size.
+:::
 
+::: {.zh}
+平均连边数是 3.68，即全省范围内每个县平均有 3.68 个其他县的质心落在自身 62 公里以内。这远低于 Queen 准则的 5.09，而这个差距是有信息量的：一个足以覆盖到最孤立那个县的固定半径，仍不足以在各处复现邻接关系，原因是湖南各县的面积差异相当大。
+:::
+
+::: {.en}
 The contents of the matrix are displayed with `str()`:
+:::
+
+::: {.zh}
+矩阵的内容用 `str()` 显示：
+:::
 
 ::: {.callout-note collapse="true"}
 ## The full fixed distance neighbour list
@@ -287,7 +505,13 @@ str(wm_d62)
 
 #### Plotting fixed distance weight matrix
 
+::: {.en}
 Plotting the first nearest neighbour links in red over the 62 km links in black shows the two structures together:
+:::
+
+::: {.zh}
+把第一最近邻连边画成红色、叠在黑色的 62 公里连边之上，两种结构就能同时看到：
+:::
 
 ```{r}
 #| fig-width: 8
@@ -297,9 +521,21 @@ plot(wm_d62, coords, add = TRUE)
 plot(k1, coords, add = TRUE, col = "red", length = 0.08)
 ```
 
+::: {.en}
 The red lines are the links to first nearest neighbours and the black lines the links to neighbours within the 62 km cut-off. Every red line is also a black line, which is the graphical statement of the guarantee built into the threshold.
+:::
 
+::: {.zh}
+红线是通往第一最近邻的连边，黑线是通往 62 公里截断半径内邻居的连边。每一条红线同时也是黑线，这正是阈值所内含的那个保证的图形表述。
+:::
+
+::: {.en}
 The same two graphs can also be placed next to each other:
+:::
+
+::: {.zh}
+这两幅图也可以并排放置：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -313,18 +549,42 @@ plot(wm_d62, coords, add = TRUE, pch = 19, cex = 0.6)
 
 ### Computing adaptive distance weight matrix
 
+::: {.en}
 A fixed distance weight matrix has a characteristic consequence: densely settled areas, usually urban, tend to have many neighbours, while sparsely settled areas, usually rural, tend to have few. Having many neighbours smooths the neighbour relationship across more units, so the degree of smoothing varies across the map for reasons that have nothing to do with the variable being studied.
+:::
 
+::: {.zh}
+固定距离权重矩阵有一个特有的后果：人口稠密区（通常是城区）邻居偏多，稀疏区（通常是农村）邻居偏少。邻居多意味着邻接关系被摊到更多单元上去平滑，于是平滑的程度在地图各处不一致，而原因与所研究的变量毫无关系。
+:::
+
+::: {.en}
 Controlling the number of neighbours directly with k-nearest neighbours removes that variation. Asymmetric neighbours can either be accepted or forced symmetric:
+:::
+
+::: {.zh}
+用 k 最近邻直接控制邻居个数，可以消除这种不一致。非对称的邻居关系既可以接受，也可以强制对称：
+:::
 
 ```{r}
 knn6 <- knn2nb(knearneigh(coords, k = 6))
 knn6
 ```
 
+::: {.en}
 Each county now has exactly six neighbours, so the total of 528 links is simply 88 × 6 and the average number of links is exactly 6. The report also states that the list is non-symmetric: county *i* being among the six closest to *j* does not oblige *j* to be among the six closest to *i*. This is the price of a fixed count, and `knn2nb()` takes a `sym = TRUE` argument for cases where symmetry is required.
+:::
 
+::: {.zh}
+现在每个县恰好六个邻居，所以 528 条连边就是 88 × 6，平均连边数恰为 6。报告同时指出该列表非对称：县 *i* 属于离 *j* 最近的六个之一，并不意味着 *j* 也属于离 *i* 最近的六个之一。这是固定个数的代价；若需要对称，`knn2nb()` 有 `sym = TRUE` 参数。
+:::
+
+::: {.en}
 The contents are displayed with `str()`, and every entry is now the same length:
+:::
+
+::: {.zh}
+用 `str()` 查看内容，此时每一条的长度都相同：
+:::
 
 ::: {.callout-note collapse="true"}
 ## The full k = 6 neighbour list
@@ -343,28 +603,64 @@ plot(hunan$geometry, border = "lightgrey")
 plot(knn6, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
 ```
 
+::: {.en}
 The graph is visibly more uniform than the fixed distance one: the sparse west is as densely linked as the crowded north-east, because the criterion counts neighbours rather than measuring distance.
+:::
+
+::: {.zh}
+这幅图明显比固定距离的那幅均匀：稀疏的西部与拥挤的东北部连边一样密，因为该准则数的是邻居个数，而不是量距离。
+:::
 
 ## Weights based on IDW
 
+::: {.en}
 A third approach keeps the contiguity structure but stops treating all neighbours as equivalent, weighting each by the inverse of the distance between the two centroids so that nearer neighbours count for more.
+:::
 
+::: {.zh}
+第三种办法保留邻接结构，但不再把所有邻居一视同仁：按两个质心之间距离的倒数赋权，于是越近的邻居权重越大。
+:::
+
+::: {.en}
 `nbdists()` computes the distances between areas, and `lapply()` inverts them:
+:::
+
+::: {.zh}
+`nbdists()` 计算区域之间的距离，`lapply()` 取其倒数：
+:::
 
 ```{r}
 dist <- nbdists(wm_q, coords, longlat = TRUE)
 ids <- lapply(dist, function(x) 1 / (x))
 ```
 
+::: {.en}
 The first entry corresponds to the five Queen neighbours of Anxiang seen earlier:
+:::
+
+::: {.zh}
+第一条对应前面见过的安乡的五个 Queen 邻居：
+:::
 
 ```{r}
 ids[[1]]
 ```
 
+::: {.en}
 The values are in reciprocal kilometres, so 0.0392 corresponds to a centroid roughly 26 km away and 0.0115 to one roughly 87 km away, a factor of more than three between the strongest and weakest of Anxiang's five links, where the plain contiguity matrix would have given all five the same value.
+:::
 
+::: {.zh}
+数值的单位是每公里的倒数，所以 0.0392 对应约 26 公里外的质心，0.0115 对应约 87 公里外的质心——安乡这五条连边中最强与最弱相差三倍以上，而普通邻接矩阵会给这五条同一个值。
+:::
+
+::: {.en}
 The full set of inverse distances is:
+:::
+
+::: {.zh}
+全部的距离倒数如下：
+:::
 
 ::: {.callout-note collapse="true"}
 ## The full inverse distance list
@@ -376,33 +672,71 @@ ids
 
 ## Row-standardised Weights Matrix
 
+::: {.en}
 The neighbour list says which units are linked; a weights list says how much each link counts. `nb2listw()` performs that conversion, and its `style` argument governs the rule.
 
 Under `style = "W"` each neighbour of a unit receives the fraction 1 / (number of neighbours), so the weights in every row sum to one. This is the most intuitive way of summarising neighbouring values, but it carries one drawback: polygons on the edge of the study area base their lagged values on fewer neighbours, and so may over- or under-state the true spatial autocorrelation. `style = "W"` is used here for simplicity, with the more robust `style = "B"` noted as the alternative.
+:::
+
+::: {.zh}
+邻居列表说明哪些单元相连，权重列表说明每条连边各占多少。`nb2listw()` 完成这一转换，规则由它的 `style` 参数决定。
+
+`style = "W"` 下，一个单元的每个邻居各得 1 /（邻居个数）的份额，于是每一行的权重之和为 1。这是汇总邻居取值最直观的方式，但有一个缺点：研究区边缘的多边形基于更少的邻居算出滞后值，因而可能高估或低估真实的空间自相关。这里为简明起见采用 `style = "W"`，并指出更稳健的替代是 `style = "B"`。
+:::
 
 ```{r}
 rswm_q <- nb2listw(wm_q, style = "W", zero.policy = TRUE)
 rswm_q
 ```
 
+::: {.en}
 `zero.policy = TRUE` permits units with no neighbours at all. It warrants care, since it lets missing neighbours pass unnoticed; with `zero.policy = FALSE` such a case returns an error instead. Neither applies to this data set, where every county has at least one neighbour.
+:::
 
+::: {.zh}
+`zero.policy = TRUE` 允许存在完全没有邻居的单元。这个参数要当心，因为它会让「缺邻居」这件事悄悄通过；设成 `zero.policy = FALSE` 时这种情形会直接报错。本数据集两种情形都不涉及，每个县至少有一个邻居。
+:::
+
+::: {.en}
 The weights of the tenth polygon, which has eight neighbours, are:
+:::
+
+::: {.zh}
+第十个多边形有八个邻居，它的权重是：
+:::
 
 ```{r}
 rswm_q$weights[10]
 ```
 
+::: {.en}
 Each neighbour carries 0.125 of the total weight, so when the average neighbouring value is computed each of the eight will be multiplied by 0.125 before being summed.
+:::
 
+::: {.zh}
+每个邻居占总权重的 0.125，所以计算邻居平均值时，这八个值各乘 0.125 再求和。
+:::
+
+::: {.en}
 The same function derives a weights list from the inverse distances, passed through the `glist` argument:
+:::
+
+::: {.zh}
+同一个函数也能从距离倒数导出权重列表，通过 `glist` 参数传入：
+:::
 
 ```{r}
 rswm_ids <- nb2listw(wm_q, glist = ids, style = "B", zero.policy = TRUE)
 rswm_ids
 ```
 
+::: {.en}
 The first row now holds the inverse distances themselves rather than equal fractions:
+:::
+
+::: {.zh}
+此时第一行存的是距离倒数本身，而不是均等的份额：
+:::
 
 ```{r}
 rswm_ids$weights[1]
@@ -412,11 +746,23 @@ rswm_ids$weights[1]
 summary(unlist(rswm_ids$weights))
 ```
 
+::: {.en}
 `style = "B"` here leaves the supplied values as they are rather than rescaling them, so these rows do not sum to one, and the row sums vary with both the number and the proximity of each county's neighbours.
+:::
+
+::: {.zh}
+这里的 `style = "B"` 保留传入的数值、不做重新缩放，所以这些行的和不为 1，而且行和随各县邻居的个数与远近而变化。
+:::
 
 ## Application of Spatial Weight Matrix
 
+::: {.en}
 A weights matrix earns its keep by transforming a variable into a **spatially lagged** version of itself: a summary, for each unit, of the values observed around it. Four such variables are created below, and the differences between them come down to two binary choices: whether the weights are row-standardised or binary, and whether the unit itself is included among its own neighbours.
+:::
+
+::: {.zh}
+权重矩阵的用处，体现在它能把一个变量变成自身的**空间滞后**版本：对每个单元，汇总它周围观测到的取值。下面构造四个这样的变量，它们之间的差别归结为两个二元选择：权重是行标准化还是二值，以及该单元自身是否算进它自己的邻居里。
+:::
 
 |  | Excludes self | Includes self |
 |----|----|----|
@@ -425,16 +771,34 @@ A weights matrix earns its keep by transforming a variable into a **spatially la
 
 ### Spatial lag with row-standardized weights
 
+::: {.en}
 `lag.listw()` computes the average neighbouring GDPPC for each polygon. These are the spatially lagged values:
+:::
+
+::: {.zh}
+`lag.listw()` 为每个多边形计算邻居 GDPPC 的平均值，这就是空间滞后值：
+:::
 
 ```{r}
 GDPPC.lag <- lag.listw(rswm_q, hunan$GDPPC)
 GDPPC.lag
 ```
 
+::: {.en}
 The first entry, 24847.20, is the mean of the five GDPPC values retrieved for the neighbours of Anxiang in the earlier section, namely 20981, 34592, 24473, 21311 and 22879, each multiplied by its weight of 0.2 and summed. That is what a row-standardised spatial lag is: the neighbourhood mean, with the unit's own value excluded.
+:::
 
+::: {.zh}
+第一个值 24847.20，就是前面取出的安乡五个邻居的 GDPPC（20981、34592、24473、21311、22879）各乘权重 0.2 再求和的结果。行标准化的空间滞后就是这个意思：邻域均值，不含该单元自身的取值。
+:::
+
+::: {.en}
 The lagged values are appended to the `hunan` data frame:
+:::
+
+::: {.zh}
+把滞后值追加到 `hunan` 数据框：
+:::
 
 ```{r}
 lag.list <- list(hunan$NAME_3, lag.listw(rswm_q, hunan$GDPPC))
@@ -443,13 +807,25 @@ colnames(lag.res) <- c("NAME_3", "lag GDPPC")
 hunan <- left_join(hunan, lag.res, by = "NAME_3")
 ```
 
+::: {.en}
 `head()` shows the new field alongside the original:
+:::
+
+::: {.zh}
+`head()` 把新字段和原字段并排显示：
+:::
 
 ```{r}
 head(hunan)
 ```
 
+::: {.en}
 Mapping GDPPC against its spatial lag shows what the operation does to the map:
+:::
+
+::: {.zh}
+把 GDPPC 与它的空间滞后并排画出来，就能看出这个运算对地图做了什么：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -459,11 +835,23 @@ lag_gdppc <- qtm(hunan, "lag GDPPC")
 tmap_arrange(gdppc, lag_gdppc, asp = 1, ncol = 2)
 ```
 
+::: {.en}
 The lagged map is smoother, and the isolated high-GDPPC counties of the original are pulled towards their surroundings. Spatial lagging is a spatial smoother, which is exactly why comparing a value to its lag is the basis of the autocorrelation statistics that follow in later exercises.
+:::
+
+::: {.zh}
+滞后后的地图更平滑，原图中那些孤立的高 GDPPC 县被拉向周边水平。空间滞后本质上是一个空间平滑器，这也正是「把取值与其滞后值相比」能成为后续练习中各自相关统计量基础的原因。
+:::
 
 ### Spatial lag as a sum of neighboring values
 
+::: {.en}
 Summing rather than averaging requires binary weights. The neighbours structure is returned to, a function assigning a value of 1 to each neighbour is applied across it with `lapply()`, and the result is passed to `nb2listw()` through `glist =`:
+:::
+
+::: {.zh}
+要求和而不是求平均，就需要二值权重。回到邻居结构，用 `lapply()` 在其上作用一个给每个邻居赋值 1 的函数，再把结果通过 `glist =` 传给 `nb2listw()`：
+:::
 
 ```{r}
 b_weights <- lapply(wm_q, function(x) 0 * x + 1)
@@ -473,7 +861,13 @@ b_weights2 <- nb2listw(wm_q,
 b_weights2
 ```
 
+::: {.en}
 With binary weights in place, `lag.listw()` computes the lag as before:
+:::
+
+::: {.zh}
+二值权重就位后，`lag.listw()` 照旧计算滞后值：
+:::
 
 ```{r}
 lag_sum <- list(hunan$NAME_3, lag.listw(b_weights2, hunan$GDPPC))
@@ -481,15 +875,33 @@ lag.res <- as.data.frame(lag_sum)
 colnames(lag.res) <- c("NAME_3", "lag_sum GDPPC")
 ```
 
+::: {.en}
 The result, paired with the county names:
+:::
+
+::: {.zh}
+结果与县名配在一起：
+:::
 
 ```{r}
 lag_sum
 ```
 
+::: {.en}
 Anxiang's entry is 124236, which is the sum of the same five neighbouring values that averaged to 24847.20. The consequence is that this variable confounds two things: how wealthy the neighbours are, and how many of them there are. A county with eleven modest neighbours outranks one with two prosperous neighbours.
+:::
 
+::: {.zh}
+安乡的值是 124236，即前面平均得 24847.20 的那同五个邻居值之和。后果是这个变量把两件事混在了一起：邻居有多富，以及邻居有多少个。有十一个中等邻居的县，排名会高于有两个富裕邻居的县。
+:::
+
+::: {.en}
 The field is appended to the data frame:
+:::
+
+::: {.zh}
+把该字段追加到数据框：
+:::
 
 ```{r}
 hunan <- left_join(hunan, lag.res, by = "NAME_3")
@@ -505,37 +917,79 @@ tmap_arrange(gdppc, lag_sum_gdppc, asp = 1, ncol = 2)
 
 ### Spatial window average
 
+::: {.en}
 The spatial window average uses row-standardised weights and includes the diagonal element, which is to say it treats each county as one of its own neighbours. The neighbours structure is returned to and the diagonal added before weights are assigned, using `include.self()` of **spdep**:
+:::
+
+::: {.zh}
+空间窗口平均用行标准化权重，并且包含对角元素，也就是把每个县算作自己的邻居之一。先回到邻居结构，用 **spdep** 的 `include.self()` 加上对角元素，再赋权重：
+:::
 
 ```{r}
 wm_qs <- include.self(wm_q)
 ```
 
+::: {.en}
 The number of nonzero links, percentage nonzero weights and average number of links are now 536, 6.921488 and 6.090909, against 448, 5.785124 and 5.090909 for `wm_q`. The increase is exactly 88 links, one per county.
+:::
 
+::: {.zh}
+此时非零连边数、非零权重占比、平均连边数分别是 536、6.921488、6.090909，而 `wm_q` 对应的是 448、5.785124、5.090909。增加的恰好是 88 条连边，每县一条。
+:::
+
+::: {.en}
 The neighbour list of the first area confirms it:
+:::
+
+::: {.zh}
+第一个区域的邻居列表可以印证：
+:::
 
 ```{r}
 wm_qs[[1]]
 ```
 
+::: {.en}
 Area 1 now has six neighbours instead of five, the extra one being itself. Weights follow from `nb2listw()`:
+:::
+
+::: {.zh}
+1 号区域的邻居由五个变成六个，多出来的那个是它自己。权重由 `nb2listw()` 得出：
+:::
 
 ```{r}
 wm_qs_w <- nb2listw(wm_qs)
 wm_qs_w
 ```
 
+::: {.en}
 The listw object is given its own name rather than overwriting `wm_qs`, so the neighbour list with the diagonal remains available for reuse in the next section.
+:::
 
+::: {.zh}
+listw 对象单独命名而不覆盖 `wm_qs`，这样含对角元素的邻居列表仍可在下一节复用。
+:::
+
+::: {.en}
 The lag variable is then created from the weight structure and the GDPPC variable:
+:::
+
+::: {.zh}
+接着由权重结构和 GDPPC 变量生成滞后变量：
+:::
 
 ```{r}
 lag_w_avg_gdppc <- lag.listw(wm_qs_w, hunan$GDPPC)
 lag_w_avg_gdppc
 ```
 
+::: {.en}
 The lag variable is converted into a data frame with `as.data.frame()`, and the field names set to `NAME_3` and `lag_window_avg GDPPC`:
+:::
+
+::: {.zh}
+用 `as.data.frame()` 把滞后变量转成数据框，字段名设为 `NAME_3` 与 `lag_window_avg GDPPC`：
+:::
 
 ```{r}
 lag.list.wm_qs <- list(hunan$NAME_3, lag.listw(wm_qs_w, hunan$GDPPC))
@@ -543,13 +997,25 @@ lag_wm_qs.res <- as.data.frame(lag.list.wm_qs)
 colnames(lag_wm_qs.res) <- c("NAME_3", "lag_window_avg GDPPC")
 ```
 
+::: {.en}
 `left_join()` appends the values to the `hunan` data frame:
+:::
+
+::: {.zh}
+`left_join()` 把这些值追加到 `hunan` 数据框：
+:::
 
 ```{r}
 hunan <- left_join(hunan, lag_wm_qs.res, by = "NAME_3")
 ```
 
+::: {.en}
 `kable()` of **knitr** prepares a table comparing the two row-standardised variables. The geometry column is dropped first, since a list column of polygons in a printed table is unreadable:
+:::
+
+::: {.zh}
+**knitr** 的 `kable()` 做出一张表，对比这两个行标准化变量。先去掉几何列，因为打印出来的表里放一列多边形列表根本没法读：
+:::
 
 ```{r}
 hunan %>%
@@ -560,9 +1026,21 @@ hunan %>%
   kable()
 ```
 
+::: {.en}
 The two columns differ by exactly the pull of each county's own value: where a county is richer than its surroundings the window average is higher than the plain lag, and where it is poorer the window average is lower. Changsha, at 41363.67 against 48119.71, is the clearest case in the table.
+:::
 
+::: {.zh}
+两列之差恰好是各县自身取值的拉动：县比周边富时，窗口平均高于普通滞后；县比周边穷时，窗口平均低于普通滞后。长沙的 41363.67 对 48119.71 是表中最明显的例子。
+:::
+
+::: {.en}
 Finally the two maps are placed side by side:
+:::
+
+::: {.zh}
+最后把两幅地图并排放置：
+:::
 
 ```{r}
 #| fig-width: 12
@@ -571,25 +1049,49 @@ w_avg_gdppc <- qtm(hunan, "lag_window_avg GDPPC")
 tmap_arrange(lag_gdppc, w_avg_gdppc, asp = 1, ncol = 2)
 ```
 
+::: {.en}
 `qtm()` is used here for speed of comparison. Because each call chooses its own class breaks, the two maps are not strictly comparable at the level of individual colours; the core **tmap** functions with a shared `fill.scale` would be the more effective choice for a published figure.
+:::
+
+::: {.zh}
+这里用 `qtm()` 是为了快速比较。由于每次调用各自选定分级断点，两幅地图在单个颜色的层面上并不严格可比；若要出版用图，更有效的选择是用 **tmap** 的核心函数并共用一个 `fill.scale`。
+:::
 
 ### Spatial window sum
 
+::: {.en}
 The spatial window sum is the counterpart of the window average, without row standardisation. The diagonal element is again added with `include.self()`:
+:::
+
+::: {.zh}
+空间窗口求和是窗口平均的对应物，只是不做行标准化。同样先用 `include.self()` 加上对角元素：
+:::
 
 ```{r}
 wm_qs <- include.self(wm_q)
 wm_qs
 ```
 
+::: {.en}
 Binary weights are assigned to the neighbour structure that includes the diagonal:
+:::
+
+::: {.zh}
+给含对角元素的邻居结构赋二值权重：
+:::
 
 ```{r}
 b_weights <- lapply(wm_qs, function(x) 0 * x + 1)
 b_weights[1]
 ```
 
+::: {.en}
 Area 1 again has six neighbours instead of five, so six weights of 1. The values are assigned explicitly through `glist`:
+:::
+
+::: {.zh}
+1 号区域的邻居同样是六个而非五个，于是有六个为 1 的权重。取值通过 `glist` 显式指定：
+:::
 
 ```{r}
 b_weights2 <- nb2listw(wm_qs,
@@ -598,14 +1100,26 @@ b_weights2 <- nb2listw(wm_qs,
 b_weights2
 ```
 
+::: {.en}
 `lag.listw()` computes the lag variable with the new weight structure:
+:::
+
+::: {.zh}
+`lag.listw()` 用新的权重结构计算滞后变量：
+:::
 
 ```{r}
 w_sum_gdppc <- list(hunan$NAME_3, lag.listw(b_weights2, hunan$GDPPC))
 w_sum_gdppc
 ```
 
+::: {.en}
 The lag variable is converted into a data frame and the fields renamed:
+:::
+
+::: {.zh}
+把滞后变量转成数据框并重命名字段：
+:::
 
 ```{r}
 w_sum_gdppc.res <- as.data.frame(w_sum_gdppc)
@@ -618,7 +1132,13 @@ colnames(w_sum_gdppc.res) <- c("NAME_3", "w_sum GDPPC")
 hunan <- left_join(hunan, w_sum_gdppc.res, by = "NAME_3")
 ```
 
+::: {.en}
 `kable()` prepares the comparison between the two binary variables:
+:::
+
+::: {.zh}
+`kable()` 做出两个二值变量的对比表：
+:::
 
 ```{r}
 hunan %>%
@@ -627,7 +1147,13 @@ hunan %>%
   kable()
 ```
 
+::: {.en}
 Here the difference between the two columns is not a pull but an addition: the window sum exceeds the plain sum by precisely the county's own GDPPC, for every row in the table.
+:::
+
+::: {.zh}
+这里两列之差不是拉动而是相加：表中每一行，窗口求和都恰好比普通求和多出该县自身的 GDPPC。
+:::
 
 ```{r}
 #| fig-width: 12
