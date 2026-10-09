@@ -33,3 +33,6 @@ take-home-ex/take-home-ex1/data/raw/geoBoundaries-*.geojson
 # `render: ["**/*.qmd"]` in _quarto.yml now guards against; ignoring them keeps
 # them out of the repo as well. Nothing here is a source file.
 **/*.rmarkdown
+
+# Claude Code local settings (machine-specific, not part of the site)
+.claude/
