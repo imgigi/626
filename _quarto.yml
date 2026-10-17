@@ -11,6 +11,12 @@ project:
   # whose name begins with an underscore.
   render:
     - "**/*.qmd"
+    # QGIS writes its layer metadata as a sidecar with the extension .qmd --
+    # the same extension Quarto uses for a document. Two of them ship with the
+    # Exercise 7 data, and the glob above would otherwise pick them up and try
+    # to render an XML file as a page. No document lives under a data/ folder,
+    # so excluding the whole tree is safe.
+    - "!**/data/**"
     # Take-home Exercise 1 is written but not published yet, so it stays out of
     # the build: leaving it in put its text into `_site/search.json`, which is
     # the whole site's search index, and a partial render of it had already
@@ -51,8 +57,11 @@ website:
           - text: "Exercise 6 · Geographical Segmentation with Spatially Constrained Clustering"
             href: hand-on-ex/hand-on-ex6/hand-on-ex6.qmd
           - text: "---"
-          - text: "Exercise 7 · Hedonic Pricing Model with GWR"
+          - text: "Exercise 7 · Modelling Geographical Accessibility"
             href: hand-on-ex/hand-on-ex7/hand-on-ex7.qmd
+          - text: "---"
+          - text: "Supplementary · Hedonic Pricing Model with GWR"
+            href: hand-on-ex/hand-on-ex-gwr/hand-on-ex-gwr.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"
@@ -63,6 +72,9 @@ website:
           - text: "---"
           - text: "Exercise 6 · Emerging Hot Spot Analysis"
             href: in-class-ex/in-class-ex6/in-class-ex6.qmd
+          - text: "---"
+          - text: "Exercise 7 · Floating Catchment Methods for Accessibility"
+            href: in-class-ex/in-class-ex7/in-class-ex7.qmd
       - text: "Take-home Exercise"
         menu:
           # These point at the built .html, not at the .qmd. Quarto rewrites a

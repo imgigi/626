@@ -16,29 +16,29 @@ toc: false
     </span><span class="zh">欢迎来到我的课程作品集。本站记录了我在本课程中完成的 hands-on 练习、课堂练习与带回家作业。</span></p>
 
     <p class="dash-eyebrow"><span class="en">Code chunks written</span><span class="zh">已写代码块</span></p>
-    <p class="dash-figure">491</p>
-    <p class="dash-figure-note"><span class="en">across thirteen published exercises</span><span class="zh">分布在十三份已发布的练习中</span></p>
+    <p class="dash-figure">556</p>
+    <p class="dash-figure-note"><span class="en">across fifteen published exercises</span><span class="zh">分布在十五份已发布的练习中</span></p>
 
     <div class="dash-rows">
       <div class="dash-row">
         <div class="dash-tile tile-purple">◧</div>
         <div>
           <div class="dash-row-label"><span class="en">Hands-on exercises</span><span class="zh">Hands-on 练习</span></div>
-          <div class="dash-row-value">10</div>
+          <div class="dash-row-value">11</div>
         </div>
       </div>
       <div class="dash-row">
         <div class="dash-tile tile-blue">◈</div>
         <div>
           <div class="dash-row-label"><span class="en">In-class exercises</span><span class="zh">课堂练习</span></div>
-          <div class="dash-row-value">3</div>
+          <div class="dash-row-value">4</div>
         </div>
       </div>
       <div class="dash-row">
         <div class="dash-tile tile-green">◉</div>
         <div>
           <div class="dash-row-label"><span class="en">R packages applied</span><span class="zh">已用 R 包</span></div>
-          <div class="dash-row-value">28</div>
+          <div class="dash-row-value">31</div>
         </div>
       </div>
     </div>
@@ -46,16 +46,16 @@ toc: false
 
       <div class="dash-card">
         <h3><span class="en">Maps and plots produced</span><span class="zh">已产出地图与图表</span></h3>
-        <p class="dash-card-figure">151</p>
+        <p class="dash-card-figure">164</p>
         <p class="dash-card-note"><span class="en">
-          Figures rendered across the thirteen exercises: choropleths, kernel density
+          Figures rendered across the fifteen exercises: choropleths, kernel density
           surfaces, envelope plots and diagnostic charts
-        </span><span class="zh">十三份练习中渲染出的图：分级统计图、核密度面、包络图与诊断图</span></p>
+        </span><span class="zh">十五份练习中渲染出的图：分级统计图、核密度面、包络图与诊断图</span></p>
       </div>
 
       <div class="dash-card">
         <h3><span class="en">Words written</span><span class="zh">已写字数</span></h3>
-        <p class="dash-card-figure">35,028</p>
+        <p class="dash-card-figure">41,648</p>
         <p class="dash-card-note"><span class="en">
           Method notes and interpretation accompanying the code, not counting the
           code itself
@@ -102,8 +102,8 @@ toc: false
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 5b</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:44.6%"></span></span>
-            <span class="dash-chart-value">37</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-teal" style="width:43.4%"></span></span>
+            <span class="dash-chart-value">36</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 6</span>
@@ -112,8 +112,13 @@ toc: false
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">Ex 7</span>
-            <span class="dash-chart-track"><span class="dash-chart-bar fill-indigo" style="width:62.7%"></span></span>
-            <span class="dash-chart-value">52</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-indigo" style="width:47.0%"></span></span>
+            <span class="dash-chart-value">39</span>
+          </div>
+          <div class="dash-chart-row">
+            <span class="dash-chart-label">Suppl</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-grey" style="width:61.4%"></span></span>
+            <span class="dash-chart-value">51</span>
           </div>
           <div class="dash-chart-row">
             <span class="dash-chart-label">In-cl 1</span>
@@ -129,6 +134,11 @@ toc: false
             <span class="dash-chart-label">In-cl 6</span>
             <span class="dash-chart-track"><span class="dash-chart-bar fill-grey" style="width:30.1%"></span></span>
             <span class="dash-chart-value">25</span>
+          </div>
+          <div class="dash-chart-row">
+            <span class="dash-chart-label">In-cl 7</span>
+            <span class="dash-chart-track"><span class="dash-chart-bar fill-indigo" style="width:33.7%"></span></span>
+            <span class="dash-chart-value">28</span>
           </div>
         </div>
       </div>
@@ -253,11 +263,23 @@ toc: false
         <span class="dash-xnum tile-indigo">7</span>
         <span class="dash-xchip chip-indigo">Lesson 7</span>
       </div>
+      <h3><span class="en">Modelling Geographical Accessibility</span><span class="zh">地理可达性建模</span></h3>
+      <p><span class="en">Hansen, KD2SFCA and SAM run on one 3,125 &times; 120 road-network distance
+      matrix with <b>SpatialAcc</b>: the three families rank places almost alike,
+      while the decay exponent reshuffles half the top 100</span><span class="zh">在同一个 3,125 &times; 120 的路网距离矩阵上，用 <b>SpatialAcc</b> 跑 Hansen、KD2SFCA 与 SAM：三族对地方的排序几乎一致，而衰减指数却换掉了前 100 名中的一半</span></p>
+      <div class="dash-xmeta"><span><b>39</b> chunks</span><span><b>6</b> figures</span></div>
+    </a>
+
+    <a class="dash-xcard" href="hand-on-ex/hand-on-ex-gwr/hand-on-ex-gwr.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-grey">+</span>
+        <span class="dash-xchip chip-grey">Supplementary</span>
+      </div>
       <h3><span class="en">Hedonic Pricing Model with GWR</span><span class="zh">用 GWR 标定特征价格模型</span></h3>
       <p><span class="en">1,436 condominium resales explained first by OLS, whose residuals turn out
       spatially autocorrelated, then by <b>GWmodel</b> geographically weighted
       regression: adjusted R&sup2; from 0.647 to 0.856</span><span class="zh">1,436 笔公寓转售先用 OLS 解释，其残差被证明存在空间自相关，再用 <b>GWmodel</b> 做地理加权回归：调整后 R&sup2; 从 0.647 升到 0.856</span></p>
-      <div class="dash-xmeta"><span><b>52</b> chunks</span><span><b>12</b> figures</span></div>
+      <div class="dash-xmeta"><span><b>51</b> chunks</span><span><b>12</b> figures</span></div>
     </a>
 
   </div>
@@ -299,6 +321,18 @@ toc: false
       trend tested by Mann-Kendall, and a check showing the hand-built trend and the
       one <b>emerging_hotspot_analysis()</b> reports are different statistics</span><span class="zh">用 <b>sfdep</b> 在十七年的时空立方体上计算 Gi*，各县趋势用 Mann-Kendall 检验，并通过核对表明：手工构建的趋势与 <b>emerging_hotspot_analysis()</b> 报出的那个是两个不同的统计量</span></p>
       <div class="dash-xmeta"><span><b>25</b> chunks</span><span><b>3</b> figures</span></div>
+    </a>
+
+    <a class="dash-xcard" href="in-class-ex/in-class-ex7/in-class-ex7.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-indigo">7</span>
+        <span class="dash-xchip chip-indigo">Lesson 7</span>
+      </div>
+      <h3><span class="en">Floating Catchment Methods for Accessibility</span><span class="zh">可达性的移动搜寻域方法</span></h3>
+      <p><span class="en">Nearest-facility distance with <b>accessibility</b>, then 2SFCA, E2SFCA, KD2SFCA, 3SFCA
+      and M2SFCA with <b>catchment</b>, and a check that finds 159 hexagons whose distance to every
+      centre is a single copied value</span><span class="zh">先用 <b>accessibility</b> 求最近设施距离，再用 <b>catchment</b> 计算 2SFCA、E2SFCA、KD2SFCA、3SFCA 与 M2SFCA，并通过核对发现有 159 个六边形到每个中心的距离都是同一个被复制的值</span></p>
+      <div class="dash-xmeta"><span><b>28</b> chunks</span><span><b>7</b> figures</span></div>
     </a>
 
   </div>

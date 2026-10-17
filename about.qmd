@@ -34,7 +34,7 @@ toc: false
     <div class="about-figure">
       <div class="about-ring">
         <div class="about-ring-inner">
-          <span class="about-ring-num">491</span>
+          <span class="about-ring-num">556</span>
           <span class="about-ring-lbl"><span class="en">code chunks</span><span class="zh">个代码块</span></span>
         </div>
       </div>
@@ -57,7 +57,7 @@ toc: false
       <h3>sf</h3>
       <p><span class="en">Reading GeoJSON and shapefiles, assigning and transforming coordinate
       systems, buffering, spatial joins and point-in-polygon counting.</span><span class="zh">读取 GeoJSON 与 shapefile，指定并转换坐标系统，缓冲区、空间连接，以及点在多边形内的计数。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all thirteen</b> exercises</span><span class="zh"><b>十三份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -68,7 +68,7 @@ toc: false
       <h3>tmap 4.x</h3>
       <p><span class="en">Choropleths, classification methods, colour schemes, small multiples,
       raster layers and interactive maps, written against the v4 API.</span><span class="zh">分级统计图、分级方法、配色方案、小多图、栅格图层与交互地图，全部按 v4 的 API 编写。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>twelve</b> exercises</span><span class="zh">用于 <b>十二</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>fourteen</b> exercises</span><span class="zh">用于 <b>十四</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -136,13 +136,33 @@ toc: false
 
     <div class="dash-xcard dash-xcard-empty">
       <div class="dash-xcard-top">
+        <span class="dash-xnum tile-indigo">◎</span>
+        <span class="dash-xchip">Accessibility</span>
+      </div>
+      <h3>SpatialAcc</h3>
+      <p><span class="en">Potential and floating catchment accessibility measures from a demand vector, a capacity vector and a distance matrix: Hansen, KD2SFCA and SAM.</span><span class="zh">由需求向量、容量向量与距离矩阵计算潜能模型与移动搜寻域类可达性测度：Hansen、KD2SFCA 与 SAM。</span></p>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>two</b> exercises</span><span class="zh">用于 <b>两</b> 份练习</span></span></div>
+    </div>
+
+    <div class="dash-xcard dash-xcard-empty">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-indigo">⊚</span>
+        <span class="dash-xchip">Accessibility</span>
+      </div>
+      <h3>catchment</h3>
+      <p><span class="en">The whole floating catchment family through one function: 2SFCA, E2SFCA, a Gaussian KD2SFCA, 3SFCA and M2SFCA, plus the weight functions behind them.</span><span class="zh">用一个函数覆盖整个移动搜寻域家族：2SFCA、E2SFCA、高斯核 KD2SFCA、3SFCA 与 M2SFCA，以及它们背后的权重函数。</span></p>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>one</b> exercise</span><span class="zh">用于 <b>一</b> 份练习</span></span></div>
+    </div>
+
+    <div class="dash-xcard dash-xcard-empty">
+      <div class="dash-xcard-top">
         <span class="dash-xnum tile-purple">tv</span>
         <span class="dash-xchip">Wrangling</span>
       </div>
       <h3>tidyverse</h3>
       <p><span class="en">Import, reshape and join with <b>readr</b>, <b>dplyr</b>, <b>tidyr</b>,
       <b>ggplot2</b> and <b>purrr</b> throughout.</span><span class="zh">全程用 <b>readr</b>、<b>dplyr</b>、<b>tidyr</b>、<b>ggplot2</b>、<b>purrr</b> 做导入、整形与连接。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all thirteen</b> exercises</span><span class="zh"><b>十三份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
     </div>
 
   </div>
@@ -226,13 +246,14 @@ toc: false
       <div class="about-tl-dot tile-indigo"></div>
       <div class="about-tl-body">
         <div class="about-tl-head">
-          <h3><span class="en">Lesson 7 · Geographically weighted models</span><span class="zh">第 7 讲 · 地理加权模型</span></h3>
+          <h3><span class="en">Lesson 7 · Modelling geographical accessibility</span><span class="zh">第 7 讲 · 地理可达性建模</span></h3>
           <span class="dash-xchip chip-indigo">2 exercises</span>
         </div>
-        <p><span class="en">Letting a coefficient vary over space. Geographically weighted summary
-        statistics first, then a hedonic pricing model for 1,436 condominium resales
-        whose OLS residuals are spatially autocorrelated and whose adjusted R&sup2;
-        rises from 0.647 to 0.856 under GWR.</span><span class="zh">让系数随空间变化。先是地理加权汇总统计，再是 1,436 笔公寓转售的特征价格模型——其 OLS 残差存在空间自相关，改用 GWR 后调整后 R&sup2; 从 0.647 升到 0.856。</span></p>
+        <p><span class="en">Hansen, KD2SFCA and SAM applied to the same 3,125 &times; 120 road-network
+        distance matrix. The three rank the island almost identically, at a rank
+        correlation between 0.905 and 0.986; what moves the answer is the decay
+        exponent and the 5 km catchment, which leaves 41 per cent of the grid at
+        exactly zero. The in-class follow-up runs five floating catchment variants on the same matrix and finds 159 hexagons whose distance to all 120 centres is one copied value, among them the cell that tops the 2SFCA map.</span><span class="zh">把 Hansen、KD2SFCA 与 SAM 用在同一个 3,125 &times; 120 的路网距离矩阵上。三者对全岛的排序几乎一致，秩相关在 0.905 到 0.986 之间；真正改变答案的是衰减指数，以及 5 km 的搜寻域——它让 41% 的网格取值恰为零。课堂练习在同一矩阵上跑了五种移动搜寻域变体，并发现有 159 个六边形到全部 120 个中心的距离是同一个被复制的值，2SFCA 地图上的最高点就是其中之一。</span></p>
       </div>
     </div>
 
