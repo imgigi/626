@@ -88,6 +88,11 @@ website:
             href: take-home-ex/take-home-ex1/take-home-ex1.html
           - text: "Exercise 1 · Executive Summary"
             href: take-home-ex/take-home-ex1/take-home-ex1-slides.html
+          - text: "---"
+          - text: "Exercise 2 · Technical Report"
+            href: take-home-ex/take-home-ex2/take-home-ex2.html
+          - text: "Exercise 2 · Executive Summary"
+            href: take-home-ex/take-home-ex2/take-home-ex2-slides.html
       - href: about.qmd
         text: About
 

@@ -1,0 +1,144 @@
+# <span class="en">Implications for peace-building</span><span class="zh">对和平建设的启示</span> {#sec-implications}
+
+::: {.en}
+The brief hopes, modestly, that the results can assist peace-building and the
+prevention of further armed conflict. An event dataset analysed from outside
+the country cannot tell anyone how to make peace, and the points below are
+framed accordingly: as what the spatial evidence suggests about *where*
+attention and resources might go, for humanitarian, protection and
+monitoring work.
+:::
+
+::: {.zh}
+作业以一种谦逊的方式,希望这些结果能有助于和平建设、预防进一步的武装冲突。一份在
+国外分析的事件数据集无法告诉任何人如何实现和平,以下几点也据此措辞:它们是空间证据
+对人道、保护与监测工作**应把注意力和资源投向哪里**的提示。
+:::
+
+## <span class="en">Anticipate the edges</span><span class="zh">预判边缘</span> {#sec-implications-edges}
+
+::: {.en}
+The most actionable result is the contagion of escalation (@sec-va). If a
+township's next quarter depends on its neighbours, the townships most likely
+to see conflict next are the ones that are still quiet but border intense
+fighting. This is testable. Transition matrices estimated only on data to
+the end of 2024 were used to predict which quiet or sporadic townships would
+reach sustained conflict in the next quarter, through 2025.
+:::
+
+::: {.zh}
+最具可操作性的结果是升级的传染性(@sec-va)。如果一个镇区下一季度的状况取决于其
+邻居,那么接下来最可能出现冲突的,就是那些仍然平静、却与激烈战斗相邻的镇区。这一点
+可以检验:本研究只用截至 2024 年底的数据估计转移矩阵,然后预测在 2025 年各季度中,
+哪些平静或零星镇区会在下一季度进入持续冲突。
+:::
+
+```{r}
+#| label: tbl-backtest
+#| tbl-cap: "<span class='en'>Back-test of the spatial Markov chain as an early-warning rule: transitions estimated to the end of 2024, predictions for the three quarter-to-quarter transitions that begin in 2024 Q4, 2025 Q1 and 2025 Q2, for townships not yet in sustained conflict. AUC: probability that a township that escalated was ranked above one that did not (0.5 = no skill). Brier: mean squared error of the predicted probability (lower is better).</span><span class='zh'>空间马尔可夫链作为预警规则的回测:转移矩阵用截至 2024 年底的数据估计,预测对象是起点为 2024 年第四季度、2025 年第一与第二季度的三次季度间转移,只包括尚未处于持续冲突的镇区。AUC:升级镇区排在未升级镇区之前的概率(0.5 = 无预测力)。Brier:预测概率的均方误差(越低越好)。</span>"
+
+MK$backtest |>
+  transmute(Predictor = predictor, AUC = auc, Brier = brier,
+            `Township-quarters` = n, `Escalations` = events) |>
+  gt() |>
+  fmt_number(c(AUC, Brier), decimals = 3) |>
+  tab_options(table.font.size = px(13))
+```
+
+```{r}
+#| label: fig-outlook
+#| fig-cap: "<span class='en'>Outlook for 2025 Q4: the probability that each township is in sustained or intense conflict (four or more events) next quarter, from its own state and its neighbourhood's state in 2025 Q3 and the transition matrices of @fig-markov. Outlined: townships that were only quiet or sporadic in 2025 Q3 but whose neighbourhood was intense, the edge where escalation is most likely.</span><span class='zh'>2025 年第四季度展望:依据 2025 年第三季度镇区自身与其邻域的状态,以及 @fig-markov 的转移矩阵,估计各镇区下一季度处于持续或激烈冲突(四起及以上事件)的概率。描边:2025 年第三季度自身仅为平静或零星、但邻域处于激烈冲突的镇区,即最可能升级的边缘。</span>"
+#| fig-alt: "Map of predicted probabilities of sustained conflict next quarter, highest across the Dry Zone and south-east, with a set of outlined edge townships next to intense areas."
+#| fig-width: 7.4
+#| fig-height: 9
+
+ol <- ts_an |> select(TS_PCODE, TS, ST) |> left_join(MK$outlook, by = "TS_PCODE")
+edge <- ol |> filter(own <= 2, lag == 4)
+map_base(
+  list(geom_sf(data = ol, aes(fill = p_next), colour = "white", linewidth = 0.05),
+       geom_sf(data = edge, fill = NA, colour = "#1c1917", linewidth = 0.6)),
+  title = "Where sustained conflict is likely next quarter",
+  subtitle = "Probability of 4+ events in 2025 Q4; outlined: quiet or sporadic townships beside intense ones") +
+  scale_fill_gradientn("P(4+ events)", colours = c("#fafaf9", "#fde0dd", "#f768a1", "#ae017e", "#49006a"),
+                       limits = c(0, 1), labels = label_percent())
+```
+
+::: {.interp .en}
+**The edge.** Adding the neighbourhood raises the AUC of the forecast from
+`r sprintf("%.2f", MK$backtest$auc[1])` to `r sprintf("%.2f", MK$backtest$auc[2])`
+on quarters the model had not seen, which is a substantial gain from a rule
+that needs nothing but last quarter's counts. Applied to the latest quarter,
+`r nrow(edge)` townships were quiet or sporadic in 2025 Q3 but bordered by
+intense conflict. The `r sum(edge$own == 2)` sporadic ones have a
+probability of about `r pct(100 * max(edge$p_next), 0)` of sustained
+conflict the next quarter (`r paste(sort(edge$TS[edge$own == 2]), collapse = ", ")`),
+and the `r sum(edge$own == 1)` quiet ones about
+`r pct(100 * min(edge$p_next), 0)` (`r paste(sort(edge$TS[edge$own == 1]), collapse = ", ")`).
+They are the places where
+protection of civilians, pre-positioned humanitarian supplies and monitoring
+would act *before* the violence arrives rather than after. Because the rule
+uses only counts that ACLED publishes weekly, it can be refreshed every
+quarter at almost no cost.
+:::
+
+::: {.interp .zh}
+**边缘。** 在模型未见过的季度上,加入邻域信息使预测的 AUC 从
+`r sprintf("%.2f", MK$backtest$auc[1])` 提高到 `r sprintf("%.2f", MK$backtest$auc[2])`;
+一条只需要上一季度计数的规则能带来这样的提升,相当可观。把它用于最近一个季度:有
+`r nrow(edge)` 个镇区在 2025 年第三季度自身平静或零星,却与激烈冲突相邻。其中
+`r sum(edge$own == 2)` 个零星镇区下一季度进入持续冲突的概率约为
+`r pct(100 * max(edge$p_next), 0)`(`r paste(sort(edge$TS[edge$own == 2]), collapse = "、")`),
+`r sum(edge$own == 1)` 个平静镇区约为 `r pct(100 * min(edge$p_next), 0)`
+(`r paste(sort(edge$TS[edge$own == 1]), collapse = "、")`)。在这些地方,平民保护、人道物资预置与监测
+可以在暴力**到来之前**而不是之后发挥作用。由于这条规则只用到 ACLED 每周发布的计数,
+它可以每个季度以几乎为零的成本更新。
+:::
+
+## <span class="en">Other implications</span><span class="zh">其他启示</span>
+
+::: {.en}
+**Protect civilians where violence against them is moving.** Violence against
+civilians is the most concentrated variable, almost entirely inside the Dry
+Zone, and it is initiated mainly by state forces. Its newest consecutive hot
+spots (@tbl-emerging) are in the south of the Dry Zone and in western Bago,
+where the conflict has been spreading. Documentation, protection and
+humanitarian access efforts that are organised around the Sagaing core may
+need to extend south.
+
+**Plan for remote violence.** Explosions and remote violence have become the
+largest category and, by 2025, overwhelmingly the military's. Their hot spots
+extend into the south-east, beyond the battle front. For civilians, the
+relevant risk map is therefore wider than the map of fighting, and early
+warning, shelter and medical capacity need to be planned against it.
+
+**Read the cold spots carefully.** The eastern Shan hills and the Wa area are
+persistent cold spots, and the delta and Yangon are increasingly cold. The
+first may be the most promising ground for local ceasefires and the return of
+displaced people. Yangon's cold status, on the other hand, follows the
+suppression of resistance, not a settlement, and a cold spot of *recorded*
+events is not proof of safety where reporting is thin.
+
+**Monitor rather than map once.** The geography has changed every year.
+Because the whole pipeline is reproducible (@sec-repro), the cube, the EHSA
+and the outlook can be refreshed as each quarter of ACLED data arrives,
+turning a one-off analysis into routine monitoring.
+:::
+
+::: {.zh}
+**在针对平民的暴力移动之处保护平民。** 针对平民的暴力是最集中的变量,几乎完全位于
+干燥带之内,且主要由国家武装力量发起。它最新的连续热点(@tbl-emerging)位于干燥带
+南部与勃固西部,也就是冲突正在扩散的方向。围绕实皆核心组织的记录、保护与人道准入
+工作,可能需要向南延伸。
+
+**为远程暴力做准备。** 爆炸与远程暴力已成为最大的类别,到 2025 年绝大多数来自军方。
+其热点延伸到东南,超出了战斗前线。因此对平民而言,相关的风险地图比战斗地图更宽,
+预警、避难与医疗能力需要据此规划。
+
+**谨慎解读冷点。** 掸邦东部山地与佤地区是持续冷点,三角洲与仰光则越来越冷。前者或许
+是地方停火与流离失所者返乡最有希望的地方。而仰光的「冷」源于抵抗力量**被镇压**,而非
+达成和解;在报道稀少的地方,「记录在案的事件」很少,并不能证明安全。
+
+**持续监测,而不是一次性制图。** 冲突的地理格局每年都在变化。由于整个流程是可复现的
+(@sec-repro),时空立方体、EHSA 与展望都可以随着每个季度 ACLED 数据的到来而更新,
+把一次性的分析变成常规监测。
+:::

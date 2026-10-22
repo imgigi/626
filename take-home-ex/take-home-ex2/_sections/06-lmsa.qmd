@@ -1,0 +1,501 @@
+# <span class="en">Local measures of spatial association</span><span class="zh">局部空间关联分析</span> {#sec-lmsa}
+
+::: {.en}
+*Addresses RQ1.* The local statistics are computed by
+`scripts/03_lmsa.R` on the whole-period totals of the five variables. The
+section first confirms that there is global spatial structure to localise,
+then maps local Moran's I and Gi\*, follows local Moran's I year by year, and
+ends with the sensitivity of the cluster map to the analytical choices.
+:::
+
+::: {.zh}
+*对应 RQ1。* 局部统计量由 `scripts/03_lmsa.R` 基于五个变量的整期总量计算。本节先
+确认存在可供局部化的全局空间结构,再绘制局部 Moran's I 与 Gi\* 地图,然后逐年追踪
+局部 Moran's I,最后检验聚集地图对分析选择的敏感性。
+:::
+
+```{r}
+#| label: lmsa-prep
+#| include: false
+lisa <- LM$lisa |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "TS", "ST")], by = "TS_PCODE")
+lisa_sf <- ts_an |> select(TS_PCODE) |> right_join(lisa, by = "TS_PCODE")
+
+cnt <- function(d, col, cls) sum(d[[col]] == cls)
+by_state <- function(v, col, cls, n = 3) {
+  lisa |> filter(var == v, .data[[col]] == cls) |> count(ST, sort = TRUE) |>
+    head(n) |> mutate(s = paste0(ST, " (", n, ")")) |> pull(s) |>
+    paste(collapse = ", ")
+}
+lc <- lisa |> filter(var == "conflict")
+```
+
+## <span class="en">Is there structure to localise?</span><span class="zh">是否存在可供局部化的结构?</span> {#sec-lmsa-global}
+
+::: {.en}
+A local statistic decomposes a global one [@anselin1995], so the first check
+is whether global Moran's I indicates spatial autocorrelation at all. It is
+computed with the same row-standardised queen weights and 999 permutations,
+against a one-sided alternative of positive association.
+:::
+
+::: {.zh}
+局部统计量是对全局统计量的分解 [@anselin1995],所以第一步是检验全局 Moran's I
+是否表明存在空间自相关。计算使用同样的行标准化 queen 权重与 999 次置换,备择假设
+为单侧正相关。
+:::
+
+```{r}
+#| label: lmsa-global-code
+#| eval: false
+lw_q <- nb2listw(nb_an, style = "W")
+glob <- lapply(names(VARS), function(v) {
+  set.seed(1234)
+  m <- moran.mc(ts[[v]], lw_q, nsim = 999, alternative = "greater")
+  data.frame(var = v, I = unname(m$statistic), p = m$p.value)
+}) |> bind_rows()
+```
+
+```{r}
+#| label: fig-global
+#| fig-cap: "<span class='en'>Global Moran's I. Left: whole-period totals of each variable. Right: all conflict events, by calendar year. Every value has a permutation p-value of 0.001, the smallest 999 permutations can give.</span><span class='zh'>全局 Moran's I。左:各变量的整期总量。右:全部冲突事件的逐年值。每个值的置换 p 值都是 0.001,即 999 次置换所能给出的最小值。</span>"
+#| fig-alt: "Bar chart of global Moran's I for five variables between 0.45 and 0.56, and a line chart of yearly Moran's I peaking in 2022 and 2023."
+#| fig-width: 9.6
+#| fig-height: 3.8
+
+g1 <- LM$glob |>
+  mutate(lab = VAR_SHORT[var], lab = fct_reorder(lab, I)) |>
+  ggplot(aes(I, lab)) +
+  geom_col(fill = PAL$conflict, width = 0.6) +
+  geom_text(aes(label = sprintf("%.3f", I)), hjust = -0.15, size = 3.2) +
+  scale_x_continuous(limits = c(0, 0.65), expand = c(0, 0)) +
+  labs(title = "Whole period, by variable", x = "Moran's I", y = NULL) +
+  theme_th(10.5)
+
+g2 <- LM$glob_year |>
+  ggplot(aes(year, I)) +
+  geom_line(colour = PAL$conflict, linewidth = 0.8) +
+  geom_point(colour = PAL$conflict, size = 2.4) +
+  geom_text(aes(label = sprintf("%.2f", I)), vjust = -1, size = 3.1) +
+  scale_y_continuous(limits = c(0, 0.65)) +
+  labs(title = "All conflict, by year", x = NULL, y = "Moran's I") +
+  theme_th(10.5)
+
+g1 | g2
+```
+
+::: {.interp .en}
+**Global association.** All five variables are strongly and positively
+autocorrelated, with Moran's I between `r sprintf("%.2f", min(LM$glob$I))`
+and `r sprintf("%.2f", max(LM$glob$I))`: townships with much conflict tend to
+border townships with much conflict. Fatalities are the most clustered, which
+is consistent with the deadliest fighting concentrating on a few fronts. The
+yearly series adds a time dimension the totals hide. Association rose from
+`r sprintf("%.2f", LM$glob_year$I[1])` in 2021 to
+`r sprintf("%.2f", max(LM$glob_year$I))` in 2022–2023 and fell to
+`r sprintf("%.2f", tail(LM$glob_year$I, 1))` in 2025. Conflict became more
+clustered as the Dry Zone front consolidated, and less clustered as new
+fronts opened in Rakhine, northern Shan and the south-east, which are far
+from each other. Local analysis is warranted for every variable and every
+year.
+:::
+
+::: {.interp .zh}
+**全局关联。** 五个变量都呈现强烈的正自相关,Moran's I 介于
+`r sprintf("%.2f", min(LM$glob$I))` 与 `r sprintf("%.2f", max(LM$glob$I))` 之间:冲突
+多的镇区往往与冲突多的镇区相邻。死亡人数的聚集程度最高,这与最致命的战斗集中在
+少数几条前线相符。逐年序列补充了总量所掩盖的时间维度:关联度从 2021 年的
+`r sprintf("%.2f", LM$glob_year$I[1])` 升至 2022–2023 年的 `r sprintf("%.2f", max(LM$glob_year$I))`,
+再降至 2025 年的 `r sprintf("%.2f", tail(LM$glob_year$I, 1))`。随着干燥带前线的巩固,
+冲突变得更聚集;随着若开、掸邦北部与东南方向这些彼此相距甚远的新前线打开,聚集度
+又随之下降。对每个变量和每一年做局部分析都是有依据的。
+:::
+
+## <span class="en">Local Moran's I: clusters and outliers</span><span class="zh">局部 Moran's I:聚集与异常值</span> {#sec-lmsa-lisa}
+
+```{r}
+#| label: lmsa-local-code
+#| eval: false
+local_moran_tbl <- function(x, lw, nsim = 999, seed = 1234) {
+  set.seed(seed)
+  lm <- localmoran_perm(x, lw, nsim = nsim, alternative = "two.sided")
+  lag_x <- lag.listw(lw, x)
+  tibble(ii = lm[, "Ii"], p_ii_sim = lm[, "Pr(z != E(Ii)) Sim"], lag = lag_x,
+         quad     = lisa_quadrant(x, lag_x, lm[, "Pr(z != E(Ii)) Sim"]),
+         quad_fdr = lisa_quadrant(x, lag_x, lm[, "Pr(z != E(Ii)) Sim"],
+                                  method = "fdr"))
+}
+```
+
+::: {.en}
+`localmoran_perm()` holds each township's value fixed and redraws its
+neighbours 999 times from the other 328 townships. Two details matter. The
+p-value carried forward is the two-sided simulated one,
+`Pr(z != E(Ii)) Sim`; the folded p-value spdep also reports is one-sided
+and would halve every p-value. And the quadrant label is built by
+`lisa_quadrant()` (in `R/utils.R`) from the signs of the centred value and
+its centred spatial lag, so that "High-High" means above the mean in a
+neighbourhood above the mean, whatever implementation produced the
+statistic.
+:::
+
+::: {.zh}
+`localmoran_perm()` 固定每个镇区自身的值,从其余 328 个镇区中重抽其邻居 999 次。
+有两个细节很重要。沿用的 p 值是双侧模拟 p 值 `Pr(z != E(Ii)) Sim`;spdep 同时报告的
+折叠 p 值是单侧的,会使每个 p 值减半。象限标签由 `lisa_quadrant()`(见
+`R/utils.R`)依据中心化取值与其中心化空间滞后的符号构造,因此不论统计量由哪种实现
+计算,「高-高」都意味着「自身高于均值,且邻域也高于均值」。
+:::
+
+```{r}
+#| label: fig-moran-scatter
+#| fig-cap: "<span class='en'>Moran scatterplot of all conflict events: each township's total against the average of its neighbours. Colour shows the significant LISA class (two-sided p < 0.05).</span><span class='zh'>全部冲突事件的 Moran 散点图:每个镇区的总量与其邻居平均值的关系。颜色表示显著的 LISA 类别(双侧 p < 0.05)。</span>"
+#| fig-alt: "Scatterplot of township conflict totals against the spatial lag, with significant high-high townships in red at upper right and low-low in blue at lower left."
+#| fig-width: 7.5
+#| fig-height: 5.6
+
+ggplot(lc, aes(x, lag)) +
+  geom_hline(yintercept = mean(lc$lag), colour = "#a8a29e", linewidth = 0.4) +
+  geom_vline(xintercept = mean(lc$x), colour = "#a8a29e", linewidth = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, colour = "#1c1917", linewidth = 0.5,
+              linetype = "22") +
+  geom_point(aes(colour = quad), size = 1.8, alpha = 0.85) +
+  geom_text_repel(data = lc |> filter(quad != "Insignificant") |> slice_max(x, n = 6),
+                  aes(label = TS), size = 2.8, min.segment.length = 0) +
+  geom_text_repel(data = lc |> filter(quad == "Low-High"),
+                  aes(label = TS), size = 2.8, min.segment.length = 0,
+                  colour = PAL_LISA[["Low-High"]]) +
+  scale_colour_manual("LISA class", values = c(PAL_LISA[1:4], Insignificant = "#d6d3d1")) +
+  labs(title = "Moran scatterplot, all conflict events",
+       subtitle = sprintf("Slope = Moran's I = %.3f", LM$glob$I[LM$glob$var == "conflict"]),
+       x = "Township total, Jan 2021 – Sep 2025",
+       y = "Average of neighbours (spatial lag)") +
+  theme_th(10.5)
+```
+
+::: {.interp .en}
+**Reading the scatterplot.** The slope of the dashed line is Moran's I. The
+significant High-High townships (upper right) are not simply the largest
+totals: Hpakant, among the highest counts in the country, is not significant,
+because its neighbours in Kachin are quiet by comparison. Significance
+requires a high value *and* a high neighbourhood. Low-Low townships crowd the
+lower left, where many townships have few events and so do their
+neighbours. Three townships are significant Low-High outliers, quieter places
+surrounded by conflict: `r paste(lc$TS[lc$quad == "Low-High"], collapse = ", ")`.
+No township is a significant High-Low outlier.
+:::
+
+::: {.interp .zh}
+**如何读散点图。** 虚线的斜率就是 Moran's I。显著的「高-高」镇区(右上)并不只是
+总量最大的那些:帕敢的计数位居全国前列,却不显著,因为它在克钦的邻居相对平静。
+显著性要求**自身高、邻域也高**。「低-低」镇区挤在左下,那里许多镇区事件很少,
+它们的邻居也一样。有三个镇区是显著的「低-高」异常值,即被冲突包围的较平静地方:
+`r paste(lc$TS[lc$quad == "Low-High"], collapse = "、")`。没有任何镇区是显著的
+「高-低」异常值。
+:::
+
+```{r}
+#| label: fig-lisa
+#| fig-cap: "<span class='en'>Local Moran's I cluster maps for the five variables, whole period. Only townships with two-sided permutation p < 0.05 are coloured; a heavy outline marks those that also survive the false discovery rate correction.</span><span class='zh'>五个变量的局部 Moran's I 聚集图(整个研究期)。只有双侧置换 p < 0.05 的镇区被着色;粗描边标出同时通过错误发现率校正的镇区。</span>"
+#| fig-alt: "Five maps of LISA clusters. High-high clusters in red over the Dry Zone and the south-east; low-low clusters in blue over the delta, Yangon and eastern Shan."
+#| fig-width: 11
+#| fig-height: 6.2
+
+lisa_map <- function(v, title = VAR_TINY[[v]], col = "quad", col_fdr = "quad_fdr") {
+  d <- lisa_sf |> filter(var == v)
+  map_base(
+    list(
+      geom_sf(data = d, aes(fill = .data[[col]]), colour = "white", linewidth = 0.04,
+              show.legend = TRUE),
+      geom_sf(data = d |> filter(.data[[col_fdr]] != "Insignificant"),
+              fill = NA, colour = "#1c1917", linewidth = 0.42)),
+    title = title, state_lw = 0.2) +
+    scale_fill_manual("LISA class (p < 0.05)", values = PAL_LISA, drop = FALSE) +
+    theme(plot.title = element_text(size = 10))
+}
+
+wrap_plots(lapply(names(VARS), lisa_map), nrow = 1) +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Local Moran's I: clusters and outliers, Jan 2021 – Sep 2025",
+                  subtitle = "Heavy outline: also significant after FDR correction",
+                  theme = theme_th(11)) &
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: tbl-lisa-counts
+#| tbl-cap: "<span class='en'>Townships in each LISA class at p < 0.05, and the number that survive FDR correction.</span><span class='zh'>p < 0.05 下各 LISA 类别的镇区数,以及通过 FDR 校正的镇区数。</span>"
+
+lisa |>
+  group_by(Variable = VAR_SHORT[var]) |>
+  summarise(`High-High` = sum(quad == "High-High"), `Low-Low` = sum(quad == "Low-Low"),
+            `High-Low` = sum(quad == "High-Low"), `Low-High` = sum(quad == "Low-High"),
+            `Significant` = sum(quad != "Insignificant"),
+            `Survive FDR` = sum(quad_fdr != "Insignificant"), .groups = "drop") |>
+  arrange(match(Variable, VAR_SHORT)) |>
+  gt() |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.interp .en}
+**Clusters.** For all conflict events, `r cnt(lc, "quad", "High-High")`
+townships form High-High clusters, led by
+`r by_state("conflict", "quad", "High-High")`. They make one contiguous block
+across the Dry Zone where Sagaing, Magway and Mandalay meet, and a second,
+looser chain in the south-east through Kayin to Tanintharyi.
+`r cnt(lc, "quad", "Low-Low")` townships form Low-Low clusters, led by
+`r by_state("conflict", "quad", "Low-Low")`: the delta and Yangon, and the
+eastern Shan hills along the Chinese and Thai borders, including the Wa
+self-administered area, where the United Wa State Army has kept out of the
+war. The variables differ at the margins. Violence against civilians has the
+tightest High-High cluster: all but `r sum(lisa$var == "vac" & lisa$quad == "High-High" & !lisa$ST %in% c("Sagaing", "Magway", "Mandalay"))` of its townships are in the Dry Zone. Explosions
+and remote violence add a strong band from eastern Bago through Kayin to Mon,
+where shelling and air strikes accompany the fighting along the Thai border.
+Battles extend furthest, with High-High townships as far as Kachin, Kayah and
+Tanintharyi. `r sum(LM$lisa$quad_fdr != "Insignificant" & LM$lisa$var == "conflict")`
+of the `r sum(lc$quad != "Insignificant")` significant townships for all
+conflict survive FDR correction. Every High-High township that survives is in
+the Dry Zone; the south-eastern chain does not survive the correction, and is
+the less certain of the two clusters.
+:::
+
+::: {.interp .zh}
+**聚集。** 就全部冲突事件而言,有 `r cnt(lc, "quad", "High-High")` 个镇区构成
+「高-高」聚集,居前的是 `r by_state("conflict", "quad", "High-High")`。它们在实皆、
+马圭与曼德勒交界的干燥带形成一个连片区块,并在东南方向形成一条经克伦延伸至
+德林达依的较松散链条。`r cnt(lc, "quad", "Low-Low")` 个镇区构成「低-低」聚集,居前
+的是 `r by_state("conflict", "quad", "Low-Low")`:即三角洲与仰光,以及沿中国与泰国
+边境的掸邦东部山地,包括佤自治区,佤联军一直置身战争之外。各变量在边缘处有所不同。
+针对平民的暴力「高-高」聚集最紧凑:除 `r sum(lisa$var == "vac" & lisa$quad == "High-High" & !lisa$ST %in% c("Sagaing", "Magway", "Mandalay"))` 个镇区外,全部位于干燥带。爆炸与远程暴力在从勃固
+东部经克伦到孟邦的地带额外形成一条强聚集带,那里沿泰国边境的战斗伴随着炮击与空袭。
+战斗的分布最广,「高-高」镇区远及克钦、克耶与德林达依。全部冲突事件的
+`r sum(lc$quad != "Insignificant")` 个显著镇区中,有
+`r sum(LM$lisa$quad_fdr != "Insignificant" & LM$lisa$var == "conflict")` 个通过 FDR
+校正。通过校正的「高-高」镇区全部位于干燥带;东南链条没有通过校正,是两个聚集
+中较不确定的一个。
+:::
+
+## <span class="en">Getis-Ord Gi\*: hot and cold spots</span><span class="zh">Getis-Ord Gi\*:热点与冷点</span> {#sec-lmsa-gi}
+
+```{r}
+#| label: lmsa-gi-code
+#| eval: false
+nb_self <- include_self(nb_an)          # Gi* counts the township itself
+wt_self <- st_weights(nb_self)
+set.seed(1234)
+g <- local_gstar_perm(ts$conflict, nb_self, wt_self, nsim = 999)
+gi_class(g$gi_star, g$p_sim)            # sign of Gi* where p_sim < 0.05
+```
+
+```{r}
+#| label: fig-gi
+#| fig-cap: "<span class='en'>Getis-Ord Gi\\* hot and cold spots for the five variables, whole period, two-sided permutation p < 0.05. Heavy outline: survives FDR correction.</span><span class='zh'>五个变量的 Getis-Ord Gi\\* 热点与冷点(整个研究期,双侧置换 p < 0.05)。粗描边:通过 FDR 校正。</span>"
+#| fig-alt: "Five maps of Gi* hot spots in red and cold spots in blue, closely matching the LISA high-high and low-low clusters."
+#| fig-width: 11
+#| fig-height: 6.2
+
+gi_map <- function(v) {
+  d <- lisa_sf |> filter(var == v)
+  map_base(
+    list(
+      geom_sf(data = d, aes(fill = gi_class), colour = "white", linewidth = 0.04,
+              show.legend = TRUE),
+      geom_sf(data = d |> filter(gi_class_fdr != "Insignificant"),
+              fill = NA, colour = "#1c1917", linewidth = 0.42)),
+    title = VAR_TINY[[v]], state_lw = 0.2) +
+    scale_fill_manual("Gi* (p < 0.05)", values = PAL_GI, drop = FALSE) +
+    theme(plot.title = element_text(size = 10))
+}
+
+wrap_plots(lapply(names(VARS), gi_map), nrow = 1) +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Getis-Ord Gi*: hot and cold spots, Jan 2021 – Sep 2025",
+                  subtitle = "Heavy outline: also significant after FDR correction",
+                  theme = theme_th(11)) &
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: gi-agree
+#| include: false
+agree <- lc |>
+  mutate(lisa_side = case_when(quad == "High-High" ~ "hot", quad == "Low-Low" ~ "cold",
+                               TRUE ~ "none"),
+         gi_side = case_when(gi_class == "Hot spot" ~ "hot", gi_class == "Cold spot" ~ "cold",
+                             TRUE ~ "none"))
+n_same  <- sum(agree$lisa_side == agree$gi_side)
+gi_only_hot <- agree |> filter(gi_side == "hot", lisa_side != "hot")
+```
+
+::: {.interp .en}
+**Hot and cold spots.** Gi\* reproduces the LISA geography closely. For all
+conflict events the two statistics put `r n_same` of `r N_TS` townships on the
+same side (hot, cold or neither). They disagree where they are built to
+disagree. Gi\* includes the township in its own neighbourhood and does not
+ask whether the township resembles its neighbours, so a quiet township
+surrounded by conflict can be a hot spot: `r nrow(gi_only_hot)` townships are
+Gi\* hot spots without being LISA High-High, among them
+`r paste(head(gi_only_hot$TS, 4), collapse = ", ")`. For peace-building this
+is useful: those are the townships *inside* a zone of violence, whatever
+their own count. Gi\* cannot see outliers, which is why both statistics are
+reported. After FDR correction the hot spots that remain are in the Dry Zone
+core, and the cold spots that remain are in the delta and the eastern Shan
+hills.
+:::
+
+::: {.interp .zh}
+**热点与冷点。** Gi\* 与 LISA 的地理格局高度吻合。就全部冲突事件而言,两种统计量
+把 `r N_TS` 个镇区中的 `r n_same` 个放在同一侧(热、冷或都不是)。它们只在其设计上
+就会不一致的地方出现分歧。Gi\* 把镇区本身纳入其邻域,并不追问该镇区是否与邻居相似,
+所以一个被冲突包围的平静镇区也可能是热点:有 `r nrow(gi_only_hot)` 个镇区是 Gi\*
+热点但不是 LISA「高-高」,其中包括 `r paste(head(gi_only_hot$TS, 4), collapse = "、")`。
+这对和平建设很有用:它们是位于暴力区域**之内**的镇区,不论自身计数如何。Gi\* 看不到
+异常值,这正是同时报告两种统计量的原因。经 FDR 校正后,保留下来的热点位于干燥带
+核心,保留下来的冷点位于三角洲与掸邦东部山地。
+:::
+
+## <span class="en">Year by year</span><span class="zh">逐年分析</span> {#sec-lmsa-years}
+
+```{r}
+#| label: fig-lisa-years
+#| fig-cap: "<span class='en'>Local Moran's I cluster maps of all conflict events, by calendar year (2025: January to September). Two-sided p < 0.05; heavy outline: survives FDR correction.</span><span class='zh'>全部冲突事件的局部 Moran's I 聚集图,按日历年(2025 年:1 月至 9 月)。双侧 p < 0.05;粗描边:通过 FDR 校正。</span>"
+#| fig-alt: "Five yearly LISA maps showing the Dry Zone high-high cluster strongest in 2022 and 2023 and shrinking by 2025, while clusters appear in Rakhine in 2024 and in Kayin in 2025."
+#| fig-width: 11
+#| fig-height: 5.4
+
+ly <- ts_an |> select(TS_PCODE) |> right_join(LM$lisa_year, by = "TS_PCODE")
+map_base(
+  list(geom_sf(data = ly, aes(fill = quad), colour = NA, show.legend = TRUE),
+       geom_sf(data = ly |> filter(quad_fdr != "Insignificant"),
+               fill = NA, colour = "#1c1917", linewidth = 0.3)),
+  title = "Local Moran's I, all conflict events, by year",
+  state_lw = 0.15) +
+  facet_wrap(~ year, nrow = 1) +
+  scale_fill_manual("LISA class (p < 0.05)", values = PAL_LISA, drop = FALSE) +
+  theme(legend.position = "bottom", strip.text = element_text(size = 10))
+```
+
+```{r}
+#| label: year-lisa-numbers
+#| include: false
+lyc <- LM$lisa_year |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "ST")], by = "TS_PCODE")
+hh_y <- function(y, st = NULL) {
+  d <- lyc |> filter(year == y, quad == "High-High")
+  if (!is.null(st)) d <- d |> filter(ST %in% st)
+  nrow(d)
+}
+dz_st <- c("Sagaing", "Magway", "Mandalay")
+```
+
+::: {.interp .en}
+**Year by year.** The Dry Zone cluster is the constant of the first three
+years: `r hh_y(2021, dz_st)` High-High townships in the three Dry Zone
+regions in 2021, `r hh_y(2022, dz_st)` in 2022 and `r hh_y(2023, dz_st)` in
+2023. From 2024 it thins: `r hh_y(2024, dz_st)` in 2024 and
+`r hh_y(2025, dz_st)` in 2025. Of those, three are what is left of the old
+core (Pakokku, Yesagyo and Salingyi), and four lie in the north of Mandalay
+towards its border with northern Shan (Madaya, Singu, Thabeikkyin and Mogoke,
+joined by Nawnghkio across the border). Fighting in the Dry Zone did not
+stop; @fig-years shows Sagaing still among the most violent areas. What
+changed is that its townships became less distinct from the rest of the
+country as Rakhine (High-High in 2024), northern Shan and the south-east
+caught up. In 2025 the `r hh_y(2025)` High-High townships are split between
+that northern group, the remnant of the core, and the Kayin border, where
+`r hh_y(2025, "Kayin")` townships around Myawaddy and Hpa-An form a cluster
+of their own. The Low-Low cluster of the eastern Shan
+hills is present in every year, the most stable feature of the conflict map.
+:::
+
+::: {.interp .zh}
+**逐年。** 前三年里,干燥带聚集是不变的常量:干燥带三个省份的「高-高」镇区在
+2021 年有 `r hh_y(2021, dz_st)` 个,2022 年 `r hh_y(2022, dz_st)` 个,2023 年
+`r hh_y(2023, dz_st)` 个。从 2024 年起它逐渐稀疏:2024 年 `r hh_y(2024, dz_st)` 个,
+2025 年 `r hh_y(2025, dz_st)` 个。其中三个是老核心的残余(木各具、耶沙久与沙林基),
+另外四个位于曼德勒北部、靠近掸邦北部边界(Madaya、Singu、Thabeikkyin 与 Mogoke,
+以及边界另一侧的 Nawnghkio)。干燥带的战斗并未停止;@fig-years 显示实皆仍是暴力最
+严重的地区之一。改变的是,随着若开(2024 年出现「高-高」)、掸邦北部与东南地区追赶
+上来,干燥带镇区与全国其余地区的差别缩小了。2025 年的 `r hh_y(2025)` 个「高-高」镇区
+分为三部分:上述北部一组、老核心的残余,以及克伦边境一组,后者在妙瓦底与帕安周围有
+`r hh_y(2025, "Kayin")` 个镇区自成一个聚集。掸邦东部山地的
+「低-低」聚集每年都存在,是冲突地图上最稳定的特征。
+:::
+
+## <span class="en">How robust is the cluster map?</span><span class="zh">聚集地图有多稳健?</span> {#sec-lmsa-sens}
+
+::: {.en}
+Each alternative below changes one choice relative to the primary run (queen
+contiguity with the two island links, raw counts, two-sided p < 0.05) and
+counts how many townships keep the same class.
+:::
+
+::: {.zh}
+下面每个备选方案都只相对主分析(带两个岛屿连接的 queen 邻接、原始计数、双侧
+p < 0.05)改变一项选择,并统计有多少镇区保持相同类别。
+:::
+
+```{r}
+#| label: tbl-lisa-sens
+#| tbl-cap: "<span class='en'>Sensitivity of the LISA cluster map of all conflict events to the neighbour definition and to the transformation of the counts.</span><span class='zh'>全部冲突事件 LISA 聚集图对邻居定义与计数变换的敏感性。</span>"
+
+LM$sens_summary |>
+  rename(Specification = spec) |>
+  gt() |>
+  tab_options(table.font.size = px(13))
+```
+
+```{r}
+#| label: fig-lisa-sens
+#| fig-cap: "<span class='en'>The LISA cluster map of all conflict events under the four specifications.</span><span class='zh'>四种设定下全部冲突事件的 LISA 聚集图。</span>"
+#| fig-alt: "Four LISA maps comparing queen contiguity, k-nearest neighbours, log counts and density."
+#| fig-width: 11
+#| fig-height: 5.4
+
+ss <- ts_an |> select(TS_PCODE) |> right_join(LM$sens, by = "TS_PCODE") |>
+  mutate(spec = factor(spec, levels = levels(LM$sens_summary$spec)))
+map_base(geom_sf(data = ss, aes(fill = quad), colour = NA, show.legend = TRUE),
+         title = "Local Moran's I, all conflict events, four specifications",
+         state_lw = 0.15) +
+  facet_wrap(~ spec, nrow = 1) +
+  scale_fill_manual("LISA class (p < 0.05)", values = PAL_LISA, drop = FALSE) +
+  theme(legend.position = "bottom", strip.text = element_text(size = 9))
+```
+
+```{r}
+#| label: sens-numbers
+#| include: false
+sg <- function(s, col) LM$sens_summary[[col]][LM$sens_summary$spec == s]
+```
+
+::: {.interp .en}
+**Robustness.** The core of the map is robust and the margins are not.
+Switching to six nearest neighbours keeps
+`r sg("k = 6 nearest neighbours", "HH kept")` of the
+`r sg("Primary (queen, raw counts)", "High-High")` High-High townships and
+enlarges the Low-Low zone, because large hill townships now borrow
+neighbours across state lines. Taking logarithms keeps
+`r sg("log(1 + count)", "HH kept")` High-High townships and adds more at the
+edges of the clusters, since the transformation shrinks the gap between the
+most violent townships and their merely violent neighbours; it shrinks the
+Low-Low zone for the same reason. Dividing by area is the one change that
+redraws the map, keeping none of the High-High townships: per square
+kilometre, the small downtown townships of Yangon, most under 10 km², become
+the "hottest" places, and the large rural townships of the Dry Zone drop out.
+That variant answers a different question, how concentrated events are on
+the ground, and confirms that the count-based hot spots are not an artefact
+of township size: they are large townships with a great deal of conflict, not
+large townships with average conflict.
+:::
+
+::: {.interp .zh}
+**稳健性。** 地图的核心是稳健的,边缘则不然。改用六个最近邻时,
+`r sg("Primary (queen, raw counts)", "High-High")` 个「高-高」镇区中保留了
+`r sg("k = 6 nearest neighbours", "HH kept")` 个,「低-低」区域扩大,因为大面积的山地
+镇区如今会跨越省邦边界借用邻居。取对数后保留了 `r sg("log(1 + count)", "HH kept")` 个
+「高-高」镇区,并在聚集边缘增加了更多,因为这种变换缩小了最暴力镇区与其「只是暴力」
+的邻居之间的差距;出于同样原因,「低-低」区域缩小。按面积相除是唯一重新绘制地图的
+改变,原有「高-高」镇区一个都没有保留:按每平方公里计算,仰光市中心那些大多不足
+10 km² 的小镇区成为「最热」的地方,干燥带的大面积农村镇区则退出。这一变体回答的是另一个
+问题,即事件在地面上有多集中;它也证实了基于计数的热点并非镇区面积造成的假象:
+它们是**冲突极多的大镇区**,而不是冲突一般的大镇区。
+:::

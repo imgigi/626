@@ -1,0 +1,122 @@
+# <span class="en">Analytical assumptions and methodological decisions</span><span class="zh">分析假设与方法决策</span> {#sec-assump}
+
+::: {.en}
+Every result in the following sections depends on a handful of choices that
+the data do not make for the analyst. They are collected here, with the
+reason for each and the place where its consequence is tested.
+:::
+
+::: {.zh}
+后文的每一个结果都取决于若干数据本身不会替分析者做出的选择。这里把它们集中列出,
+并说明每个选择的理由,以及检验其后果的位置。
+:::
+
+```{r}
+#| label: tbl-decisions
+#| tbl-cap: "<span class='en'>Analytical decisions, their rationale, and where each is tested.</span><span class='zh'>分析决策、理由及检验位置。</span>"
+
+tribble(
+  ~Decision, ~Choice, ~Rationale, ~`Tested in`,
+  "Quantity analysed", "Raw event counts and fatality sums",
+    "The brief asks for counts. No defensible population denominator exists: the last census is from 2014, and more than three million people have since been displaced, overwhelmingly from the townships where the conflict is.",
+    "§6.5: log(1 + count) and events per 1,000 km²",
+  "Neighbour definition", "Queen contiguity, plus the two island links",
+    "Contiguity follows how fighting moves between townships on the ground. Distance bands would give small urban townships dozens of neighbours and large Shan townships none.",
+    "§6.5 and §7.6: k = 6 nearest neighbours",
+  "Weights", "Row-standardised",
+    "The spatial lag becomes the neighbourhood average, which is what the LISA quadrants are read against, and townships with many neighbours do not dominate.",
+    "—",
+  "Inference", "Conditional permutation, 999 draws",
+    "Counts this skewed make the normal approximation a poor reference for local statistics.",
+    "—",
+  "Significance (LMSA)", "Two-sided simulated p < 0.05; FDR shown alongside",
+    "The brief asks for p < 0.05. With 329 tests, about 16 false positives are expected at that level, so FDR-surviving townships are outlined on every map.",
+    "§6.2–6.5",
+  "Time unit", "Quarter (19 periods)",
+    "Long enough to smooth reporting noise and halve the empty cells; short enough to resolve the 2023 escalation.",
+    "§7.6: monthly cube",
+  "EHSA time lag", "k = 1 quarter",
+    "sfdep's default; a township's neighbourhood includes the previous quarter.",
+    "§7.6: k = 0 and k = 2",
+  "EHSA null model", "Period-conditional permutation",
+    "Compares each township only with other townships in the same quarter, consistent with how Gi* is standardised. sfdep's pooled null is shown to confound the national trend with local significance.",
+    "§7.3",
+  "EHSA significance", "Folded p ≤ 0.05, as in sfdep",
+    "Keeps the classification rule identical to sfdep's, so that the null model is the only change. This is a two-sided test at 0.10.",
+    "§7.6: two-sided p ≤ 0.05"
+) |>
+  gt() |>
+  cols_width(Decision ~ px(130), Choice ~ px(170), Rationale ~ px(420)) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+## <span class="en">Why counts and not rates</span><span class="zh">为什么用计数而不是比率</span>
+
+::: {.en}
+A rate per person would be the natural measure of exposure, and it is not
+available. Myanmar's last complete census was taken in 2014, and the census
+the military government attempted in 2024 could not be carried out across
+large parts of the country. Even an accurate 2014 figure would be the wrong denominator: the
+displacement since 2021 has emptied precisely the townships with the most
+conflict, so a 2014-based rate would overstate risk per remaining resident by
+an unknown and spatially varying factor. The counts are therefore read as
+what they are, a measure of where violent events happen, not of individual
+risk. Area-based density is used as a sensitivity check, because township
+area does vary by two orders of magnitude.
+:::
+
+::: {.zh}
+人均比率本应是衡量暴露程度的自然指标,但无法获得。缅甸最近一次完整的普查在
+2014 年;军政府 2024 年尝试进行的普查在全国大片地区无法开展。即使有准确的 2014 年数据,它也是
+错误的分母:2021 年以来的流离失所恰恰掏空了冲突最多的镇区,因此以 2014 年为基础的
+比率会以一个未知且空间上变化的倍数,高估每名留守居民的风险。因此,计数就按其本来
+的含义来解读:**暴力事件发生在哪里**,而不是个人风险。由于镇区面积相差两个数量级,
+本研究以按面积计算的密度作为敏感性检验。
+:::
+
+## <span class="en">Reporting is not occurrence</span><span class="zh">被报道不等于发生</span>
+
+::: {.en}
+ACLED codes events from media, local partner organisations and other
+reports, and its coverage is better where reporting is denser
+[@raleigh2023]. Event datasets of this kind are known to under-record violence
+in remote areas and to vary with media attention [@eck2012; @weidmann2016].
+In Myanmar, internet shutdowns and restrictions on journalists add to the
+gap. A cold spot can therefore mean an area with little violence or an area
+with little reporting. The analysis cannot separate the two, and the
+interpretation in @sec-ehsa and @sec-integration keeps the possibility in
+view, especially for the Wa and eastern Shan hills, where the cold zone is
+largest.
+:::
+
+::: {.zh}
+ACLED 依据媒体、地方合作机构与其他报告对事件进行编码,报道越密集的地方覆盖越好
+[@raleigh2023]。已知这类事件数据集会低估偏远地区的暴力,并随媒体关注度而变化
+[@eck2012; @weidmann2016]。在缅甸,断网与对记者的限制进一步扩大了这一差距。因此,
+**冷点可能意味着暴力少,也可能意味着报道少**。分析无法区分二者,@sec-ehsa 与
+@sec-integration 的解读始终把这种可能性放在视野之内,尤其是冷区面积最大的佤邦与
+掸邦东部山地。
+:::
+
+## <span class="en">Multiple testing</span><span class="zh">多重检验</span>
+
+::: {.en}
+A local statistic is one hypothesis test per township, so a map of 329
+townships at p < 0.05 contains about `r expected_fp(N_TS)` significant
+results even if the data have no spatial structure at all. The brief asks for
+maps of p < 0.05, and those are drawn. The tests are also neighbours of one
+another and share data, so the false discovery rate procedure of
+@benjamini1995, as applied to local statistics by @caldas2006, is reported
+alongside, and townships that survive it are outlined on the maps. A
+township with a coloured fill and a heavy outline is significant under both;
+a fill without an outline is significant only at the unadjusted level.
+:::
+
+::: {.zh}
+局部统计量对每个镇区做一次假设检验,所以即便数据完全没有空间结构,329 个镇区在
+p < 0.05 下也会出现约 `r expected_fp(N_TS)` 个显著结果。作业要求绘制 p < 0.05 的
+地图,本报告照此绘制。由于这些检验彼此相邻、共享数据,本报告同时报告
+@benjamini1995 提出、并由 @caldas2006 应用于局部统计量的错误发现率(FDR)校正,
+通过校正的镇区在地图上加粗描边。**有填色且粗描边**的镇区在两种标准下都显著;
+**只有填色没有描边**的镇区只在未校正水平下显著。
+:::

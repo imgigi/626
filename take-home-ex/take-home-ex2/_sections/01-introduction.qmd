@@ -1,0 +1,132 @@
+# <span class="en">Introduction and study context</span><span class="zh">引言与研究背景</span> {#sec-intro}
+
+## <span class="en">A civil war that is fought township by township</span><span class="zh">一场逐个镇区展开的内战</span>
+
+::: {.en}
+Myanmar has been at war with parts of itself since independence in 1948. For
+most of that time the fighting was an ethnic periphery against a Bamar
+centre: ethnic armed organisations in the hills of Kachin, Shan, Kayin and
+Rakhine against the national army, the Tatmadaw. The coup of 1 February 2021
+changed the geography of the conflict. The military's suppression of the
+protests that followed pushed a generation of activists into armed
+resistance, the National Unity Government declared a "people's defensive war"
+in September 2021, and local People's Defence Forces took up arms in the
+Bamar lowlands, which had been largely free of armed conflict for decades
+[@wiki_mmr2026]. In October 2023 an alliance of three ethnic armed
+organisations launched Operation 1027 in northern Shan, and the war moved
+into a phase in which the military lost territory on several fronts at once.
+
+By late 2025 more than three million people had been displaced, and the
+country was divided into zones held by the military, by ethnic armed
+organisations and by resistance forces, with much of it contested. Fighting
+of this kind does not happen everywhere at once or with the same intensity.
+It is carried out township by township, and peace-building needs to know
+where it concentrates, where it is spreading, and where it is dying down.
+:::
+
+::: {.zh}
+自 1948 年独立以来,缅甸就一直与自身的一部分处于战争之中。在大部分时间里,战事
+是**族群边缘对抗缅族中心**:克钦、掸、克伦与若开山地的民族武装组织对抗国家军队
+(Tatmadaw)。2021 年 2 月 1 日的政变改变了冲突的地理格局。军方对随后抗议的镇压
+把一代社会活动者推向武装抵抗;民族团结政府于 2021 年 9 月宣布「人民自卫战争」;
+地方人民防卫军在缅族聚居的低地拿起武器,而这些地区此前数十年基本没有武装冲突
+[@wiki_mmr2026]。2023 年 10 月,三个民族武装组织结成的联盟在掸邦北部发起「1027
+行动」,战争进入军方在多条战线同时失地的阶段。
+
+到 2025 年底,流离失所人数已超过三百万,国家被分割为军方控制区、民族武装控制区与
+抵抗力量控制区,其中大片地区处于争夺之中。这种性质的战争不会在所有地方同时、以
+同样的强度发生。它**以镇区为单位**展开,而和平建设需要知道:冲突集中在哪里,
+正向哪里扩散,又在哪里逐渐平息。
+:::
+
+## <span class="en">Why local spatial statistics</span><span class="zh">为什么用局部空间统计</span>
+
+::: {.en}
+A choropleth of event counts answers the first of those questions only
+loosely. A dark township may be one of a cluster of dark townships or an
+isolated case, and the eye is poor at telling a real cluster from a chance
+arrangement of 329 shades. Local measures of spatial association (LMSA)
+formalise the comparison. Local Moran's I [@anselin1995] asks whether a
+township resembles its neighbours more than chance would allow, and so
+separates clusters (high among high, low among low) from spatial outliers
+(high among low, low among high). Getis-Ord Gi\* [@getis1992; @ord1995] asks
+whether the total in a township's neighbourhood, the township included, is
+unusually large or small, and so marks hot and cold spots without
+distinguishing a cluster from an outlier.
+
+Both statistics describe one snapshot. Emerging hot spot analysis (EHSA)
+extends Gi\* to a space-time cube: Gi\* is computed for every township in
+every period, and a Mann-Kendall test [@mann1945; @kendall1975] on each
+township's series of Gi\* values classifies the township by the trajectory
+of its hot-spot status, whether new, intensifying, persistent, sporadic or
+diminishing [@esri_ehsa]. The approach has been applied to gun violence
+[@boschan2024], to roadkill [@kim2023] and to network events [@putrenko2018],
+and the space-time dimensions of conflict events have been explored in this
+way before [@mack2018].
+:::
+
+::: {.zh}
+事件计数的分级设色图只能粗略地回答上面的第一个问题。一个深色镇区可能是一片深色
+镇区中的一员,也可能是孤立个案;而人眼很难把真实的聚集与 329 种深浅的偶然排列
+区分开来。**局部空间关联指标**(LMSA)把这一比较形式化。局部 Moran's I
+[@anselin1995] 问的是:一个镇区与其邻居的相似程度是否超出偶然所能解释的范围,并
+据此把**聚集**(高中之高、低中之低)与**空间异常值**(低中之高、高中之低)区分
+开来。Getis-Ord Gi\* [@getis1992; @ord1995] 问的是:一个镇区所在邻域(包含其自身)
+的总量是否异常地大或小,据此标出**热点与冷点**,但不区分聚集与异常值。
+
+这两种统计量描述的都是一个截面。**新兴热点分析**(EHSA)把 Gi\* 扩展到时空立方体:
+对每个镇区在每个时期计算 Gi\*,再对每个镇区的 Gi\* 序列做 Mann-Kendall 检验
+[@mann1945; @kendall1975],按其热点状态的**轨迹**为镇区分类:新出现、增强、持续、
+零星或减弱 [@esri_ehsa]。这一方法已被用于枪支暴力 [@boschan2024]、道路动物致死
+[@kim2023] 与网络事件 [@putrenko2018],冲突事件的时空维度此前也曾用类似方式探索过
+[@mack2018]。
+:::
+
+## <span class="en">Research questions</span><span class="zh">研究问题</span> {#sec-rq}
+
+::: {.rq .en}
+*RQ1 · Where.* Where are the statistically significant hot spots, cold spots
+and spatial outliers of armed conflict among Myanmar's townships between
+January 2021 and September 2025, and do they differ between battles, remote
+violence, violence against civilians and fatalities?
+:::
+
+::: {.rq .zh}
+*RQ1 · 在哪里。* 2021 年 1 月至 2025 年 9 月,缅甸各镇区武装冲突的统计显著热点、
+冷点与空间异常值在哪里?它们在战斗、远程暴力、针对平民的暴力与死亡人数之间是否
+不同?
+:::
+
+::: {.rq .en}
+*RQ2 · How it evolves.* How has the pattern changed quarter by quarter: which
+townships are new, intensifying, persistent, sporadic or diminishing hot and
+cold spots?
+:::
+
+::: {.rq .zh}
+*RQ2 · 如何演变。* 这一格局如何逐季度变化:哪些镇区是新出现、增强、持续、零星或
+减弱的热点与冷点?
+:::
+
+::: {.rq .en}
+*RQ3 · How it spreads (value-added).* Does armed conflict spread from a
+township to its neighbours, and if it does, is contagion what starts
+conflict in a township or what escalates it once it has started?
+:::
+
+::: {.rq .zh}
+*RQ3 · 如何扩散(附加价值分析)。* 武装冲突是否会从一个镇区扩散到其邻居?如果会,
+传染机制是**引发**一个镇区的冲突,还是在冲突开始之后使其**升级**?
+:::
+
+::: {.en}
+RQ1 is answered in @sec-lmsa, RQ2 in @sec-ehsa and RQ3 in @sec-va. Before
+any of them, @sec-prep sets out the data preparation, because several of the
+results depend on decisions taken there. @sec-assump collects the analytical
+assumptions in one place.
+:::
+
+::: {.zh}
+RQ1 在 @sec-lmsa 回答,RQ2 在 @sec-ehsa,RQ3 在 @sec-va。在此之前,@sec-prep 交代
+数据准备,因为若干结果取决于在那里做出的决定;@sec-assump 则把分析假设集中列出。
+:::

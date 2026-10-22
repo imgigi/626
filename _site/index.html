@@ -207,6 +207,15 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="./take-home-ex/take-home-ex1/take-home-ex1-slides.html">
  <span class="dropdown-text">Exercise 1 · Executive Summary</span></a>
   </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li>
+    <a class="dropdown-item" href="./take-home-ex/take-home-ex2/take-home-ex2.html">
+ <span class="dropdown-text">Exercise 2 · Technical Report</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./take-home-ex/take-home-ex2/take-home-ex2-slides.html">
+ <span class="dropdown-text">Exercise 2 · Executive Summary</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -609,13 +618,38 @@ ul.task-list li input[type="checkbox"] {
       <div class="dash-xmeta"><span><b>10</b> slides</span><span><b>EN / 中文</b></span></div>
     </a>
 
+    <a class="dash-xcard" href="take-home-ex/take-home-ex2/take-home-ex2.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-coral">2</span>
+        <span class="dash-xchip chip-coral">Peace</span>
+      </div>
+      <h3 class="anchored"><span class="en">Geospatial Analytics for Peace</span><span class="zh">面向和平的地理空间分析</span></h3>
+      <p><span class="en">Local Moran's I, Gi* and <b>emerging hot spot analysis</b> of armed
+      conflict in Myanmar's 329 townships, 2021–2025, with three defects in
+      sfdep's EHSA found and corrected, and a <b>spatial Markov chain</b> that
+      shows escalation spreading to neighbours</span><span class="zh">缅甸 329 个镇区 2021–2025 年武装冲突的局部 Moran's I、Gi* 与<b>新兴热点分析</b>：发现并修正了 sfdep EHSA 的三个缺陷，并用<b>空间马尔可夫链</b>显示冲突升级会向邻居扩散</span></p>
+      <div class="dash-xmeta"><span><b>53,805</b> events</span><span><b>EN / 中文</b></span></div>
+    </a>
+
+    <a class="dash-xcard" href="take-home-ex/take-home-ex2/take-home-ex2-slides.html">
+      <div class="dash-xcard-top">
+        <span class="dash-xnum tile-coral">2</span>
+        <span class="dash-xchip chip-coral">Slides</span>
+      </div>
+      <h3 class="anchored"><span class="en">Executive Summary</span><span class="zh">执行摘要</span></h3>
+      <p><span class="en">The Myanmar study as a ten-slide revealjs deck: research questions, data,
+      approach, key maps, the EHSA check, the early-warning rule, limitations and
+      implications</span><span class="zh">缅甸研究的十页 revealjs 幻灯版：研究问题、数据、方法、关键地图、EHSA 检验、预警规则、局限与启示</span></p>
+      <div class="dash-xmeta"><span><b>10</b> slides</span><span><b>EN / 中文</b></span></div>
+    </a>
+
     <div class="dash-xcard dash-xcard-empty">
       <div class="dash-xcard-top">
         <span class="dash-xnum tile-grey">—</span>
         <span class="dash-xchip chip-grey">Pending</span>
       </div>
-      <h3 class="anchored"><span class="en">Take-home Exercises 2 and 3</span><span class="zh">带回家作业 2 与 3</span></h3>
-      <p><span class="en">15% each. Not yet released; they will appear here as they are completed.</span><span class="zh">各占 15%。尚未发布，完成后会出现在这里。</span></p>
+      <h3 class="anchored"><span class="en">Take-home Exercise 3</span><span class="zh">带回家作业 3</span></h3>
+      <p><span class="en">15%. Not yet released; it will appear here when it is completed.</span><span class="zh">占 15%。尚未发布，完成后会出现在这里。</span></p>
     </div>
 
   </div>
@@ -629,11 +663,12 @@ ul.task-list li input[type="checkbox"] {
   if (!canvas || typeof d3 === "undefined") return;
 
   // 分析过的地点：新加坡（Hands-on 1-2）、邦加勿里洞（Hands-on 3）、
-  // 普朗皮绍（Take-home 1）
+  // 普朗皮绍（Take-home 1）、缅甸（Take-home 2）
   const SITES = [
     { name: "Singapore",       lon: 103.82, lat:  1.35, colour: "#6c5ce7", icon: "◉", dx: -74, dy: -60 },
     { name: "Bangka Belitung", lon: 106.44, lat: -2.74, colour: "#ff6b6b", icon: "▲", dx:  78, dy:  54 },
-    { name: "Pulang Pisau",    lon: 114.01, lat: -2.50, colour: "#ff9f43", icon: "■", dx:  84, dy: -34 }
+    { name: "Pulang Pisau",    lon: 114.01, lat: -2.50, colour: "#ff9f43", icon: "■", dx:  84, dy: -34 },
+    { name: "Myanmar",         lon:  96.00, lat: 21.00, colour: "#e11d48", icon: "◆", dx: -70, dy: -40 }
   ];
 
   let land = null, borders = null;

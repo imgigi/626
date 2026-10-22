@@ -1,0 +1,169 @@
+# <span class="en">Integrated findings and discussion</span><span class="zh">综合发现与讨论</span> {#sec-integration}
+
+## <span class="en">What the methods say together</span><span class="zh">各方法合起来说明了什么</span>
+
+::: {.en}
+Each method answers a narrower question than the one a reader brings to a
+conflict map, and the answers are most useful read together. @tbl-synthesis
+lines them up for the regions that recur through the report.
+:::
+
+::: {.zh}
+每种方法回答的问题都比读者面对冲突地图时心中的问题更窄,把它们放在一起读才最有用。
+@tbl-synthesis 把各方法对报告中反复出现的地区的结论并列在一起。
+:::
+
+```{r}
+#| label: tbl-synthesis
+#| tbl-cap: "<span class='en'>Synthesis by region. LISA and Gi\\* refer to the whole-period totals of all conflict events; EHSA to the period-conditional classification; diffusion to the onset and Markov analysis.</span><span class='zh'>按地区的综合。LISA 与 Gi\\* 指全部冲突事件的整期总量;EHSA 指按期条件化的分类;扩散指爆发与马尔可夫分析。</span>"
+
+tribble(
+  ~Region, ~`LISA / Gi*`, ~EHSA, ~`Trend and diffusion`,
+  "Dry Zone core (Sagaing–Magway–Mandalay border)",
+    "High-High and hot spot, survives FDR",
+    "Consecutive or chronic sporadic hot spots since late 2021",
+    "Peak 2022–23, declining since; persistent",
+  "South and east edge of the Dry Zone (Chauk, Nyaung-U, Taungtha, Meiktila, Kyaukse, Pyinoolwin)",
+    "Mostly not significant over the whole period",
+    "New consecutive hot spots, runs beginning 2024–25",
+    "Spreading outwards from the core: adjacent onsets",
+  "South-east (Kayin, Mon, eastern Bago, Tanintharyi)",
+    "High-High chain, does not survive FDR; strongest for remote violence",
+    "Sporadic and some consecutive hot spots",
+    "Rising; Kayin highest in 2025",
+  "Rakhine",
+    "Not significant over the whole period; High-High in 2024",
+    "Mostly sporadic; Ramree oscillating hot spot",
+    "Abrupt escalation from late 2023 (offensive)",
+  "Northern Shan",
+    "Mixed; Low-Low in the Wa area",
+    "Kyaukme consecutive hot spot; Lashio oscillating cold spot",
+    "Episodic: offensives in late 2023 and 2024",
+  "Yangon",
+    "Low-Low, survives FDR",
+    "Consecutive cold spots with downward trend",
+    "Active in 2021–22, suppressed since",
+  "Eastern Shan hills and Wa",
+    "Low-Low, survives FDR",
+    "Persistent and consecutive cold spots",
+    "Outside the war throughout (or under-reported)",
+  "Isolated high-conflict townships (Kawkareik, Kale, Hpakant)",
+    "Not significant",
+    "No pattern detected",
+    "Invisible to neighbourhood statistics"
+) |>
+  gt() |>
+  cols_width(Region ~ px(210)) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+Three conclusions follow.
+
+**The geography of the war has a stable core and moving edges.** The Dry
+Zone, where the post-coup resistance was strongest among the Bamar majority,
+is the centre of the conflict on every measure and every year to 2023, and
+remains a chronic hot spot. What moves are the edges: south and east from the
+core towards central Myanmar and the Mandalay–Lashio road, and the separate
+fronts in Rakhine, northern Shan and the south-east, which opened at
+different times. That is why global Moran's I fell after 2023 even though
+total violence did not: the conflict became less concentrated, not less
+intense.
+
+**Hot spots grow from existing hot spots.** The EHSA finds almost no hot spot
+appearing from nowhere, and the value-added analysis gives the reason: after
+the nationwide outbreak of 2021, conflict entered new townships only from
+next door, and escalation in any township depends strongly on its
+neighbours. The new consecutive hot spots on the edges of the Dry Zone are
+the visible result of that process.
+
+**Calm is not uniform.** The persistent cold zone of the eastern Shan hills
+and the newer cold zone of Yangon look alike on a map and mean opposite
+things. The first is a region that has largely stayed out of the war. The
+second is a city where the resistance was put down.
+:::
+
+::: {.zh}
+由此得出三个结论。
+
+**战争的地理格局有一个稳定的核心和不断移动的边缘。** 干燥带是政变后缅族抵抗最强的
+地方,在 2023 年之前的每一年、每一项指标上都是冲突的中心,至今仍是长期热点。移动的
+是边缘:从核心向南、向东移向缅甸中部与曼德勒–腊戍公路;以及在不同时间打开的若开、
+掸邦北部与东南方向的几条独立前线。这解释了为何 2023 年后全局 Moran's I 下降而暴力
+总量并未下降:冲突变得**不那么集中**,而不是**不那么激烈**。
+
+**热点从已有的热点中生长出来。** EHSA 几乎没有发现凭空出现的热点,附加价值分析给出了
+原因:在 2021 年的全国性爆发之后,冲突只从**隔壁**进入新的镇区,而任何镇区的升级都
+强烈依赖于其邻居。干燥带边缘那些新的连续热点,正是这一过程的可见结果。
+
+**平静并不均一。** 掸邦东部山地的持续冷区与仰光较新的冷区在地图上看起来一样,含义
+却相反。前者是一个基本置身于战争之外的地区;后者是一座抵抗力量**被镇压**的城市。
+:::
+
+## <span class="en">What neighbourhood statistics cannot see</span><span class="zh">邻域统计量看不见什么</span>
+
+::: {.en}
+Three of the five townships with the most conflict events, Kawkareik, Kale
+and Hpakant, are not significant under local Moran's I or Gi\*, and their
+EHSA class is "no pattern detected". Each is a high-conflict township whose
+neighbours are much quieter. Local Moran's I could in principle flag them as
+High-Low outliers, but with only five or six neighbours, a single extreme
+township among moderate ones does not reach significance. Gi\* sums the
+neighbourhood, so one township's events are diluted by its neighbours'.
+This is a property of the methods, not an error, and it means a hot spot map
+must not be read as a list of the most violent places. For operational use
+the cluster maps should always be read alongside the count maps of
+@sec-dist.
+:::
+
+::: {.zh}
+冲突事件最多的五个镇区中,有三个,即高加力、葛礼与帕敢,在局部 Moran's I 与 Gi\* 下
+都不显著,EHSA 类别也是「未检测到模式」。它们每一个都是冲突很高、而邻居要平静得多的
+镇区。局部 Moran's I 原则上可以把它们标为「高-低」异常值,但只有五六个邻居时,一个
+处于中等邻居之间的极端镇区达不到显著性。Gi\* 对邻域求和,所以一个镇区的事件会被
+邻居稀释。这是方法本身的性质,并非错误;但它意味着**热点地图不能被读成「最暴力
+地点」的名单**。在实际应用中,聚集地图应当始终与 @sec-dist 的计数地图一起阅读。
+:::
+
+## <span class="en">Geovisualisation and geocommunication choices</span><span class="zh">地理可视化与地理传达的选择</span> {#sec-geocomm}
+
+::: {.en}
+The figures follow a few rules, chosen so that a reader who skips the text
+can still read the maps correctly.
+
+- **One colour, one meaning.** Red is always more conflict or a hot spot,
+  blue always less or a cold spot, and the same palette is used for the same
+  statistic everywhere: the LISA quadrants, the Gi\* classes and the EHSA
+  classes each have one fixed colour scheme (`R/utils.R`). In the LISA maps
+  the outlier quadrants are paler than the cluster quadrants, so an outlier
+  is not mistaken for a cluster.
+- **Significance is shown, not implied.** Non-significant townships are
+  pale grey, and townships that survive FDR correction carry a heavy
+  outline, so the strength of evidence is visible on the map itself. In the
+  EHSA maps "no pattern detected" is left blank, since it is not a result.
+- **Comparison by small multiples.** Variables, years and specifications
+  are compared in panels that share classes, which keeps differences between
+  panels meaningful.
+- **Counts beside statistics.** Every local statistic map has a count map to
+  set against it (@sec-dist), and the heat strip of @fig-cube shows the raw
+  space-time cube that EHSA summarises.
+- **Captions that state the reading.** Each commentary block names the
+  conclusion first, in bold, and then the evidence for it.
+:::
+
+::: {.zh}
+本报告的图形遵循几条规则,目的是让跳过正文的读者也能正确读图。
+
+- **一种颜色,一种含义。** 红色始终表示冲突更多或热点,蓝色始终表示冲突更少或冷点;
+  同一统计量在各处使用同一调色板:LISA 象限、Gi\* 类别与 EHSA 类别各有一套固定配色
+  (见 `R/utils.R`)。在 LISA 地图中,异常值象限比聚集象限颜色更浅,避免把异常值
+  误读为聚集。
+- **显著性被显示,而不是被暗示。** 不显著的镇区为浅灰色,通过 FDR 校正的镇区加粗
+  描边,因此证据强度直接体现在地图上。EHSA 地图中「未检测到模式」留白,因为它不是
+  一个结果。
+- **用小多图做比较。** 变量、年份与设定都在共享分级的子图中比较,使子图之间的差异
+  有意义。
+- **统计量旁附计数。** 每一幅局部统计量地图都有一幅计数地图可供对照(@sec-dist),
+  @fig-cube 的热力条带则展示了 EHSA 所概括的原始时空立方体。
+- **说明直接给出读法。** 每段解读先以粗体点明结论,再给出证据。
+:::

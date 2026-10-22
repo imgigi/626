@@ -1,0 +1,917 @@
+# <span class="en">Emerging hot spot analysis</span><span class="zh">新兴热点分析</span> {#sec-ehsa}
+
+::: {.en}
+*Addresses RQ2.* The emerging hot spot analysis is carried out by
+`scripts/04_ehsa.R`, with the statistic itself in `R/ehsa.R`. The section
+builds the space-time cube, states the method, and then, before any result
+is interpreted, checks the reference implementation against an independent
+computation. That check changes the results substantially, so it is
+presented in full.
+:::
+
+::: {.zh}
+*对应 RQ2。* 新兴热点分析由 `scripts/04_ehsa.R` 完成,统计量本身见 `R/ehsa.R`。本节
+先构建时空立方体、说明方法,然后在解读任何结果之前,先用一个独立计算来检验参照实现。
+这一检验显著改变了结果,因此完整呈现。
+:::
+
+```{r}
+#| label: ehsa-prep
+#| include: false
+cls_of <- function(v, which = "cls") ehsa_label(EH$results[[v]][[which]]$classification)
+ehsa_df <- function(v) {
+  r <- EH$results[[v]]
+  tibble(TS_PCODE = EH$locs, cls = ehsa_label(r$cls$classification),
+         tau = r$cls$tau, p_mk = r$cls$p_value,
+         n_hot  = rowSums(r$p_fold <= EH$alpha & r$G > 0),
+         n_cold = rowSums(r$p_fold <= EH$alpha & r$G < 0))
+}
+ec <- ehsa_df("conflict") |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "TS", "ST")], by = "TS_PCODE")
+ec_sf <- ts_an |> select(TS_PCODE) |> left_join(ec, by = "TS_PCODE")
+ncls <- function(d, k) sum(d$cls == k)
+k_star <- min(EH$null_nq$k[EH$null_nq$surv_hot <= 0.01])
+quarters <- EH$cube_info$periods
+```
+
+## <span class="en">Building the space-time cube</span><span class="zh">构建时空立方体</span> {#sec-ehsa-cube}
+
+```{r}
+#| label: ehsa-cube-code
+#| eval: false
+geo <- ts_an |> select(TS_PCODE)
+geo$nb <- include_self(nb_an)      # assigned directly: dplyr >= 1.2 will not
+geo$wt <- st_weights(geo$nb)       # accept an `nb` object inside mutate()
+
+cube_q <- spacetime(as.data.frame(panel_q), geo,
+                    .loc_col = "TS_PCODE", .time_col = "period")
+is_spacetime_cube(cube_q)
+```
+
+::: {.en}
+`spacetime()` binds the township-by-quarter panel to the geometry without
+merging them, and `is_spacetime_cube()` confirms the cube is complete: every
+one of the `r EH$cube_info$n_locs` townships appears exactly once in each of
+the `r EH$cube_info$n_times` quarters, `r n_fmt(EH$cube_info$n_bins)` bins in
+all. The neighbour list is attached to the geometry as a column, with each
+township included in its own neighbourhood, as Gi\* requires. Two
+practicalities are worth recording. dplyr 1.2 refuses an object of class `nb`
+inside `mutate()`, so the column is assigned directly. And the geometry is
+sorted by `TS_PCODE`, for the reason shown in @sec-ehsa-check.
+:::
+
+::: {.zh}
+`spacetime()` 把镇区-季度面板与几何对象绑定在一起而不合并它们,`is_spacetime_cube()`
+则确认立方体是完整的:`r EH$cube_info$n_locs` 个镇区中的每一个在 `r EH$cube_info$n_times`
+个季度里都恰好出现一次,共 `r n_fmt(EH$cube_info$n_bins)` 个格元。邻居列表作为一列
+附在几何对象上,每个镇区都包含在自己的邻域中,这是 Gi\* 的要求。有两个实际问题值得
+记录:dplyr 1.2 不接受 `mutate()` 中类为 `nb` 的对象,所以这一列是直接赋值的;几何
+对象按 `TS_PCODE` 排序,原因见 @sec-ehsa-check。
+:::
+
+## <span class="en">Space-time Gi\* and the Mann-Kendall test</span><span class="zh">时空 Gi\* 与 Mann-Kendall 检验</span> {#sec-ehsa-method}
+
+::: {.en}
+For township $i$ in quarter $t$, the space-time Gi\* pools the township and
+its queen neighbours in quarter $t$ and, with a time lag of $k = 1$, the same
+set in quarter $t-1$. Weights are row-standardised within each quarter's
+copy. The statistic is standardised against the mean $\bar x_t$ and variance
+$s_t^2$ of quarter $t$ alone:
+
+$$
+G^*_{it} = \frac{\sum_{s=t-k}^{t}\sum_j w_{ij} x_{js} \;-\; W_i \bar x_t}
+{s_t \sqrt{\left(n S_{1i} - W_i^2\right)/(n-1)}},
+\qquad W_i = \sum_{s,j} w_{ij}, \quad S_{1i} = \sum_{s,j} w_{ij}^2 .
+$$
+
+A township is a hot spot in a quarter if its neighbourhood total is
+significantly larger than the neighbourhood totals of randomly chosen
+townships *in the same quarter*. The standardisation by quarter is
+deliberate: a national surge raises every township at once and does not, by
+itself, make any township a hot spot.
+
+Each township then has a series of `r EH$cube_info$n_times` Gi\* values, and
+the Mann-Kendall test [@mann1945; @kendall1975] asks whether the series
+trends up or down. The classification combines the two: which quarters
+were significant hot or cold spots, in what sequence, and whether the trend
+is significant. @tbl-classes summarises the rules, which follow Esri's
+definitions [@esri_ehsa] as implemented in sfdep.
+:::
+
+::: {.zh}
+对于第 $t$ 季度的镇区 $i$,时空 Gi\* 汇集该镇区及其 queen 邻居在第 $t$ 季度的值,
+并在时间滞后 $k = 1$ 时,汇集同一组镇区在第 $t-1$ 季度的值。权重在每个季度的副本中
+分别行标准化。统计量只以第 $t$ 季度自身的均值 $\bar x_t$ 与方差 $s_t^2$ 进行标准化
+(公式见上)。
+
+一个镇区在某季度为热点,意味着它的邻域总量显著大于**同一季度**随机选取的镇区的邻域
+总量。按季度标准化是刻意为之:全国性的激增会同时抬高每一个镇区,其本身并不会使任何
+镇区成为热点。
+
+于是每个镇区有一条由 `r EH$cube_info$n_times` 个 Gi\* 值组成的序列,Mann-Kendall
+检验 [@mann1945; @kendall1975] 判断该序列是否有上升或下降趋势。分类综合两者:哪些
+季度是显著的热点或冷点、出现的顺序如何、趋势是否显著。@tbl-classes 概括了这些规则,
+它们遵循 Esri 的定义 [@esri_ehsa],并按 sfdep 中的实现执行。
+:::
+
+```{r}
+#| label: tbl-classes
+#| tbl-cap: "<span class='en'>The emerging hot spot classes as sfdep implements them (cold classes mirror the hot ones). 'Significant' means the folded permutation p-value is at most 0.05.</span><span class='zh'>sfdep 实现的新兴热点类别(冷点类别与热点类别对称)。「显著」指折叠置换 p 值不超过 0.05。</span>"
+
+tribble(
+  ~Class, ~`Rule (hot version)`,
+  "New",          "Significant hot in the final quarter only, never before",
+  "Consecutive",  "An unbroken run of significant hot quarters at the end of the series, no significant hot quarter before it, and fewer than 90% of quarters hot",
+  "Intensifying", "Significant hot in at least 90% of quarters including the last, with a significant upward trend",
+  "Persistent",   "Significant hot in at least 90% of quarters, no significant trend",
+  "Diminishing",  "Significant hot in at least 90% of quarters including the last, with a significant downward trend",
+  "Sporadic",     "Significant hot in some quarters, fewer than 90%, never a significant cold spot",
+  "Oscillating",  "Significant hot in the final quarter, significant cold in at least one earlier quarter",
+  "Historical",   "Significant hot in at least 90% of quarters, but not hot in the last",
+  "No pattern detected", "None of the above, typically never significant"
+) |>
+  gt() |>
+  cols_width(Class ~ px(150)) |>
+  tab_options(table.font.size = px(13))
+```
+
+## <span class="en">Checking the tool before trusting it</span><span class="zh">在信任工具之前先检验它</span> {#sec-ehsa-check}
+
+::: {.en}
+`emerging_hotspot_analysis()` in sfdep [@parry2023] runs the whole procedure
+in one call. Before its output was interpreted, its space-time Gi\* was
+reimplemented independently (`gi_spt()` in `R/ehsa.R`) and the two compared
+value by value. The deterministic part agrees: the largest difference
+between the two sets of `r n_fmt(EH$cube_info$n_bins)` Gi\* values is
+`r format(EH$validation$max_gi_diff, digits = 2)`, rounding error. The
+comparison nonetheless exposed three defects in how the function uses that
+statistic, and a fourth issue in how its output is usually read.
+:::
+
+::: {.zh}
+sfdep 的 `emerging_hotspot_analysis()` [@parry2023] 一次调用就完成全部流程。在解读其
+输出之前,本研究独立重新实现了它的时空 Gi\*(`R/ehsa.R` 中的 `gi_spt()`),并逐值
+比较二者。确定性部分是一致的:两组 `r n_fmt(EH$cube_info$n_bins)` 个 Gi\* 值之间的
+最大差异是 `r format(EH$validation$max_gi_diff, digits = 2)`,只是舍入误差。尽管如此,
+这一比较还是揭示了该函数在**使用**这一统计量时的三个缺陷,以及其输出在通常解读方式
+上的第四个问题。
+:::
+
+### <span class="en">Defect 1: results attached to the wrong township</span><span class="zh">缺陷一:结果被贴到错误的镇区上</span>
+
+::: {.en}
+The function computes each township's classification by splitting the
+results by location, which orders them alphabetically by location
+identifier, and then labels the rows with the locations *in the order of the
+geometry*. When the two orders differ, every result is attached to some
+other township. The cube was built twice, identical except for the order of
+the polygons: once sorted by `TS_PCODE`, once in the order MIMU delivers
+them. The Mann-Kendall tau that the function reports was then compared with
+tau computed directly from each township's own Gi\* series.
+:::
+
+::: {.zh}
+该函数在计算每个镇区的分类时,先按地点拆分结果,这会使结果按地点标识符的**字母顺序**
+排列;然后又按**几何对象的顺序**给各行贴上地点标签。只要两种顺序不同,每个结果就会被
+贴到另一个镇区上。本研究构建了两次立方体,除多边形顺序外完全相同:一次按 `TS_PCODE`
+排序,一次按 MIMU 交付时的顺序。然后把函数报告的 Mann-Kendall tau 与直接由每个镇区
+**自身** Gi\* 序列计算的 tau 相比较。
+:::
+
+```{r}
+#| label: fig-labelbug
+#| fig-cap: "<span class='en'>Mann-Kendall tau reported by sfdep's emerging_hotspot_analysis() against tau computed from each township's own Gi\\* series. Left: geometry sorted by location identifier. Right: geometry in MIMU's delivered order.</span><span class='zh'>sfdep 的 emerging_hotspot_analysis() 报告的 Mann-Kendall tau,与由各镇区自身 Gi\\* 序列计算的 tau 对比。左:几何对象按地点标识符排序。右:几何对象按 MIMU 交付时的顺序。</span>"
+#| fig-alt: "Two scatterplots. With sorted geometry every point lies on the diagonal; with MIMU order the points form a structureless cloud."
+#| fig-width: 9
+#| fig-height: 4.2
+
+tau_true <- tibble(location = EH$locs,
+                   tau_me = apply(EH$results$conflict$G, 1,
+                                  function(g) Kendall::MannKendall(g)$tau))
+lb <- bind_rows(
+  tau_true |> mutate(tau_sf = tau_me, panel = "Geometry sorted by TS_PCODE"),
+  EH$validation$tau_mimu |> mutate(panel = "Geometry in MIMU's order")
+) |>
+  mutate(panel = factor(panel, levels = c("Geometry sorted by TS_PCODE",
+                                          "Geometry in MIMU's order")))
+ggplot(lb, aes(tau_me, tau_sf)) +
+  geom_abline(colour = "#a8a29e", linewidth = 0.4) +
+  geom_point(size = 1.2, alpha = 0.6, colour = PAL$conflict) +
+  facet_wrap(~ panel) +
+  coord_equal() +
+  labs(title = "Same data, same statistic, different polygon order",
+       x = "tau from the township's own Gi* series",
+       y = "tau reported by emerging_hotspot_analysis()") +
+  theme_th(10.5)
+```
+
+::: {.interp .en}
+**Label defect.** With sorted geometry the reported tau is exactly right for
+every township (largest difference
+`r EH$validation$max_tau_diff_sorted`). With MIMU's order,
+`r pct(100 * EH$validation$share_wrong_mimu)` of townships receive another
+township's tau, and the correlation between reported and true values is
+`r sprintf("%.2f", EH$validation$cor_tau_mimu)`. Relabelling the rows in
+alphabetical order of location recovers the right answer exactly, which
+pins the cause on the labelling step. `r EH$validation$class_changed_mimu`
+of `r N_TS` classifications change. Nothing in the output signals the
+problem: every township gets a plausible class, and the map looks like a
+map. The same pattern, a tau unrelated to a hand computation, is what one
+would see on any dataset whose polygons are not stored in sorted order. This
+analysis avoids it by sorting the frame (@sec-prep-islands) and by checking
+the labels.
+:::
+
+::: {.interp .zh}
+**标签缺陷。** 几何对象排序时,报告的 tau 对每个镇区都完全正确(最大差异
+`r EH$validation$max_tau_diff_sorted`)。按 MIMU 的顺序时,
+`r pct(100 * EH$validation$share_wrong_mimu)` 的镇区得到的是另一个镇区的 tau,报告值
+与真实值的相关系数为 `r sprintf("%.2f", EH$validation$cor_tau_mimu)`。把各行按地点的
+字母顺序重新贴标签,就能完全恢复正确答案,这把原因锁定在贴标签这一步。`r N_TS` 个
+分类中有 `r EH$validation$class_changed_mimu` 个发生变化。输出中没有任何迹象提示这个
+问题:每个镇区都得到一个看似合理的类别,地图看起来也像一张正常的地图。任何多边形
+不是按排序存储的数据集,都会出现同样的现象,即 tau 与手工计算毫无关系。本分析通过对
+分析框架排序(@sec-prep-islands)并核对标签来避免它。
+:::
+
+### <span class="en">Defect 2: a null model that pools every quarter</span><span class="zh">缺陷二:把所有季度混在一起的零模型</span>
+
+::: {.en}
+The function judges significance by conditional permutation, but the
+pseudo-neighbours are drawn from *every bin of the cube*: any township, in
+any quarter, including the township's own slot. Gi\* is standardised by the
+quarter's own mean and variance, so when the national level trends, the
+draws for a quiet quarter come mostly from busier quarters, and almost every
+township in it looks unusually low. In a busy quarter the reverse happens.
+The replacement, `gi_spt_perm()` in `R/ehsa.R`, holds the township's own
+values fixed and replaces its neighbours with a random set of other
+townships, read *in the same quarters* as the real neighbours. Everything
+else (statistic, threshold, classification rules apart from the one in
+Defect 3) is left exactly as in sfdep; feeding sfdep's own p-values through
+the replacement classifier with sfdep's rules unchanged reproduces sfdep's
+classes exactly (`r EH$validation$classifier_identical`).
+:::
+
+::: {.zh}
+该函数以条件置换判断显著性,但伪邻居是从**立方体的每一个格元**中抽取的:任何镇区、
+任何季度,甚至包括该镇区自身的位置。Gi\* 是按该季度自身的均值与方差标准化的,所以当
+全国水平存在趋势时,为一个平静季度抽取的样本大多来自更繁忙的季度,于是该季度几乎
+每个镇区都显得异常地低;繁忙季度则恰好相反。替代方案 `R/ehsa.R` 中的 `gi_spt_perm()`
+固定镇区自身的值,用一组随机的其他镇区替换其邻居,并在与真实邻居**相同的季度**读取
+它们的值。其余一切(统计量、阈值,以及除缺陷三所涉规则之外的分类规则)都与 sfdep
+完全相同;把 sfdep 自己的 p 值输入替代分类器、并保持 sfdep 规则不变,可以完全复现
+sfdep 的分类(`r EH$validation$classifier_identical`)。
+:::
+
+```{r}
+#| label: ehsa-perm-code
+#| eval: false
+# Inside gi_spt_perm(): for quarter t and township i
+S   <- rowSums(X[, max(1, t - k):t, drop = FALSE])    # same quarters as the real neighbours
+obs <- sum(S[nb_self[[i]]])                           # own value + real neighbours
+r   <- matrix(replicate(nsim, sample.int(n - 1L, ci)), nrow = ci)
+idx <- r + (r >= i)                                    # any township except i itself
+sim <- S[i] + colSums(matrix(S[idx], nrow = ci))       # own value fixed + random neighbours
+p_fold[i, t] <- min((sum(obs >= sim) + 1) / (nsim + 1),
+                    (sum(obs <= sim) + 1) / (nsim + 1))
+```
+
+```{r}
+#| label: fig-nulls
+#| fig-cap: "<span class='en'>Townships that are significant hot or cold spots in each quarter, all conflict events, under sfdep's pooled null and under the period-conditional null. Grey bars: national conflict events in the quarter (right axis).</span><span class='zh'>每个季度显著热点与冷点的镇区数(全部冲突事件),分别基于 sfdep 的混合零模型与按期条件化的零模型。灰色柱:该季度全国冲突事件数(右轴)。</span>"
+#| fig-alt: "Line chart in which sfdep's pooled null marks almost 190 townships as cold spots in 2021 Q1 while the period-conditional null marks about 10; hot spots under the pooled null track the national trend."
+#| fig-width: 9.6
+#| fig-height: 4.6
+
+bn <- EH$bins_by_null |>
+  pivot_longer(c(hot, cold), names_to = "side", values_to = "n") |>
+  mutate(side = recode(side, hot = "Hot spots", cold = "Cold spots"))
+sc <- max(bn$n) / max(bn$national)
+ggplot(bn, aes(period + 45)) +
+  geom_col(data = distinct(bn, period, national), aes(y = national * sc),
+           fill = "#e7e5e4", width = 80) +
+  geom_line(aes(y = n, colour = null), linewidth = 0.85) +
+  geom_point(aes(y = n, colour = null), size = 1.6) +
+  facet_wrap(~ side) +
+  scale_colour_manual(NULL, values = c("sfdep: pooled over all quarters" = "#a8a29e",
+                                       "Period-conditional" = PAL$conflict)) +
+  scale_y_continuous("Significant townships",
+                     sec.axis = sec_axis(~ . / sc, name = "National events",
+                                         labels = label_comma())) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "Under the pooled null, significance follows the national trend",
+       x = NULL) +
+  theme_th(10.5)
+```
+
+```{r}
+#| label: null-numbers
+#| include: false
+bq1 <- EH$bins_by_null |> filter(period == min(period))
+sf_q1_cold <- bq1$cold[grepl("sfdep", bq1$null)]
+pc_q1_cold <- bq1$cold[!grepl("sfdep", bq1$null)]
+cor_sf <- with(EH$bins_by_null |> filter(grepl("sfdep", null)), cor(hot, national))
+cor_pc <- with(EH$bins_by_null |> filter(!grepl("sfdep", null)), cor(hot, national))
+hot_sf <- EH$bins_by_null$hot[grepl("sfdep", EH$bins_by_null$null)]
+hot_pc <- EH$bins_by_null$hot[!grepl("sfdep", EH$bins_by_null$null)]
+```
+
+::: {.interp .en}
+**Null defect.** In the first quarter of 2021, when only
+`r n_fmt(bq1$national[1])` conflict events were recorded nationally, the
+pooled null marks `r sf_q1_cold` of `r N_TS` townships as significant cold
+spots. The period-conditional null marks `r pc_q1_cold`. Under the pooled
+null the number of hot spots swings from `r min(hot_sf)` to `r max(hot_sf)`
+across the quarters and tracks the national total closely (correlation
+`r sprintf("%.2f", cor_sf)`); under the period-conditional null it stays
+between `r min(hot_pc)` and `r max(hot_pc)`, moving with how clustered the
+conflict is in a quarter rather than with how much of it there is. The pooled
+null therefore converts the national escalation into local significance:
+early quarters are full of spurious cold spots and later quarters of extra
+hot spots. That sequence, cold first and hot later, is precisely the definition
+of an *oscillating hot spot*, which is why the uncorrected output is full of
+them.
+:::
+
+::: {.interp .zh}
+**零模型缺陷。** 2021 年第一季度,全国只记录到 `r n_fmt(bq1$national[1])` 起冲突事件,
+而混合零模型把 `r N_TS` 个镇区中的 `r sf_q1_cold` 个标为显著冷点;按期条件化的零模型
+只标出 `r pc_q1_cold` 个。在混合零模型下,各季度的热点数在 `r min(hot_sf)` 到
+`r max(hot_sf)` 之间大幅摆动,并紧随全国总量(相关系数 `r sprintf("%.2f", cor_sf)`);在
+按期条件化的零模型下,它保持在 `r min(hot_pc)` 到 `r max(hot_pc)` 之间,随的是该季度冲突
+的聚集程度,而不是冲突的多少。因此混合零模型把全国性的升级转化成了局部显著性:早期
+季度充满虚假冷点,后期季度则多出热点。「先冷后热」这个序列,恰恰就是**振荡热点**的
+定义,这正是未修正输出中振荡热点泛滥的原因。
+:::
+
+```{r}
+#| label: tbl-sfdep-vs-pc
+#| tbl-cap: "<span class='en'>Townships in each class, sfdep's pooled null against the period-conditional null, for all five variables. Only classes that occur in either are shown.</span><span class='zh'>五个变量在 sfdep 混合零模型与按期条件化零模型下各类别的镇区数。只列出在任一方案中出现的类别。</span>"
+
+cmp_tbl <- bind_rows(
+  EH$sfdep_all |> mutate(null = "sfdep") |> select(var, null, cls = classification),
+  map_dfr(names(VARS), function(v) tibble(var = v, null = "corrected",
+                                          cls = cls_of(v)))
+) |>
+  mutate(var = VAR_SHORT[var]) |>
+  count(var, null, cls) |>
+  pivot_wider(names_from = c(var, null), values_from = n, values_fill = 0,
+              names_sep = "|") |>
+  arrange(cls) |>
+  mutate(cls = as.character(cls))
+
+col_order <- as.vector(t(outer(unname(VAR_SHORT), c("sfdep", "corrected"),
+                               function(a, b) paste(a, b, sep = "|"))))
+cmp_tbl |>
+  select(cls, any_of(col_order)) |>
+  gt(rowname_col = "cls") |>
+  tab_spanner_delim(delim = "|") |>
+  tab_options(table.font.size = px(12))
+```
+
+::: {.interp .en}
+**Consequence.** For all conflict events, sfdep classifies
+`r sum(EH$cls_compare$sfdep == "Oscillating hot spot")` townships as
+oscillating hot spots; the period-conditional null leaves
+`r sum(EH$cls_compare$pc == "Oscillating hot spot")`. Most of the others
+become sporadic or consecutive hot spots, which is what the heat strip in
+@fig-cube suggests they are: townships that have been violent relative to the
+rest of the country for most of the period, not townships that were once
+unusually calm. The persistent cold spots fall from
+`r sum(EH$cls_compare$sfdep == "Persistent cold spot")` to
+`r sum(EH$cls_compare$pc == "Persistent cold spot")`, because quiet
+townships in the quiet early quarters are no longer counted as significant.
+The same shift appears in all five variables.
+:::
+
+::: {.interp .zh}
+**后果。** 就全部冲突事件而言,sfdep 把 `r sum(EH$cls_compare$sfdep == "Oscillating hot spot")`
+个镇区归为振荡热点;按期条件化的零模型只剩 `r sum(EH$cls_compare$pc == "Oscillating hot spot")`
+个。其余大多变为零星或连续热点,而这正是 @fig-cube 中的热力条带所提示的:它们是在
+研究期大部分时间里相对于全国其他地区一直暴力的镇区,而不是曾经异常平静的镇区。持续
+冷点从 `r sum(EH$cls_compare$sfdep == "Persistent cold spot")` 个降到
+`r sum(EH$cls_compare$pc == "Persistent cold spot")` 个,因为平静早期季度中的平静镇区
+不再被算作显著。同样的变化出现在全部五个变量中。
+:::
+
+### <span class="en">Defect 3: a class rule that ignores the sign</span><span class="zh">缺陷三:一条忽略符号的分类规则</span>
+
+::: {.en}
+sfdep tests a township against its class rules in a fixed order and assigns
+the first that fits. Its rule for an *intensifying hot spot* asks for
+significance in at least 90% of quarters, including the last, and a
+significant upward trend, but it counts significant quarters of either sign
+and never checks that they are hot. It is also tested before the rule for a
+*diminishing cold spot*. A township that is a significant cold spot almost
+throughout, and whose Gi\* is rising towards zero, is therefore called an
+intensifying hot spot. The cold version of the rule already counts only cold
+quarters, so the hot version is corrected to match (`ehsa_rules()` in
+`R/ehsa.R`), and nothing else in the rule set is changed.
+:::
+
+::: {.zh}
+sfdep 按固定顺序用各条分类规则检验一个镇区,并赋予第一个符合的类别。它对**增强热点**
+的规则要求包括最后一个季度在内至少 90% 的季度显著,且有显著的上升趋势;但它统计的是
+**任一符号**的显著季度,从不检查这些季度是否为**热**。而且这条规则排在**减弱冷点**
+规则之前。因此,一个几乎始终是显著冷点、且 Gi\* 正向零回升的镇区,会被称为增强热点。
+冷点版本的规则本来就只统计冷季度,所以本研究把热点版本修正为与之一致(`R/ehsa.R` 中的
+`ehsa_rules()`),规则集的其余部分不作任何改动。
+:::
+
+```{r}
+#| label: tbl-rulefix
+#| tbl-cap: "<span class='en'>Townships whose class changes when the intensifying hot spot rule is corrected, all five variables, period-conditional null.</span><span class='zh'>修正增强热点规则后类别发生变化的镇区(全部五个变量,按期条件化零模型)。</span>"
+
+EH$rule_fix |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "TS", "ST")], by = "TS_PCODE") |>
+  transmute(Township = TS, State = ST, Variable = VAR_SHORT[var],
+            `sfdep's rule` = ehsa_label(sfdep_rule), Corrected = ehsa_label(corrected),
+            `Significant hot quarters` = n_hot, `Significant cold quarters` = n_cold) |>
+  gt() |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.interp .en}
+**Rule defect.** The defect is rare in these data, but where it occurs the
+label is the opposite of the truth: Mongyang, in the eastern Shan hills, is a
+significant cold spot of remote violence in 18 of 19 quarters and was
+labelled an intensifying hot spot. A reader who mapped "intensifying hot
+spots" as early warnings would have flagged one of the quietest townships in
+the country.
+:::
+
+::: {.interp .zh}
+**规则缺陷。** 这个缺陷在本数据中很少出现,但一旦出现,标签就与事实正好相反:掸邦
+东部山地的勐央,在 19 个季度中有 18 个季度是远程暴力的显著冷点,却被标为增强热点。
+如果读者把「增强热点」当作预警来绘图,就会把全国最平静的镇区之一标记出来。
+:::
+
+### <span class="en">A fourth issue: how many classes would chance produce?</span><span class="zh">第四个问题:偶然会产生多少类别?</span> {#sec-ehsa-null}
+
+::: {.en}
+The fourth issue is not a defect in code but in how EHSA output is usually
+read. Each township is tested `r EH$cube_info$n_times` times, and a single
+significant hot quarter with no significant cold one is enough to make a
+township a "sporadic hot spot". At a threshold that is two-sided 0.10 in
+effect, that will happen often by chance alone. To see how often, each
+township's complete 19-quarter history was moved to a random location,
+keeping every series and its serial dependence intact and destroying only
+the spatial arrangement, and the whole analysis was re-run
+`r EH$nnull` times.
+:::
+
+::: {.zh}
+第四个问题不是代码缺陷,而在于 EHSA 输出通常的解读方式。每个镇区要被检验
+`r EH$cube_info$n_times` 次,只要有一个显著热季度而没有显著冷季度,就足以使其成为
+「零星热点」。在实际相当于双侧 0.10 的阈值下,这种情况单凭偶然就会经常发生。为了
+知道有多常发生,本研究把每个镇区完整的 19 个季度历史随机移到另一个位置,保持每条
+序列及其序列相关不变,只破坏空间排列,然后把整个分析重复 `r EH$nnull` 次。
+:::
+
+```{r}
+#| label: fig-ehsa-null
+#| fig-cap: "<span class='en'>Observed number of townships in each class (red) against the range produced by 99 cubes in which township histories were relocated at random (grey bar: 95% interval; grey point: mean). All conflict events.</span><span class='zh'>各类别的观测镇区数(红色),与 99 个随机迁移镇区历史的立方体所产生的范围对比(灰条:95% 区间;灰点:均值)。全部冲突事件。</span>"
+#| fig-alt: "Dot and interval chart. Sporadic hot spots lie just above the chance range; consecutive and persistent cold spots lie far above it; no pattern detected lies far below."
+#| fig-width: 8.6
+#| fig-height: 4.4
+
+EH$null_classes |>
+  mutate(class = fct_rev(class)) |>
+  ggplot(aes(y = class)) +
+  geom_linerange(aes(xmin = null_lo, xmax = null_hi), colour = "#a8a29e", linewidth = 3.2) +
+  geom_point(aes(x = null_mean), colour = "#57534e", size = 1.8) +
+  geom_point(aes(x = observed), colour = PAL$conflict, size = 3) +
+  geom_text(aes(x = pmax(observed, null_hi), label = observed), colour = PAL$conflict,
+            hjust = 0, nudge_x = 4, size = 3.1) +
+  labs(title = "How many townships each class would hold by chance",
+       subtitle = "Red: observed. Grey: 95% range when township histories are placed at random",
+       x = "Townships", y = NULL) +
+  theme_th(10.5)
+```
+
+::: {.interp .en}
+**Chance.** With no spatial structure at all, about
+`r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])`
+townships would still be classed as sporadic hot spots; the observed
+`r ncls(ec, "Sporadic hot spot")` is barely above that. The sporadic hot
+class *as a whole* is therefore weak evidence, and a township's label alone
+says little. What separates a real hot spot from a chance one is how many
+quarters it spent hot: under the null, fewer than 1% of townships reach
+`r k_star` or more significant hot quarters. The cold side is the opposite:
+`r ncls(ec, "Consecutive cold spot")` consecutive and
+`r ncls(ec, "Persistent cold spot")` persistent cold spots against fewer than
+`r ceiling(EH$null_classes$null_hi[EH$null_classes$class == "Consecutive cold spot"])`
+and 1 by chance. And the
+`r ncls(ec, "No pattern detected")` townships with no pattern are half the
+chance expectation, because real spatial structure leaves few townships
+untouched. @fig-ehsa-main therefore maps the number of significant quarters
+alongside the class.
+:::
+
+::: {.interp .zh}
+**偶然。** 即使完全没有空间结构,也仍会有约
+`r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])`
+个镇区被归为零星热点;观测到的 `r ncls(ec, "Sporadic hot spot")` 个只是略高于此。
+因此,零星热点这个类别**整体**只是弱证据,单看一个镇区的标签说明不了什么。真正把
+真实热点与偶然热点区分开的,是它处于热点状态的**季度数**:在零模型下,只有不到 1% 的
+镇区能达到 `r k_star` 个或以上的显著热季度。冷的一侧正好相反:观测到
+`r ncls(ec, "Consecutive cold spot")` 个连续冷点与 `r ncls(ec, "Persistent cold spot")`
+个持续冷点,而偶然情况下分别不到
+`r ceiling(EH$null_classes$null_hi[EH$null_classes$class == "Consecutive cold spot"])`
+个与 1 个。`r ncls(ec, "No pattern detected")` 个无模式镇区只有偶然期望的一半,因为
+真实的空间结构使很少有镇区不受触及。因此 @fig-ehsa-main 在类别旁边同时绘制显著季度数。
+:::
+
+## <span class="en">Results</span><span class="zh">结果</span> {#sec-ehsa-results}
+
+```{r}
+#| label: fig-ehsa-main
+#| fig-cap: "<span class='en'>Emerging hot spot analysis of all conflict events, period-conditional null. Left: EHSA class; 'no pattern detected' is left blank because it is not a significant result. Right: number of quarters (of 19) in which the township is a significant hot spot (red) or cold spot (blue); the dashed outline marks townships with at least as many hot quarters as fewer than 1% of townships reach by chance.</span><span class='zh'>全部冲突事件的新兴热点分析(按期条件化零模型)。左:EHSA 类别;「未检测到模式」不是显著结果,因此留白。右:镇区在 19 个季度中作为显著热点(红)或冷点(蓝)的季度数;虚线描边标出显著热季度数达到偶然情况下不到 1% 的镇区所能达到水平的镇区。</span>"
+#| fig-alt: "Two maps. The class map shows sporadic hot spots over Sagaing, Kachin and the south-east, consecutive hot spots in Magway and Mandalay, and consecutive cold spots in Yangon and eastern Shan. The quarter-count map shows the Dry Zone core as hot in more than 12 quarters."
+#| fig-width: 11
+#| fig-height: 8.6
+
+m_cls <- map_base(
+  geom_sf(data = ec_sf |> mutate(cls = replace(cls, cls == "No pattern detected", NA)),
+          aes(fill = cls), colour = "white", linewidth = 0.05),
+  title = "EHSA class", state_lw = 0.25) +
+  scale_fill_manual(NULL, values = PAL_EHSA, na.value = "#fafaf9", drop = TRUE,
+                    na.translate = FALSE)
+
+ec_sf <- ec_sf |> mutate(net_q = n_hot - n_cold)
+m_q <- map_base(
+  list(geom_sf(data = ec_sf, aes(fill = net_q), colour = "white", linewidth = 0.05),
+       geom_sf(data = ec_sf |> filter(n_hot >= k_star), fill = NA,
+               colour = "#1c1917", linewidth = 0.45, linetype = "22")),
+  title = "Quarters as a significant hot (+) or cold (−) spot", state_lw = 0.25) +
+  scale_fill_gradient2(NULL, low = "#08306b", mid = "#fafaf9", high = "#7f0000",
+                       midpoint = 0, limits = c(-19, 19))
+
+m_cls + m_q +
+  plot_annotation(title = "Emerging hot spots of armed conflict, 2021 Q1 – 2025 Q3",
+                  subtitle = "Space-time Gi* (queen + previous quarter), Mann-Kendall, period-conditional permutation null",
+                  theme = theme_th(11))
+```
+
+```{r}
+#| label: tbl-ehsa-counts
+#| tbl-cap: "<span class='en'>Townships in each EHSA class, period-conditional null, by variable.</span><span class='zh'>按变量列出的各 EHSA 类别镇区数(按期条件化零模型)。</span>"
+
+map_dfr(names(VARS), function(v) tibble(Variable = VAR_SHORT[[v]], cls = cls_of(v))) |>
+  count(Variable, cls) |>
+  pivot_wider(names_from = Variable, values_from = n, values_fill = 0) |>
+  arrange(cls) |>
+  rename(Class = cls) |>
+  select(Class, all_of(unname(VAR_SHORT))) |>
+  gt() |>
+  tab_options(table.font.size = px(12.5))
+```
+
+```{r}
+#| label: fig-ehsa-vars
+#| fig-cap: "<span class='en'>EHSA classes for the four component variables, period-conditional null. Blank: no pattern detected.</span><span class='zh'>四个分项变量的 EHSA 类别(按期条件化零模型)。空白:未检测到模式。</span>"
+#| fig-alt: "Four EHSA maps for battles, remote violence, violence against civilians and fatalities."
+#| fig-width: 11
+#| fig-height: 6.8
+
+# One legend for the four maps: the classes that occur in at least one of them.
+present <- map(c("battles", "erv", "vac", "fatalities"), cls_of) |>
+  unlist() |> as.character() |> unique()
+present <- intersect(setdiff(names(PAL_EHSA), "No pattern detected"), present)
+
+ehsa_map <- function(v) {
+  d <- ts_an |> select(TS_PCODE) |>
+    left_join(ehsa_df(v), by = "TS_PCODE") |>
+    mutate(cls = replace(cls, cls == "No pattern detected", NA))
+  map_base(geom_sf(data = d, aes(fill = cls), colour = "white", linewidth = 0.04,
+                   show.legend = TRUE),
+           title = VAR_TINY[[v]], state_lw = 0.2) +
+    scale_fill_manual("EHSA class", values = PAL_EHSA[present], na.value = "#fafaf9",
+                      limits = present, drop = FALSE, na.translate = FALSE) +
+    theme(plot.title = element_text(size = 10.5))
+}
+wrap_plots(lapply(c("battles", "erv", "vac", "fatalities"), ehsa_map), nrow = 1) +
+  plot_layout(guides = "collect") &
+  guides(fill = guide_legend(nrow = 3)) &
+  theme(legend.position = "bottom", legend.key.height = unit(0.35, "cm"),
+        legend.key.width = unit(0.5, "cm"))
+```
+
+```{r}
+#| label: fig-ehsa-traj
+#| fig-cap: "<span class='en'>What the classes look like over time: each township's Gi\\* series (thin lines) and the median of its class (thick line), all conflict events. The dashed lines mark Gi\\* = ±1.96 for orientation; significance itself is by permutation.</span><span class='zh'>各类别随时间的样子:每个镇区的 Gi\\* 序列(细线)与其类别的中位数(粗线),全部冲突事件。虚线标出 Gi\\* = ±1.96 作为参照;显著性本身由置换判定。</span>"
+#| fig-alt: "Small multiples of Gi* time series by EHSA class. Consecutive hot spots rise into sustained high values; consecutive cold spots drift steadily negative."
+#| fig-width: 10
+#| fig-height: 6
+
+G <- EH$results$conflict$G
+traj <- tibble(TS_PCODE = rep(EH$locs, times = ncol(G)),
+               period = rep(quarters, each = nrow(G)),
+               gi = as.vector(G)) |>
+  left_join(ec |> select(TS_PCODE, cls), by = "TS_PCODE") |>
+  filter(cls != "No pattern detected")
+med <- traj |> group_by(cls, period) |> summarise(gi = median(gi), .groups = "drop")
+ggplot(traj, aes(period, gi)) +
+  geom_hline(yintercept = c(-1.96, 1.96), linetype = "22", colour = "#a8a29e", linewidth = 0.3) +
+  geom_line(aes(group = TS_PCODE, colour = cls), alpha = 0.18, linewidth = 0.3) +
+  geom_line(data = med, aes(colour = cls), linewidth = 1.2) +
+  facet_wrap(~ cls, nrow = 2) +
+  scale_colour_manual(values = PAL_EHSA, guide = "none") +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  labs(title = "Gi* trajectories by EHSA class", x = NULL, y = "Gi*") +
+  theme_th(10)
+```
+
+## <span class="en">Reading the clusters</span><span class="zh">解读各类聚集</span> {#sec-ehsa-clusters}
+
+```{r}
+#| label: ehsa-cluster-numbers
+#| include: false
+run_start <- function(v) {
+  r <- EH$results[[v]]
+  sig_hot <- r$p_fold <= EH$alpha & r$G > 0
+  vapply(seq_len(nrow(sig_hot)), function(i) {
+    s <- sig_hot[i, ]
+    if (!s[length(s)]) return(NA_integer_)
+    rl <- rle(rev(s)); length(s) - rl$lengths[1] + 1L
+  }, integer(1))
+}
+emerging <- map_dfr(names(VARS), function(v) {
+  d <- ehsa_df(v)
+  d$start <- run_start(v)
+  d |> filter(cls %in% c("New hot spot", "Consecutive hot spot",
+                         "Intensifying hot spot", "Oscillating hot spot")) |>
+    mutate(var = v)
+}) |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "TS", "ST")], by = "TS_PCODE")
+
+cons_c   <- ec |> filter(cls == "Consecutive hot spot")
+spor_c   <- ec |> filter(cls == "Sporadic hot spot")
+chronic  <- spor_c |> filter(n_hot >= k_star)
+cold_c   <- ec |> filter(cls == "Consecutive cold spot")
+pers_c   <- ec |> filter(cls == "Persistent cold spot")
+spcold_c <- ec |> filter(cls == "Sporadic cold spot")
+nop_c    <- ec |> filter(cls == "No pattern detected")
+top_st <- function(d, n = 3) d |> count(ST, sort = TRUE) |> head(n) |>
+  mutate(s = paste0(ST, " (", n, ")")) |> pull(s) |> paste(collapse = ", ")
+
+# Townships that a two-sided threshold moves into "no pattern".
+two <- ehsa_label(EH$results$conflict$cls_two$classification)
+mv_idx <- which(two == "No pattern detected" & ec$cls != "No pattern detected")
+mv <- list(n = length(mv_idx),
+           spor = sum(grepl("Sporadic", ec$cls[mv_idx])),
+           q12 = sum(pmax(ec$n_hot, ec$n_cold)[mv_idx] <= 2))
+```
+
+```{r}
+#| label: tbl-emerging
+#| tbl-cap: "<span class='en'>Townships classed as new, consecutive, intensifying or oscillating hot spots for any variable, with the quarter in which their final run of significant hot quarters began.</span><span class='zh'>在任一变量上被归为新出现、连续、增强或振荡热点的镇区,以及其最后一段连续显著热季度开始的季度。</span>"
+
+emerging |>
+  mutate(Variable = VAR_SHORT[var], `Run began` = q_lab(quarters[start]),
+         `Quarters in run` = length(quarters) - start + 1L) |>
+  arrange(start, ST, TS) |>
+  select(Township = TS, State = ST, Variable, Class = cls, `Run began`, `Quarters in run`) |>
+  gt() |>
+  tab_options(table.font.size = px(12), container.height = px(420))
+```
+
+::: {.en}
+The descriptions below follow the classes of @fig-ehsa-main for all conflict
+events, drawing on the component variables where they differ. Each is kept
+within 250 words.
+:::
+
+::: {.zh}
+以下描述按 @fig-ehsa-main 中全部冲突事件的类别展开,在分项变量有差别时加以引用。
+每段不超过 250 词。
+:::
+
+::: {.interp .en}
+**Consecutive hot spots (`r nrow(cons_c)`).** These are townships that
+became significant hot spots and have stayed hot every quarter since. They
+fall into two groups. The first is the old core of the Dry Zone, across the
+Sagaing, Magway and Mandalay borders: Myaing, Pakokku, Yesagyo, Salingyi and Singu turned hot in late 2021
+and have been hot in `r min(cons_c$n_hot[cons_c$n_hot > 10])` or more of the
+19 quarters, which is chronic rather than emerging; they miss the
+"persistent" class only because it requires 90% of quarters. The second
+group is genuinely new. Chauk and Nyaung-U, on the Ayeyarwady south of the
+core, have been hot only in the last two quarters, and Pyinoolwin and
+Kyaukme, on the Mandalay–Lashio road into northern Shan, since mid-2024.
+@tbl-emerging shows the same direction across variables: the newest runs are
+in the south and east of the Dry Zone (Meiktila, Kyaukpadaung, Mahlaing and
+Yenangyaung for violence against civilians, Natogyi for fatalities, Kyaukse
+for battles), in western Bago and in Mon. **The front has been moving south
+and east, out of the Sagaing plains towards central Myanmar and the roads to
+Mandalay.** These are the townships where conflict is newest and most likely
+to deepen.
+:::
+
+::: {.interp .zh}
+**连续热点(`r nrow(cons_c)` 个)。** 这些镇区成为显著热点之后,每个季度都一直保持
+热点状态。它们分为两组。第一组是横跨实皆、马圭与曼德勒交界的干燥带老核心:敏建、木各具、耶沙久、
+沙林基与新古在 2021 年底转热,在 19 个季度中有 `r min(cons_c$n_hot[cons_c$n_hot > 10])`
+个或更多季度是热点,与其说是「新兴」不如说是**长期**的;它们只是因为「持续」类别要求
+90% 的季度,才没有被归入该类。第二组才是真正的新热点:伊洛瓦底江畔、核心以南的稍埠
+与良乌只在最近两个季度成为热点,通往掸邦北部的曼德勒–腊戍公路沿线的眉谬与皎梅则从
+2024 年中开始。@tbl-emerging 显示各变量呈现同一方向:最新的连续热点段出现在干燥带的
+南部与东部(针对平民暴力的密铁拉、皎勃东、马莱与仁安羌,死亡人数的纳托吉,战斗的
+皎施),以及勃固西部与孟邦。**前线一直在向南、向东移动,
+从实皆平原移向缅甸中部与通往曼德勒的道路。** 这些是冲突最新、也最可能加深的镇区。
+:::
+
+::: {.interp .en}
+**Sporadic hot spots (`r nrow(spor_c)`).** This is the largest hot class and
+the least informative as a label, since chance alone would produce about
+`r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])`
+of them. The count of significant quarters separates two kinds.
+`r nrow(chronic)` sporadic hot spots were hot in `r k_star` or more quarters,
+beyond what chance produces; they are chronic hot spots whose run was broken
+by one or two quieter quarters, among them Monywa, the township with the most
+conflict events in the country. They are concentrated in Sagaing
+(`r sum(chronic$ST == "Sagaing")`) and form the body of the Dry Zone cluster
+found by local Moran's I. The remaining
+`r nrow(spor_c) - nrow(chronic)` were hot in fewer quarters; most are in
+northern Shan, the outer townships of Sagaing, Kachin, Chin, Tanintharyi,
+Rakhine and Kayah, where conflict came in episodes: an offensive, a lull,
+another offensive. For these, a single
+hot quarter should not be over-read, but the episodes are real enough on the
+ground, and the Markov analysis in @sec-va shows that each one raises the
+risk next door.
+:::
+
+::: {.interp .zh}
+**零星热点(`r nrow(spor_c)` 个)。** 这是最大的热点类别,作为标签却最缺乏信息量,因为
+单凭偶然就会产生约
+`r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])` 个。
+显著季度数把它们分成两类。有 `r nrow(chronic)` 个零星热点在 `r k_star` 个或以上季度
+处于热点状态,超出偶然所能产生的程度;它们是**长期热点**,只是其连续段被一两个较平静
+的季度打断,其中包括全国冲突事件最多的镇区蒙育瓦。它们集中在实皆
+(`r sum(chronic$ST == "Sagaing")` 个),构成局部 Moran's I 所发现的干燥带聚集的主体。
+其余 `r nrow(spor_c) - nrow(chronic)` 个处于热点状态的季度较少,大多位于掸邦北部、
+实皆外围镇区、克钦、钦邦、德林达依、若开与克耶,那里的冲突是**阵发式**的:一次攻势、
+一段平静、再一次攻势。对这些镇区,单个热季度不应被过度解读;但这些阵发在地面上是真实的,
+@sec-va 的马尔可夫分析表明,每一次都会提高隔壁的风险。
+:::
+
+::: {.interp .en}
+**New, intensifying and oscillating hot spots.** These classes are almost
+empty once the null is corrected. For all conflict events there are
+`r ncls(ec, "New hot spot")` new, `r ncls(ec, "Intensifying hot spot")`
+intensifying and `r ncls(ec, "Oscillating hot spot")` oscillating hot spots.
+The oscillating ones are informative: Ramree, in Rakhine, was a significant
+cold spot in 2021–2022 and has been a hot spot in every quarter of 2025 (for
+battles, since late 2024), as the fighting in Rakhine moved south down the
+coast; Lawksawk, in southern Shan, was cold in 2023 and hot again from late
+2024. Among the component variables, a single new hot spot of battles at
+Bokpyin in the far south of Tanintharyi, and a new hot spot of violence
+against civilians at Sidoktaya in Magway, mark places where the latest
+quarter broke with the past, and Taungtha, south of Myingyan, is the one
+genuine intensifying hot spot: hot for violence against civilians in 18 of
+19 quarters, with a rising trend. The near-absence of these classes is itself
+a finding: in this conflict, hot spots rarely appear from nowhere, which
+agrees with the onset analysis in @sec-va-onset.
+:::
+
+::: {.interp .zh}
+**新出现、增强与振荡热点。** 修正零模型之后,这几个类别几乎是空的。就全部冲突事件
+而言,新出现热点 `r ncls(ec, "New hot spot")` 个、增强热点 `r ncls(ec, "Intensifying hot spot")`
+个、振荡热点 `r ncls(ec, "Oscillating hot spot")` 个。振荡热点是有信息量的:若开的兰里
+在 2021–2022 年是显著冷点,而在 2025 年的每个季度都是热点(战斗方面自 2024 年底起),
+因为若开的战事沿海岸向南推进;掸邦南部的罗索在 2023 年是冷点,自 2024 年底起再度转热。
+在分项变量中,德林达依最南端博克平的一个战斗新热点,以及马圭锡多达亚的一个针对平民
+暴力的新热点,标出了最近一个季度与过去决裂的地方;敏建以南的当达是唯一真正的增强
+热点:在 19 个季度中有 18 个季度是针对平民暴力的热点,且趋势上升。这些类别几乎为空,
+这本身就是一个发现:在这场冲突中,热点很少凭空出现,这与 @sec-va-onset 的爆发分析
+一致。
+:::
+
+::: {.interp .en}
+**Consecutive and persistent cold spots (`r nrow(cold_c)` and
+`r nrow(pers_c)`).** The cold side of the map is far more structured than
+chance. The persistent cold spots are Kengtung, Mongyang and Mongping in
+eastern Shan, and Narphan and Mongmao in the Wa self-administered area:
+significant cold spots in 18 or 19 of 19 quarters. The consecutive cold spots
+are two groups with different histories.
+`r sum(grepl("Shan", cold_c$ST))` are in the same eastern and southern Shan
+hills and the Wa area, cold almost throughout.
+`r sum(cold_c$ST == "Yangon")` are in Yangon, and their tau is negative:
+Yangon was not a cold spot in 2021, when urban bombings and the crackdown
+kept it active, and its townships turned cold one after another from the
+second half of 2022. For the eastern Shan hills the cold reflects a region largely
+outside the war, under armed groups that stayed out of it, though thin
+reporting may contribute (@sec-assump). For Yangon it reflects the
+suppression of the urban resistance, not the absence of the state's
+violence.
+:::
+
+::: {.interp .zh}
+**连续冷点与持续冷点(`r nrow(cold_c)` 个与 `r nrow(pers_c)` 个)。** 地图冷的一侧远比
+偶然情况更有结构。持续冷点是掸邦东部的景栋、勐央与勐平,以及佤自治区的纳潘与勐冒:
+它们在 19 个季度中有 18 或 19 个季度是显著冷点。连续冷点是历史不同的两组。有 `r sum(grepl("Shan", cold_c$ST))` 个
+位于同一片掸邦东部与南部山地以及佤地区,几乎始终是冷点。另有 `r sum(cold_c$ST == "Yangon")`
+个在仰光,而它们的 tau 为负:2021 年仰光并不是冷点,当时城市爆炸袭击与镇压使其保持
+活跃;从 2022 年下半年起,其各镇区相继转为冷点。对掸邦东部山地而言,冷意味着一个基本处于战争之外、由置身事外的
+武装团体控制的区域,尽管报道稀少也可能有影响(@sec-assump)。对仰光而言,冷反映的是
+城市抵抗力量**被镇压**,而不是国家暴力的缺席。
+:::
+
+::: {.interp .en}
+**Sporadic cold spots (`r nrow(spcold_c)`) and no pattern
+(`r nrow(nop_c)`).** Sporadic cold spots are led by
+`r top_st(spcold_c, 4)`. They are townships that have been significantly quiet
+relative to the country in some quarters, most of them in the delta, around
+Yangon, in southern Shan and in the south of Magway and western Bago. The
+last two deserve attention: they were significantly quiet in 2021–2023, and
+since 2024 @tbl-emerging finds new hot spots of violence against civilians
+there (Minhla, Letpadan, Okpho and Monyo in western Bago; Yenangyaung and
+Sidoktaya in Magway). A township that was sporadically cold is not
+necessarily safe. The `r nrow(nop_c)` townships with no detectable pattern
+were never significant in either direction. They are not "average" in a
+reassuring sense: they include three of the five townships with the most
+conflict events in the country, Kawkareik, Kale and Hpakant, whose
+neighbourhoods were never extreme relative to the rest of the country in the
+same quarter (@sec-integration).
+:::
+
+::: {.interp .zh}
+**零星冷点(`r nrow(spcold_c)` 个)与无模式(`r nrow(nop_c)` 个)。** 零星冷点居前的是
+`r top_st(spcold_c, 4)`。它们是在某些季度相对于全国显著平静的镇区,大多位于三角洲、
+仰光周边、掸邦南部,以及马圭南部与勃固西部。后两者值得注意:它们在 2021–2023
+年显著平静,而自 2024 年起 @tbl-emerging 在那里发现了针对平民暴力的新热点(勃固西部的
+敏拉、勒巴丹、奥波与茂良;马圭的仁安羌与锡多达亚)。一个曾经零星冷的镇区未必安全。
+`r nrow(nop_c)` 个未检测到模式的镇区,在任何方向上都从未显著。它们并不是令人安心意义上
+的「一般」:其中包括全国冲突事件最多的五个镇区中的三个,即高加力、葛礼与帕敢,它们的
+邻域在同一季度相对于全国其他地区从未极端到显著的程度(@sec-integration)。
+:::
+
+## <span class="en">Sensitivity</span><span class="zh">敏感性</span> {#sec-ehsa-sens}
+
+::: {.en}
+Each alternative changes one choice relative to the primary run (quarterly
+cube, one quarter of time lag, queen contiguity, folded p ≤ 0.05) and counts
+how many townships keep the same class, and how many stay on the same side
+(hot, cold or neither).
+:::
+
+::: {.zh}
+每个备选方案都只相对主分析(季度立方体、一个季度的时间滞后、queen 邻接、折叠
+p ≤ 0.05)改变一项选择,并统计有多少镇区保持相同类别,以及有多少镇区停留在同一侧
+(热、冷或都不是)。
+:::
+
+```{r}
+#| label: tbl-ehsa-sens
+#| tbl-cap: "<span class='en'>Sensitivity of the EHSA classification of all conflict events.</span><span class='zh'>全部冲突事件 EHSA 分类的敏感性。</span>"
+
+EH$sens |>
+  mutate(ord = match(spec, c("Primary (quarterly, k = 1, queen, folded p)",
+                             "Two-sided p ≤ 0.05", "k = 0 (no time lag)",
+                             "k = 2 (two quarters)", "k = 6 nearest neighbours",
+                             "Monthly cube (57 months)"))) |>
+  arrange(ord) |> select(-ord) |>
+  rename(Specification = spec) |>
+  gt() |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.interp .en}
+**Sensitivity.** The side a township falls on is robust; the exact class is
+less so. Changing the time lag keeps
+`r EH$sens$"Hot/cold side kept"[EH$sens$spec == "k = 2 (two quarters)"]` of
+`r N_TS` townships on the same side with $k = 2$ and
+`r EH$sens$"Hot/cold side kept"[EH$sens$spec == "k = 0 (no time lag)"]` with
+$k = 0$. The neighbour definition and the time unit matter more: with six
+nearest neighbours or a monthly cube, between a quarter and a third of
+townships change class, mostly between sporadic and no pattern at the edges
+of the clusters.
+Requiring a two-sided p ≤ 0.05 moves `r mv$n` townships into "no pattern";
+`r mv$spor` of them were sporadic hot or cold spots, and `r mv$q12` had only
+one or two significant quarters, which is the group @sec-ehsa-null already
+identified as weak. One assumption deserves a warning. The
+Mann-Kendall test assumes independent observations, but with $k = 1$
+consecutive Gi\* values share a quarter of data; the median lag-1
+autocorrelation of the series is
+`r sprintf("%.2f", EH$serial$median_acf1[EH$serial$spec == "k = 1"])`
+(`r sprintf("%.2f", EH$serial$median_acf1[EH$serial$spec == "k = 0"])` with
+$k = 0$). Positive autocorrelation makes the trend test too liberal
+[@hamed1998], so the trend-based classes (intensifying, diminishing) should
+be read with caution. Here they are almost empty, so the practical
+consequence is small.
+:::
+
+::: {.interp .zh}
+**敏感性。** 镇区落在哪一侧是稳健的;具体类别则不那么稳健。改变时间滞后时,
+$k = 2$ 下 `r N_TS` 个镇区中有
+`r EH$sens$"Hot/cold side kept"[EH$sens$spec == "k = 2 (two quarters)"]` 个保持在同一侧,
+$k = 0$ 下有 `r EH$sens$"Hot/cold side kept"[EH$sens$spec == "k = 0 (no time lag)"]` 个。
+邻居定义与时间单元的影响更大:使用六个最近邻或月度立方体时,四分之一到三分之一的镇区
+改变类别,大多是在聚集边缘于零星与无模式之间变动。要求双侧 p ≤ 0.05 会使 `r mv$n` 个镇区转入「无模式」;其中
+`r mv$spor` 个原为零星热点或冷点,`r mv$q12` 个只有一两个显著季度,也就是
+@sec-ehsa-null 已经判断为弱证据的那一组。有一个假设值得警示:Mann-Kendall 检验假定
+观测相互独立,但在 $k = 1$ 时相邻的 Gi\* 值共享一个季度的数据;序列的滞后一阶自相关
+中位数为 `r sprintf("%.2f", EH$serial$median_acf1[EH$serial$spec == "k = 1"])`
+($k = 0$ 时为 `r sprintf("%.2f", EH$serial$median_acf1[EH$serial$spec == "k = 0"])`)。
+正自相关会使趋势检验过于宽松 [@hamed1998],因此基于趋势的类别(增强、减弱)应谨慎
+解读。这里它们几乎为空,所以实际影响很小。
+:::

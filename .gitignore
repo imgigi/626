@@ -36,3 +36,14 @@ take-home-ex/take-home-ex1/data/raw/geoBoundaries-*.geojson
 
 # Claude Code local settings (machine-specific, not part of the site)
 .claude/
+
+# Take-home Exercise 2. ACLED's terms of use do not allow the event records to
+# be republished, so the extract and the two event-level objects built from it
+# stay local; the township-level aggregates the report reads are committed.
+take-home-ex/take-home-ex2/data/raw/acled/
+take-home-ex/take-home-ex2/data/derived/events_sf.rds
+take-home-ex/take-home-ex2/data/derived/conflict_sf.rds
+# The unzipped MIMU shapefile; scripts read the committed zip through /vsizip/.
+take-home-ex/take-home-ex2/data/raw/mimu_adm3/
+# Permutation results: seeded, so a recomputation reproduces them exactly.
+take-home-ex/take-home-ex2/data/cache/

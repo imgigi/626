@@ -1,0 +1,183 @@
+# <span class="en">Data and study design</span><span class="zh">数据与研究设计</span> {#sec-data}
+
+## <span class="en">Data sources</span><span class="zh">数据来源</span>
+
+::: {.en}
+Two datasets are combined. The conflict events come from the Armed Conflict
+Location & Event Data Project [ACLED, @raleigh2010; @raleigh2023], as the
+Myanmar extract distributed for this exercise. The township polygons are the
+Myanmar Information Management Unit's township boundaries, version 9.4
+[@mimu2024], downloaded from the MIMU GeoNode as a WFS shapefile export.
+:::
+
+::: {.zh}
+本研究结合两套数据。冲突事件来自「武装冲突地点与事件数据项目」[ACLED,
+@raleigh2010; @raleigh2023],使用本作业分发的缅甸数据摘录。镇区多边形采用缅甸信息
+管理单位(MIMU)的镇区边界 9.4 版 [@mimu2024],以 WFS shapefile 导出的形式从
+MIMU GeoNode 下载。
+:::
+
+```{r}
+#| label: tbl-sources
+#| tbl-cap: "<span class='en'>The two input datasets as received. Row counts are before any cleaning.</span><span class='zh'>两套输入数据的原始状态。行数为任何清洗之前的数字。</span>"
+
+tibble(
+  Dataset = c("ACLED event data, Myanmar", "MIMU township boundaries v9.4"),
+  `File` = c(audit$source_file, "mmr_polbnda_adm3_250k_mimu_1.shp"),
+  Records = c(n_fmt(audit$n_raw), n_fmt(bnd$geom_report$n)),
+  Coverage = c(paste(format(audit$date_range, "%d %b %Y"), collapse = " – "),
+               paste0(n_fmt(bnd$area_geod_km2), " km² (geodesic)")),
+  Geometry = c("Point (WGS 84 latitude / longitude)",
+               "Polygon, 1:250,000, WGS 84"),
+  `Key fields` = c("event_date, event_type, sub_event_type, latitude, longitude, geo_precision, admin3, fatalities",
+                   "ST, DT, TS, TS_PCODE")
+) |>
+  gt() |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.en}
+The ACLED file records `r n_fmt(audit$n_raw)` events in `r audit$n_cols`
+fields, dated `r format(audit$date_range[1], "%d %B %Y")` to
+`r format(audit$date_range[2], "%d %B %Y")`. Its latest modification
+timestamp is `r format(audit$extracted, "%d %B %Y")`, a year after the study
+window closes, so late reports and ACLED's routine revisions for the final
+quarter should already be included. The MIMU layer holds
+`r bnd$geom_report$n` townships, and `TS_PCODE` is a unique, complete
+identifier for them.
+:::
+
+::: {.zh}
+ACLED 文件在 `r audit$n_cols` 个字段中记录了 `r n_fmt(audit$n_raw)` 起事件,日期从
+`r format(audit$date_range[1], "%Y 年 %m 月 %d 日")` 到
+`r format(audit$date_range[2], "%Y 年 %m 月 %d 日")`。其最晚修改时间戳为
+`r format(audit$extracted, "%Y 年 %m 月 %d 日")`,比研究窗口结束晚了一年,因此最后
+一个季度的迟到报告与 ACLED 的例行修订应当都已包含在内。MIMU 图层包含
+`r bnd$geom_report$n` 个镇区,`TS_PCODE` 是它们唯一且完整的标识符。
+:::
+
+## <span class="en">Study area, unit of analysis and time unit</span><span class="zh">研究区、分析单元与时间单元</span> {#sec-design}
+
+```{r}
+#| label: fig-study-area
+#| fig-cap: "<span class='en'>Study area. The 329 townships of the analytical frame inside the MIMU state and region boundaries. Cocokyun, the one township left out (see @sec-prep-islands), is the small island group in solid grey in the Andaman Sea, south-west of the delta.</span><span class='zh'>研究区。分析框架中的 329 个镇区,及 MIMU 的省邦边界。唯一被排除的镇区 Cocokyun(见 @sec-prep-islands)是三角洲西南方安达曼海中以灰色实心显示的小群岛。</span>"
+#| fig-alt: "Map of Myanmar showing 329 township polygons inside 17 state and region boundaries, with state names labelled."
+#| fig-width: 7
+#| fig-height: 9
+
+map_base(
+  geom_sf(data = ts_an, fill = "#f5f5f4", colour = "#a8a29e", linewidth = 0.12),
+  title = "Myanmar: 329 townships in MIMU's 18 state and region units",
+  subtitle = "MIMU township boundaries v9.4, Albers equal-area projection"
+) +
+  geom_text(data = state_pts, aes(x, y, label = ST), size = 2.6,
+            colour = "#1c1917", fontface = "bold", check_overlap = TRUE)
+```
+
+::: {.en}
+**The township** is the spatial unit. It is the unit the brief asks for, and it
+is also the finest unit that ACLED's own location coding supports across the
+whole dataset. Of the conflict events analysed,
+`r pct(100 * sum(audit$exclusion_by_type$prec2) / sum(audit$exclusion_by_type$analysed))`
+carry `geo_precision` 2: ACLED knows the township but only places the event
+"near" its main town. Treating those coordinates as points would put a
+spurious concentration on every township seat. Aggregated to the township,
+they are counted in the right place.
+
+**The quarter** is the primary time unit, with months kept for sensitivity
+analysis. A quarter gives `r N_Q` time steps, enough for a Mann-Kendall trend
+test, while halving the share of empty township-periods from
+`r pct(audit$pct_zero_m)` (months) to `r pct(audit$pct_zero_q)`. The choice
+is tested in @sec-ehsa-sens.
+:::
+
+::: {.zh}
+**镇区**是空间单元。这既是作业要求的单元,也是 ACLED 自身的位置编码在整个数据集上
+所能支持的最细单元。在被分析的冲突事件中,
+`r pct(100 * sum(audit$exclusion_by_type$prec2) / sum(audit$exclusion_by_type$analysed))`
+的 `geo_precision` 为 2:ACLED 知道事件所在的镇区,但只能把它放在镇区主镇「附近」。
+如果把这些坐标当作点,就会在每个镇区驻地制造出虚假的集中;汇总到镇区之后,它们
+则被计入正确的位置。
+
+**季度**是主要的时间单元,月度数据保留用于敏感性分析。季度提供 `r N_Q` 个时间步,
+足以进行 Mann-Kendall 趋势检验,同时把空的镇区-时期占比从月度的
+`r pct(audit$pct_zero_m)` 降到 `r pct(audit$pct_zero_q)`。这一选择在
+@sec-ehsa-sens 中检验。
+:::
+
+## <span class="en">The armed-conflict variables</span><span class="zh">武装冲突变量</span> {#sec-vars}
+
+::: {.en}
+Five variables are built, each counted by township and by quarter. They are
+kept apart because the three event types are produced by different actors
+using different means, and there is no reason to assume they share a
+geography.
+:::
+
+::: {.zh}
+本研究构建了五个变量,均按镇区与季度计数。之所以分开处理,是因为三种事件类型由
+不同的行动者以不同的手段造成,没有理由假定它们共享同一种地理分布。
+:::
+
+```{r}
+#| label: tbl-vars
+#| tbl-cap: "<span class='en'>The five armed-conflict variables. Counts are over the whole study period, after the location screening in @sec-prep-landmines.</span><span class='zh'>五个武装冲突变量。计数覆盖整个研究期,为 @sec-prep-landmines 中位置筛查之后的结果。</span>"
+
+tibble(
+  Variable = names(VARS),
+  Label = unname(VARS),
+  Definition = c(
+    "Every event of the three types below",
+    "Armed clashes between organised armed groups, and territory taken or retaken by force",
+    "Air and drone strikes, shelling and artillery, remote explosives and IEDs, grenades: one side attacks without being physically present",
+    "Attacks, abductions, sexual violence and other violence by an armed group against unarmed civilians",
+    "Sum of ACLED's reported fatalities over the events above"),
+  Total = c(n_fmt(sum(ts_tot$conflict)), n_fmt(sum(ts_tot$battles)),
+            n_fmt(sum(ts_tot$erv)), n_fmt(sum(ts_tot$vac)),
+            n_fmt(sum(ts_tot$fatalities))),
+  `Townships with none` = c(sum(ts_tot$conflict == 0), sum(ts_tot$battles == 0),
+                            sum(ts_tot$erv == 0), sum(ts_tot$vac == 0),
+                            sum(ts_tot$fatalities == 0))
+) |>
+  gt() |>
+  cols_width(Definition ~ px(380)) |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.en}
+Protests, riots and strategic developments are excluded. They are recorded
+by ACLED but are not armed conflict: a protest is a demonstration, and a
+strategic development is a non-violent event such as an arrest, a troop
+movement or an agreement. One borderline category deserves mention:
+`r audit$excessive_force$n` events of "excessive force against protesters",
+with `r audit$excessive_force$fatalities` reported deaths, mostly in the
+first months of 2021, are filed by ACLED under protests. They describe lethal
+state violence, but they belong to the crackdown that preceded the armed
+conflict, and they are left out.
+:::
+
+::: {.zh}
+抗议、骚乱与战略性事态被排除。ACLED 记录了它们,但它们不是武装冲突:抗议是示威,
+战略性事态是逮捕、部队调动或协议之类的非暴力事件。有一个边界类别值得一提:
+`r audit$excessive_force$n` 起「对抗议者过度使用武力」事件,报告死亡
+`r audit$excessive_force$fatalities` 人,大多发生在 2021 年最初几个月,被 ACLED
+归入抗议类别。它们描述的是致命的国家暴力,但属于武装冲突之前的镇压阶段,因此不计入。
+:::
+
+## <span class="en">Software</span><span class="zh">软件</span>
+
+::: {.en}
+The analysis is written in R. **sf** [@pebesma2018] handles the vector data;
+**spdep** builds neighbour lists and weights and computes local Moran's I by
+conditional permutation [@bivand2018]; **sfdep** [@parry2023] builds the
+space-time cube and provides Gi\* and the reference EHSA implementation;
+**Kendall** [@mcleod2022] computes the Mann-Kendall test. Maps are drawn with
+**ggplot2**. Exact versions are listed in @sec-repro.
+:::
+
+::: {.zh}
+分析使用 R 完成。**sf** [@pebesma2018] 处理矢量数据;**spdep** 构建邻接列表与权重,
+并以条件置换计算局部 Moran's I [@bivand2018];**sfdep** [@parry2023] 构建时空立方体,
+提供 Gi\* 以及作为参照的 EHSA 实现;**Kendall** [@mcleod2022] 计算 Mann-Kendall
+检验。地图用 **ggplot2** 绘制。确切版本见 @sec-repro。
+:::

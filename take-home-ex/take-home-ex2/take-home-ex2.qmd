@@ -1,0 +1,280 @@
+---
+# The title block is the one part of the page Quarto composes itself, so the
+# .en / .zh spans have to be written into the metadata rather than into the
+# body.
+title: '<span class="en">Take-home Exercise 2: Geospatial Analytics for Peace</span><span class="zh">课后作业二：面向和平的地理空间分析</span>'
+pagetitle: "Take-home Exercise 2: Geospatial Analytics for Peace"
+subtitle: '<span class="en">Local measures of spatial association and emerging hot spot analysis of armed conflict in Myanmar, by township, January 2021 to September 2025</span><span class="zh">缅甸镇区尺度武装冲突的局部空间关联与新兴热点分析 · 2021 年 1 月至 2025 年 9 月</span>'
+author: "Ji Guofang"
+date: "2026-10-22"
+date-modified: "last-modified"
+toc-title: "Contents"
+
+format:
+  html:
+    theme: [cosmo, custom.scss]
+    page-layout: article
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    fig-width: 9
+    fig-height: 6
+    fig-dpi: 150
+    fig-align: center
+    tbl-cap-location: bottom
+    link-external-newwindow: true
+    smooth-scroll: true
+    citations-hover: true
+    df-print: paged
+    lightbox: true
+    # The shared site-wide EN / 中文 switch. This document overrides the
+    # project format block, so the includes are repeated here.
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+
+bibliography: references.bib
+csl: apa.csl
+
+# Language-neutral cross-reference prefixes: one render serves both languages.
+language:
+  crossref-sec-prefix: "§"
+  crossref-fig-prefix: "Fig."
+  crossref-tbl-prefix: "Tbl."
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  # freeze stays off: Quarto's freeze cache does not see edits inside files
+  # pulled in with {{< include >}}, so it would render stale sections.
+  freeze: false
+
+knitr:
+  opts_chunk:
+    collapse: false
+    comment: "#>"
+    dev: "png"
+    dpi: 150
+
+editor: source
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# ---- Packages ---------------------------------------------------------------
+# Loaded once here so that the analytical sections below contain only
+# analytical code. Versions are reported in the reproducibility appendix.
+suppressPackageStartupMessages({
+  library(sf)                 # vector geospatial data and CRS handling
+  library(dplyr); library(tidyr); library(purrr); library(stringr)
+  library(lubridate)
+  library(ggplot2); library(patchwork); library(scales); library(forcats)
+  library(ggrepel)
+  library(spdep)              # neighbours, weights, Moran's I
+  library(sfdep)              # spacetime cube, local statistics, EHSA
+  library(Kendall)            # Mann-Kendall trend test
+  library(gt)                 # tables
+})
+
+source("R/utils.R")
+source("R/ehsa.R")
+
+sf::sf_use_s2(FALSE)   # planar predicates: everything is in the projected CRS
+set.seed(1234)
+
+# ---- Load the prepared objects ---------------------------------------------
+# Built by scripts/01_boundaries.R .. scripts/05_markov.R. None of them holds an
+# individual ACLED event: the licence does not allow event records to be
+# republished, so the report reads township-level aggregates only.
+DER     <- "data/derived"
+bnd     <- readRDS(file.path(DER, "bnd_report.rds"))
+audit   <- readRDS(file.path(DER, "acled_audit.rds"))
+ts_all  <- readRDS(file.path(DER, "township.rds"))
+ts_an   <- readRDS(file.path(DER, "township_an.rds"))
+ts_tot  <- readRDS(file.path(DER, "ts_tot.rds"))
+state   <- readRDS(file.path(DER, "state.rds"))
+nation  <- readRDS(file.path(DER, "nation.rds"))
+nb_an   <- readRDS(file.path(DER, "nb_an.rds"))
+nb_knn6 <- readRDS(file.path(DER, "nb_knn6.rds"))
+panel_q <- readRDS(file.path(DER, "panel_q.rds"))
+panel_m <- readRDS(file.path(DER, "panel_m.rds"))
+panel_y <- readRDS(file.path(DER, "panel_y.rds"))
+LM      <- readRDS(file.path(DER, "lmsa.rds"))
+EH      <- readRDS(file.path(DER, "ehsa.rds"))
+MK      <- readRDS(file.path(DER, "markov.rds"))
+
+# ---- Labels and quantities used repeatedly in the prose ---------------------
+VARS <- LM$vars
+VAR_SHORT <- c(conflict = "All conflict", battles = "Battles",
+               erv = "Explosions / remote violence",
+               vac = "Violence against civilians", fatalities = "Fatalities")
+VAR_ZH <- c(conflict = "全部冲突事件", battles = "战斗", erv = "爆炸 / 远程暴力",
+            vac = "针对平民的暴力", fatalities = "报告死亡人数")
+# Panel titles for the five-map rows, where the full labels do not fit.
+VAR_TINY <- c(conflict = "All conflict", battles = "Battles",
+              erv = "Remote violence", vac = "Violence vs civilians",
+              fatalities = "Fatalities")
+
+N_TS    <- nrow(ts_an)
+N_Q     <- EH$cube_info$n_times
+N_EV    <- audit$loc_flow$analysed
+N_FATAL <- audit$loc_flow$fatal_analysed
+q_lab   <- function(d) paste0(year(d), " Q", quarter(d))
+
+# State labels: MIMU writes the two halves of Bago and the three of Shan as
+# separate states, which is how they are mapped and described.
+state_pts <- state |>
+  mutate(pt = st_point_on_surface(geometry)) |>
+  st_drop_geometry() |>
+  mutate(x = st_coordinates(pt)[, 1], y = st_coordinates(pt)[, 2]) |>
+  select(ST, x, y)
+
+# The analytical frame with every variable attached, for mapping.
+ts_map <- ts_tot
+
+# One base layer for every map: the excluded island township in hatched grey,
+# the analytical townships, and state outlines on top.
+map_base <- function(fill_layer, title = NULL, subtitle = NULL, legend = TRUE,
+                     state_lw = 0.32) {
+  ggplot() +
+    geom_sf(data = ts_all |> filter(!TS_PCODE %in% ts_an$TS_PCODE),
+            fill = "#e7e5e4", colour = NA) +
+    fill_layer +
+    geom_sf(data = state, fill = NA, colour = "#44403c", linewidth = state_lw) +
+    coord_sf(datum = NA, expand = FALSE) +
+    labs(title = title, subtitle = subtitle) +
+    theme_map(10) +
+    { if (!legend) theme(legend.position = "none") }
+}
+```
+
+::: {.callout-tip appearance="simple"}
+::: {.en}
+**This report is bilingual.** Use the **EN / 中文** switch at the top right of
+the page (or press `Alt`+`L`) to change language; the choice is remembered and
+carries over to the executive summary. All hand-written prose, headings, and
+figure and table captions are translated. **Text drawn inside the figures
+themselves stays in English**, because it is rendered into the image by R.
+Variable names, function names, township names and statistical symbols are
+also left in English.
+:::
+
+::: {.zh}
+**本报告为中英双语。** 使用页面右上角的 **EN / 中文** 切换按钮(或按
+`Alt`+`L`)切换语言;所选语言会被记住,并在执行摘要中保持一致。所有手写正文、
+标题,以及图表题注都已翻译。**图形内部的文字保持英文**,因为它们由 R 在渲染时
+画入图像。变量名、函数名、镇区名与统计符号同样保留英文。
+:::
+:::
+
+## <span class="en">Abstract</span><span class="zh">摘要</span> {#sec-abstract .unnumbered}
+
+::: {.en}
+Myanmar's military seized power on 1 February 2021, and the protests that
+followed turned within months into a nationwide armed conflict. This report
+analyses `r n_fmt(N_EV)` armed-conflict events recorded by ACLED between
+January 2021 and September 2025 (battles, explosions and remote violence, and
+violence against civilians), aggregated to `r N_TS` townships of the MIMU v9.4
+boundaries and to `r N_Q` quarters.
+
+Local Moran's I and Getis-Ord Gi\* locate one dominant cluster of high
+conflict, the Dry Zone where Sagaing, Magway and Mandalay meet, a second belt
+along the south-east from Kayin through Mon to Tanintharyi, and a broad cold
+zone over the Ayeyarwady delta, Yangon and the eastern Shan hills. Violence
+against civilians is confined almost entirely to the Dry Zone; explosions and
+remote violence also light up the south-east. No township is a significant
+high-low outlier over the whole period: violence does not appear as an
+isolated island in a calm region. Year by year, the Dry Zone cluster held
+through 2023 and then thinned out; by 2025 the High-High townships were split
+between the Kayin border, the uplands where Mandalay meets northern Shan, and
+a remnant of the old core.
+
+The emerging hot spot analysis is where the methodological work of the report
+lies. Applied as distributed, `emerging_hotspot_analysis()` in **sfdep** gives
+each township's result to another township whenever the geometry is not
+sorted by location identifier; its permutation null draws neighbours from
+every quarter of the cube, so that a national trend is read as local
+significance; and one of its class rules ignores the sign of Gi\*. All three
+defects are demonstrated on these data and corrected. With a
+period-conditional null the oscillating hot spots of the uncorrected output
+fall from `r sum(EH$cls_compare$sfdep == "Oscillating hot spot")` to
+`r sum(EH$cls_compare$pc == "Oscillating hot spot")`, and the classification
+shows a chronic core in the Dry Zone, new hot spots on its southern and
+eastern edges, and cold spots in the eastern Shan hills and, since 2022, in
+Yangon. A null simulation shows that the commonest class, the sporadic hot
+spot, is barely more frequent than chance would make it, so townships are
+read by how many quarters they spent hot rather than by label alone.
+
+A spatial Markov chain, offered as value-added analysis, shows that a quiet
+township is about twice as likely to see conflict the next quarter when its
+neighbours are in intense conflict, and the effect survives township and
+quarter fixed effects. The *first* onset of sustained conflict, by contrast,
+is no more clustered than random timing would produce: the 2021 uprising broke
+out nationwide at once, and contagion governs escalation afterwards.
+:::
+
+::: {.zh}
+2021 年 2 月 1 日,缅甸军方夺取政权,随后的抗议在数月之内演变为全国性的武装冲突。
+本报告分析 ACLED 在 2021 年 1 月至 2025 年 9 月间记录的 `r n_fmt(N_EV)` 起武装冲突
+事件(战斗、爆炸与远程暴力、针对平民的暴力),将其汇总到 MIMU v9.4 边界的
+`r N_TS` 个镇区和 `r N_Q` 个季度。
+
+局部 Moran's I 与 Getis-Ord Gi\* 识别出一个占主导的高冲突聚集区,即实皆、马圭与
+曼德勒交界的**干燥带**;第二条聚集带沿东南方向从克伦经孟邦延伸到德林达依;
+伊洛瓦底三角洲、仰光和掸邦东部山地则构成大片冷区。针对平民的暴力几乎完全局限
+在干燥带;爆炸与远程暴力则在东南方向同样显著。就整个研究期而言,没有任何镇区是
+显著的高-低异常值:暴力并不以「平静区域中孤立的岛」的形式出现。逐年来看,干燥带
+聚集在 2023 年之前保持稳定,此后逐渐稀疏;到 2025 年,「高-高」镇区分散在克伦边境、
+曼德勒–掸邦北部交界山地,以及老核心的残余三处。
+
+新兴热点分析是本报告方法工作的重心。按原样使用 **sfdep** 的
+`emerging_hotspot_analysis()` 时,只要几何对象没有按地点编号排序,每个镇区的结果
+就会被贴到另一个镇区上;它的置换零模型从整个立方体的**所有季度**中抽取邻居,于是
+全国性的趋势被误读为局部显著性;它的一条分类规则还忽略了 Gi\* 的符号。本报告用这批
+数据证明并修正了这三个缺陷。改用**按期条件化**的零模型之后,未修正输出中的振荡热点
+从 `r sum(EH$cls_compare$sfdep == "Oscillating hot spot")` 个降到
+`r sum(EH$cls_compare$pc == "Oscillating hot spot")` 个,分类结果呈现出干燥带的长期
+核心、其南缘与东缘的新热点,以及掸邦东部山地与(2022 年以来)仰光的冷点。零模型模拟
+表明,最常见的类别「零星热点」只比偶然所能产生的略多,因此本研究依据镇区处于热点
+状态的季度数,而不只是标签来解读。
+
+作为附加价值分析的空间马尔可夫链表明:当邻居处于高强度冲突时,一个平静镇区在
+下一季度出现冲突的概率约为原来的两倍,且这一效应在控制镇区与季度固定效应后依然
+存在。相比之下,持续冲突的**首次**爆发并不比随机时间分配更聚集:2021 年的起义是
+全国同时爆发的,传染机制支配的是此后的升级。
+:::
+
+{{< include _sections/01-introduction.qmd >}}
+
+{{< include _sections/02-data-design.qmd >}}
+
+{{< include _sections/03-preparation.qmd >}}
+
+{{< include _sections/04-assumptions.qmd >}}
+
+{{< include _sections/05-distribution.qmd >}}
+
+{{< include _sections/06-lmsa.qmd >}}
+
+{{< include _sections/07-ehsa.qmd >}}
+
+{{< include _sections/08-valueadded.qmd >}}
+
+{{< include _sections/09-integration.qmd >}}
+
+{{< include _sections/10-implications.qmd >}}
+
+{{< include _sections/11-limitations.qmd >}}
+
+{{< include _sections/12-reproducibility.qmd >}}
+
+## <span class="en">References</span><span class="zh">参考文献</span> {#sec-references .unnumbered}
+
+::: {#refs}
+:::

@@ -1,0 +1,188 @@
+# <span class="en">Reproducibility appendix</span><span class="zh">可复现性附录</span> {#sec-repro}
+
+## <span class="en">How to reproduce this report</span><span class="zh">如何复现本报告</span>
+
+::: {.en}
+The exercise is a self-contained folder inside the course's Quarto website.
+Every path in the scripts and in the report is relative to
+`take-home-ex/take-home-ex2/`, and the scripts are run from there:
+:::
+
+::: {.zh}
+本作业是课程 Quarto 网站中一个自包含的文件夹。脚本与报告中的每一个路径都相对于
+`take-home-ex/take-home-ex2/`,脚本也从这里运行:
+:::
+
+```bash
+# 0. Place the ACLED extract (from eLearn) anywhere under data/raw/
+#    e.g. data/raw/acled/ACLED_Data_Myanmar_Jan2021-Sep2025.csv
+
+# 1. Preparation
+Rscript scripts/01_boundaries.R   # MIMU townships, CRS choice, neighbours
+Rscript scripts/02_acled.R        # ACLED audit, geocoding, panels
+
+# 2. Analysis
+Rscript scripts/03_lmsa.R         # global and local Moran's I, Gi*, sensitivity
+Rscript scripts/04_ehsa.R         # space-time cube, EHSA, sfdep check, null
+Rscript scripts/05_markov.R       # value-added: spatial Markov, FE logit, onsets
+
+# 3. Render, from the site root
+quarto render take-home-ex/take-home-ex2/take-home-ex2.qmd
+quarto render take-home-ex/take-home-ex2/take-home-ex2-slides.qmd
+```
+
+::: {.callout-note .en}
+## Data that are and are not in the repository
+**ACLED's terms of use do not allow the event records to be republished**, so
+the extract itself and the event-level objects built from it
+(`events_sf.rds`, `conflict_sf.rds`) are kept out of the repository. Everything
+the report reads is aggregated to the township: the panels, the totals, the
+audit tables and the analysis results in `data/derived/`, which are
+committed, so the report renders from a clean clone without the raw data.
+To re-run the scripts, the ACLED extract has to be obtained from the course
+or from ACLED directly. The MIMU v9.4 boundary archive is committed, because
+MIMU replaces its releases and this version may not stay available.
+:::
+
+::: {.callout-note .zh}
+## 仓库中包含与不包含的数据
+**ACLED 的使用条款不允许重新发布事件记录**,因此数据摘录本身,以及由其构建的事件级
+对象(`events_sf.rds`、`conflict_sf.rds`)都不放入仓库。报告读取的一切都已汇总到
+镇区:`data/derived/` 中的面板、总量、审计表与分析结果都已提交,因此从一份干净的
+克隆出发,无需原始数据即可渲染报告。若要重新运行脚本,需要从课程或直接从 ACLED 获取
+数据摘录。MIMU v9.4 边界压缩包已提交,因为 MIMU 会替换其发布版本,该版本未必会一直
+可供下载。
+:::
+
+## <span class="en">Pipeline structure</span><span class="zh">管线结构</span>
+
+```{mermaid}
+%%| label: fig-pipeline
+flowchart TD
+  M(["MIMU v9.4 zip<br/>data/raw/"]) --> S1["01_boundaries.R<br/><i>CRS, islands, neighbours</i>"]
+  A(["ACLED extract<br/>(not committed)"]) --> S2["02_acled.R<br/><i>audit, join, screening</i>"]
+  S1 --> D1(["township_an · nb_an · nb_knn6"])
+  D1 --> S2
+  S2 --> D2(["panel_q · panel_m · panel_y<br/>ts_tot · acled_audit"])
+  D1 --> S3["03_lmsa.R<br/><i>Moran, LISA, Gi*</i>"]
+  D2 --> S3
+  D1 --> S4["04_ehsa.R<br/><i>cube, EHSA, sfdep check, null</i>"]
+  D2 --> S4
+  U["R/utils.R · R/ehsa.R"] --> S3
+  U --> S4
+  D1 --> S5["05_markov.R<br/><i>Markov, FE logit, onsets</i>"]
+  D2 --> S5
+  S3 --> R(["take-home-ex2.qmd<br/>take-home-ex2-slides.qmd"])
+  S4 --> R
+  S5 --> R
+```
+
+## <span class="en">Caching and seeds</span><span class="zh">缓存与随机种子</span>
+
+::: {.en}
+The permutation tests are the slow part. Each expensive result is computed
+through `cache_rds()` in `R/utils.R`, which stores it in `data/cache/` and
+returns the stored object on later runs. Every script sets `set.seed(1234)`,
+and functions that draw permutations set their own seed, so deleting
+`data/cache/` and re-running reproduces the same values. A full run from a
+cold cache takes about 20 minutes, most of it in `04_ehsa.R`.
+:::
+
+::: {.zh}
+置换检验是耗时的部分。每个耗时结果都通过 `R/utils.R` 中的 `cache_rds()` 计算,它把
+结果存入 `data/cache/`,并在之后的运行中直接返回存储的对象。每个脚本都设定了
+`set.seed(1234)`,抽取置换的函数也会设定自己的种子,因此删除 `data/cache/` 后重新运行,
+得到的数值完全相同。从空缓存完整运行一次约需 20 分钟,大部分时间花在 `04_ehsa.R` 上。
+:::
+
+## <span class="en">Session information</span><span class="zh">会话信息</span>
+
+```{r}
+#| label: sessioninfo
+#| code-fold: true
+#| code-summary: "Full session information"
+
+si <- sessionInfo()
+pkgs <- c("sf", "spdep", "sfdep", "Kendall", "dplyr", "tidyr", "purrr",
+          "ggplot2", "patchwork", "scales", "ggrepel", "gt", "lubridate",
+          "readr", "sandwich", "lmtest", "knitr", "rmarkdown")
+tibble::tibble(
+  Package = pkgs,
+  Version = vapply(pkgs, function(p)
+    tryCatch(as.character(utils::packageVersion(p)),
+             error = function(e) "not installed"), character(1))
+) |>
+  gt::gt() |>
+  gt::tab_header(title = gt::md(paste0("**", si$R.version$version.string, "** on ",
+                                       si$running))) |>
+  gt::tab_source_note(gt::md(paste0(
+    "GEOS ", sf::sf_extSoftVersion()[["GEOS"]],
+    " &middot; GDAL ", sf::sf_extSoftVersion()[["GDAL"]],
+    " &middot; PROJ ", sf::sf_extSoftVersion()[["PROJ"]]))) |>
+  gt::tab_options(table.font.size = gt::pct(82), data_row.padding = gt::px(3))
+```
+
+## <span class="en">Source code</span><span class="zh">源代码</span> {#sec-repro-scripts}
+
+::: {.en}
+The complete source of each script and helper file, inserted from disk at
+render time so that it cannot drift from what actually ran.
+:::
+
+::: {.zh}
+每个脚本与辅助文件的完整源码,在渲染时从磁盘插入,因此不可能与实际运行的版本产生
+偏移。
+:::
+
+::: {.panel-tabset}
+
+### 01 boundaries
+
+```{r}
+#| eval: false
+#| file: scripts/01_boundaries.R
+```
+
+### 02 ACLED
+
+```{r}
+#| eval: false
+#| file: scripts/02_acled.R
+```
+
+### 03 LMSA
+
+```{r}
+#| eval: false
+#| file: scripts/03_lmsa.R
+```
+
+### 04 EHSA
+
+```{r}
+#| eval: false
+#| file: scripts/04_ehsa.R
+```
+
+### 05 value added
+
+```{r}
+#| eval: false
+#| file: scripts/05_markov.R
+```
+
+### R/ehsa.R
+
+```{r}
+#| eval: false
+#| file: R/ehsa.R
+```
+
+### R/utils.R
+
+```{r}
+#| eval: false
+#| file: R/utils.R
+```
+
+:::

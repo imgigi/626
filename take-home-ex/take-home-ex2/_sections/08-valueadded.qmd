@@ -1,0 +1,446 @@
+# <span class="en">Value-added analysis: does conflict spread to neighbours?</span><span class="zh">附加价值分析:冲突会向邻居扩散吗?</span> {#sec-va}
+
+::: {.en}
+*Addresses RQ3.* The emerging hot spot analysis classifies each township by
+the history of its own Gi\* series. It shows *where* hot spots are new or
+persistent, but not *why* a township's status changes, and in particular it
+cannot say whether a township's next quarter depends on what its neighbours
+are doing now. That is the question a diffusion argument turns on, and the
+one with the most direct bearing on prevention: if conflict spreads by
+contagion, the townships at the edge of an active zone are where the next
+quarter's violence is most likely, and they can be identified in advance.
+
+The literature on civil war distinguishes *contagion*, the spread of
+violence to adjacent places, from *relocation* or jumps to non-adjacent
+places [@schutte2011]. A spatial Markov chain [@rey2001] tests for the first
+directly. Three analyses below answer the question in ways that rely on
+different assumptions, so that the conclusion does not rest on any one of
+them.
+:::
+
+::: {.zh}
+*对应 RQ3。* 新兴热点分析依据每个镇区**自身** Gi\* 序列的历史为其分类。它显示热点
+**在哪里**是新出现的或持续的,却不能说明一个镇区的状态**为什么**改变;尤其是,它无法
+回答一个镇区下一季度的状况是否取决于其邻居此刻在做什么。而这正是扩散论证所依赖的
+问题,也与预防最直接相关:如果冲突通过**传染**扩散,那么活跃区域边缘的镇区就是下一
+季度最可能出现暴力的地方,并且可以提前识别。
+
+关于内战的文献区分了**传染**(暴力扩散到相邻地点)与**迁移**或跳跃(扩散到不相邻
+的地点)[@schutte2011]。空间马尔可夫链 [@rey2001] 可以直接检验前者。下面三项分析
+依赖不同的假设来回答这个问题,使结论不依赖其中任何一项。
+:::
+
+## <span class="en">A spatial Markov chain</span><span class="zh">空间马尔可夫链</span> {#sec-va-markov}
+
+::: {.en}
+Each township-quarter is assigned one of four states by its number of
+conflict events: *None* (0), *Sporadic* (1–3, about one a month or fewer),
+*Sustained* (4–14, up to about one a week) and *Intense* (15 or more). The
+cut points are round numbers close to the quartiles of the pooled
+distribution, and they read as an operational scale. A township's
+neighbourhood is assigned a state in the same way, from the average count of
+its queen neighbours in the same quarter. The `r n_fmt(MK$markov$n_trans)`
+quarter-to-quarter transitions are then tabulated twice: once pooled, and
+once separately for each neighbourhood state. If conflict does not spread,
+the four conditional matrices should all look like the pooled one.
+:::
+
+::: {.zh}
+每个镇区-季度按其冲突事件数被赋予四种状态之一:**无**(0)、**零星**(1–3 起,约每月
+一起或更少)、**持续**(4–14 起,最多约每周一起)与**激烈**(15 起或以上)。切分点是
+接近合并分布四分位数的整数,可以当作一种操作性的量表来读。镇区的**邻域**也以同样
+方式赋予状态,依据是同一季度其 queen 邻居的平均计数。然后把
+`r n_fmt(MK$markov$n_trans)` 次季度间转移制成两种表:一张合并表,以及按邻域状态分开的
+四张条件表。如果冲突不扩散,四张条件矩阵就应当都与合并矩阵相似。
+:::
+
+```{r}
+#| label: va-markov-code
+#| eval: false
+S  <- matrix(as.integer(to_state(X)), nrow(X))   # own state, township x quarter
+L  <- apply(X, 2, function(x) lag.listw(lw, x))  # neighbourhood mean
+SL <- matrix(as.integer(to_state(L)), nrow(X))   # neighbourhood state
+
+trans <- tibble(from = as.vector(S[, -TT]), to = as.vector(S[, -1]),
+                lag  = as.vector(SL[, -TT]))
+P_cond <- lapply(1:4, function(l) row_prob(count_mat(trans$from[trans$lag == l],
+                                                     trans$to[trans$lag == l])))
+```
+
+```{r}
+#| label: fig-markov
+#| fig-cap: "<span class='en'>Quarter-to-quarter transition probabilities between conflict states, by the state of the township's neighbourhood at the start of the quarter. Each row sums to one. The number of transitions in each panel is given in its title.</span><span class='zh'>冲突状态的季度间转移概率,按季度初镇区邻域的状态分列。每一行之和为 1。各子图标题中给出该子图的转移次数。</span>"
+#| fig-alt: "Four heat tables of transition probabilities. With quiet neighbours, quiet townships stay quiet 76 per cent of the time; with intense neighbours, only 48 per cent."
+#| fig-width: 10
+#| fig-height: 3.9
+
+st_lab <- MK$markov$states
+mk_df <- map_dfr(seq_along(st_lab), function(l) {
+  P <- MK$markov$P_cond[[l]]; N <- MK$markov$N_cond[[l]]
+  expand_grid(from = seq_along(st_lab), to = seq_along(st_lab)) |>
+    mutate(p = P[cbind(from, to)], n_row = rowSums(N)[from],
+           panel = sprintf("Neighbours: %s (n = %s)", st_lab[l], n_fmt(sum(N))),
+           panel_i = l)
+}) |>
+  mutate(from = factor(st_lab[from], levels = rev(st_lab)),
+         to = factor(st_lab[to], levels = st_lab),
+         panel = fct_reorder(panel, panel_i))
+
+ggplot(mk_df, aes(to, from, fill = p)) +
+  geom_tile(colour = "white", linewidth = 0.6) +
+  geom_text(aes(label = ifelse(n_row > 0, sprintf("%.2f", p), "–"),
+                colour = p > 0.45), size = 3) +
+  facet_wrap(~ panel, nrow = 1) +
+  scale_fill_gradientn(colours = c("#fff7f3", "#fa9fb5", "#c51b8a", "#49006a"),
+                       limits = c(0, 1), name = "P(to | from)") +
+  scale_colour_manual(values = c(`TRUE` = "white", `FALSE` = "#1c1917"), guide = "none") +
+  labs(title = "Where a township goes next quarter depends on its neighbours",
+       x = "State next quarter", y = "State this quarter") +
+  theme_th(9.5) +
+  theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "right")
+```
+
+```{r}
+#| label: markov-numbers
+#| include: false
+Pc <- MK$markov$P_cond
+leave_quiet <- vapply(Pc, function(P) 1 - P[1, 1], numeric(1))
+esc_spor    <- vapply(Pc, function(P) sum(P[2, 3:4]), numeric(1))
+stay_int    <- vapply(Pc, function(P) P[4, 4], numeric(1))
+```
+
+::: {.interp .en}
+**Transitions.** Read the top row of each panel, the fate of a quiet
+township. With quiet neighbours it stays quiet the next quarter with
+probability `r sprintf("%.2f", 1 - leave_quiet[1])`; with neighbours in
+intense conflict, only `r sprintf("%.2f", 1 - leave_quiet[4])`. A sporadic
+township escalates to sustained or intense conflict with probability
+`r sprintf("%.2f", esc_spor[1])` beside quiet neighbours and
+`r sprintf("%.2f", esc_spor[4])` beside intense ones. And an intense
+township stays intense with probability `r sprintf("%.2f", stay_int[2])` in
+a sporadic neighbourhood but `r sprintf("%.2f", stay_int[4])` in an intense
+one. Every step up the neighbourhood scale shifts probability towards
+escalation and persistence. Translated into time, a quiet township in a
+quiet neighbourhood waits on average
+`r sprintf("%.1f", MK$markov$wait_quarters[1])` quarters before its first
+event; in an intense neighbourhood, `r sprintf("%.1f", MK$markov$wait_quarters[4])`.
+:::
+
+::: {.interp .zh}
+**转移。** 先看每个子图的第一行,即一个平静镇区的去向。邻居平静时,它下一季度保持
+平静的概率为 `r sprintf("%.2f", 1 - leave_quiet[1])`;邻居处于激烈冲突时,只有
+`r sprintf("%.2f", 1 - leave_quiet[4])`。零星镇区在平静邻居旁升级为持续或激烈冲突的
+概率是 `r sprintf("%.2f", esc_spor[1])`,在激烈邻居旁则是 `r sprintf("%.2f", esc_spor[4])`。
+激烈镇区在零星邻域中保持激烈的概率是 `r sprintf("%.2f", stay_int[2])`,在激烈邻域中则是
+`r sprintf("%.2f", stay_int[4])`。邻域每上升一级,概率就向升级与持续倾斜。换算成时间:
+平静邻域中的平静镇区平均要等待 `r sprintf("%.1f", MK$markov$wait_quarters[1])` 个季度
+才出现第一起事件;在激烈邻域中只需 `r sprintf("%.1f", MK$markov$wait_quarters[4])` 个季度。
+:::
+
+### <span class="en">Is the difference real?</span><span class="zh">差异是真实的吗?</span>
+
+::: {.en}
+The standard test is a likelihood ratio of the conditional matrices against
+the pooled one [@bickenbach2003], which gives
+$Q = `r sprintf("%.1f", MK$markov$Q)`$ on `r MK$markov$df` degrees of freedom.
+Its chi-square reference assumes that transitions are independent, and these
+are not: the same township appears in 18 consecutive transitions, and
+neighbours share shocks. A permutation null that does not need the
+assumption is therefore used as well. Each township is given the
+*neighbourhood history of a randomly chosen township*, which keeps every
+township's own sequence of states and every neighbourhood's sequence of
+states intact, including the nationwide surge of 2021–2023, and breaks only
+the pairing between a township and its real neighbours.
+:::
+
+::: {.zh}
+标准检验是条件矩阵对合并矩阵的似然比检验 [@bickenbach2003],得到
+$Q = `r sprintf("%.1f", MK$markov$Q)`$,自由度为 `r MK$markov$df`。其卡方参照分布
+假定各次转移相互独立,而事实并非如此:同一个镇区出现在 18 次连续转移中,相邻镇区
+也共享冲击。因此本研究同时使用一个不依赖该假设的置换零模型:给每个镇区分配一个
+**随机选取的镇区的邻域历史**。这样每个镇区自身的状态序列、每个邻域的状态序列(包括
+2021–2023 年的全国性激增)都保持不变,被打破的只是镇区与其**真实邻居**之间的配对。
+:::
+
+```{r}
+#| label: fig-markov-null
+#| fig-cap: "<span class='en'>Permutation distributions (999 draws) of the likelihood-ratio statistic and of the onset contrast, with the observed values in red. The onset contrast is the probability that a quiet township sees conflict next quarter with sustained or intense neighbours, minus the same probability with quiet neighbours.</span><span class='zh'>似然比统计量与爆发对比量的置换分布(999 次抽取),红线为观测值。爆发对比量 = 邻居处于持续或激烈状态时平静镇区下一季度出现冲突的概率,减去邻居平静时的同一概率。</span>"
+#| fig-alt: "Two histograms of permutation null distributions with observed values far to the right of both."
+#| fig-width: 9.6
+#| fig-height: 3.6
+
+h1 <- tibble(Q = MK$markov$perm_Q) |>
+  ggplot(aes(Q)) +
+  geom_histogram(bins = 40, fill = "#d6d3d1", colour = "white") +
+  geom_vline(xintercept = MK$markov$Q, colour = PAL$conflict, linewidth = 0.9) +
+  annotate("text", x = MK$markov$Q, y = Inf, vjust = 1.4, hjust = 1.05, size = 3.2,
+           label = sprintf("observed Q = %.0f", MK$markov$Q), colour = PAL$conflict) +
+  labs(title = "Likelihood-ratio statistic", x = "Q", y = "Permutations") +
+  theme_th(10)
+
+h2 <- tibble(C = MK$markov$perm_C) |>
+  ggplot(aes(C)) +
+  geom_histogram(bins = 40, fill = "#d6d3d1", colour = "white") +
+  geom_vline(xintercept = MK$markov$C_obs, colour = PAL$conflict, linewidth = 0.9) +
+  annotate("text", x = MK$markov$C_obs, y = Inf, vjust = 1.4, hjust = 1.05, size = 3.2,
+           label = sprintf("observed = %+.2f", MK$markov$C_obs), colour = PAL$conflict) +
+  labs(title = "Onset contrast", x = "Difference in probability", y = NULL) +
+  theme_th(10)
+
+h1 | h2
+```
+
+::: {.interp .en}
+**Against the null.** No permuted pairing comes close to the observed
+values. The likelihood ratio is far beyond every permutation (permutation
+p = `r sprintf("%.3f", MK$markov$p_Q_perm)`, the smallest 999 draws can
+give), and so is the onset contrast:
+`r sprintf("%+.2f", MK$markov$C_obs)` observed, against a permutation mean
+of `r sprintf("%+.2f", mean(MK$markov$perm_C))`. The null mean is slightly
+*negative*, which is informative in itself: a quiet township paired with a
+random busy neighbourhood is, if anything, a little *less* likely to see
+conflict, because busy neighbourhoods are concentrated in the busy years and
+quiet townships in the quiet ones. The observed positive contrast is
+therefore not the national trend, which the permutation preserves. It is
+the real neighbours.
+:::
+
+::: {.interp .zh}
+**与零模型对比。** 没有任何一次置换配对接近观测值。似然比远超所有置换值(置换
+p = `r sprintf("%.3f", MK$markov$p_Q_perm)`,即 999 次抽取所能给出的最小值),爆发
+对比量也一样:观测值 `r sprintf("%+.2f", MK$markov$C_obs)`,置换均值
+`r sprintf("%+.2f", mean(MK$markov$perm_C))`。零模型均值略为**负**,这本身就有信息量:
+把平静镇区与一个随机的繁忙邻域配对时,它出现冲突的可能性反而略**低**,因为繁忙邻域
+集中在繁忙的年份,平静镇区集中在平静的年份。因此观测到的正对比并不是置换所保留的
+全国趋势,而是**真实邻居**的作用。
+:::
+
+## <span class="en">Spillover or shared geography?</span><span class="zh">溢出效应,还是共同的地理条件?</span> {#sec-va-fe}
+
+::: {.en}
+The Markov result has an obvious alternative explanation that the
+permutation does not remove. Some regions are violent throughout, for
+reasons of terrain, history or who controls them, so a township in such a
+region has violent neighbours *and* a high propensity of its own, and would
+escalate more often even if nothing crossed township lines. A logit model of
+escalation with township fixed effects removes that explanation: each
+township is compared only with itself in other quarters, so every permanent
+difference between townships drops out. Quarter fixed effects remove
+nationwide shocks. What is left for the neighbourhood term is whether a
+township escalates more often in the quarters after *its own* neighbourhood
+has been more violent than usual. Standard errors are clustered by township.
+:::
+
+::: {.zh}
+马尔可夫结果有一个明显的替代解释,置换并不能排除它。有些地区始终暴力,原因可能是
+地形、历史或控制者,所以这类地区的镇区**既**有暴力的邻居,**也**有较高的自身倾向,
+即使没有任何东西跨越镇区边界,它也会更常升级。带**镇区固定效应**的升级 logit 模型
+可以排除这一解释:每个镇区只与它自己在其他季度的状况相比,镇区之间一切永久性的
+差异都被消去。**季度固定效应**则消去全国性冲击。剩下给邻域项的,是:当一个镇区
+**自己的**邻域比平常更暴力之后,它是否更常升级。标准误按镇区聚类。
+:::
+
+```{r}
+#| label: va-fe-code
+#| eval: false
+esc <- trans |>
+  filter(from < 4) |>                                  # can still escalate
+  mutate(escalate = as.integer(to > from), lag_log = log1p(lag_n),
+         from_f = factor(STATES[from]), TS_f = factor(TS_PCODE), t_f = factor(t))
+
+fit_fe <- glm(escalate ~ lag_log + from_f + t_f + TS_f, data = esc,
+              family = binomial)
+coeftest(fit_fe, vcov. = vcovCL(fit_fe, cluster = ~ TS_PCODE, type = "HC0"))
+```
+
+```{r}
+#| label: tbl-fe
+#| tbl-cap: "<span class='en'>Odds ratio of escalating next quarter per one-unit increase in log(1 + neighbourhood mean events), with 95% confidence intervals from township-clustered standard errors. All models control for the township's own current state.</span><span class='zh'>邻域平均事件数取 log(1 + x) 后每增加一个单位,下一季度升级的优势比,95% 置信区间基于按镇区聚类的标准误。所有模型都控制了镇区自身的当前状态。</span>"
+
+MK$fe |>
+  transmute(Model = model, `Odds ratio` = OR, `95% CI` = sprintf("%.2f – %.2f", lo, hi),
+            p = pv(p), `Township-quarters` = n) |>
+  gt() |>
+  fmt_number(`Odds ratio`, decimals = 2) |>
+  fmt_number(`Township-quarters`, decimals = 0) |>
+  tab_options(table.font.size = px(13))
+```
+
+::: {.interp .en}
+**Fixed effects.** The neighbourhood effect does not shrink when the
+alternative explanations are removed; it grows, from an odds ratio of
+`r sprintf("%.2f", MK$fe$OR[1])` with no fixed effects to
+`r sprintf("%.2f", MK$fe$OR[3])` with both. On the probability scale, the
+full model puts the average chance that a quiet township sees conflict next
+quarter at `r pct(100 * MK$fe_effect$p_escalate[1], 0)` when its neighbours
+recorded nothing this quarter and
+`r pct(100 * MK$fe_effect$p_escalate[4], 0)` when they averaged 15 events.
+That the estimate rises once permanent differences are removed suggests the
+pooled model was diluted by stable regions, such as the eastern Shan hills,
+where neighbours are quiet and the township is quiet, and nothing changes.
+The model is still observational: an unmeasured shock that reaches a
+township's neighbours one quarter before the township itself would produce
+the same pattern. But that shock would itself be a form of spread.
+:::
+
+::: {.interp .zh}
+**固定效应。** 排除替代解释之后,邻域效应并没有缩小,反而**增大**:优势比从不含固定
+效应时的 `r sprintf("%.2f", MK$fe$OR[1])` 升至同时含两种固定效应时的
+`r sprintf("%.2f", MK$fe$OR[3])`。换算成概率,完整模型估计:邻居本季度没有任何事件时,
+平静镇区下一季度出现冲突的平均概率为 `r pct(100 * MK$fe_effect$p_escalate[1], 0)`;
+邻居平均有 15 起事件时为 `r pct(100 * MK$fe_effect$p_escalate[4], 0)`。估计值在消去
+永久性差异后上升,说明合并模型被稳定区域稀释了,例如掸邦东部山地:那里邻居平静、
+镇区平静,一切都没有变化。这个模型仍然是观察性的:一个先于镇区本身一个季度到达其
+邻居的未观测冲击也会产生同样的模式。但这样的冲击本身就是一种扩散。
+:::
+
+## <span class="en">When does a township first enter the conflict?</span><span class="zh">一个镇区何时首次卷入冲突?</span> {#sec-va-onset}
+
+::: {.en}
+The Markov chain and the fixed-effects model describe escalation in townships
+already exposed. A different question is how conflict reached each township
+in the first place. A township's *onset* is defined as the first quarter in
+which it records four or more events, the threshold of sustained conflict.
+An onset is *adjacent* if at least one queen neighbour had its onset in an
+earlier quarter, and a *jump* otherwise. If conflict reached townships by
+spreading outwards, adjacent onsets should be more common than if the same
+onset dates had been dealt to townships at random. The null keeps the
+townships already in sustained conflict in 2021 Q1 and those that never
+reached it, and shuffles the dates among the `r MK$onset$n_onsets` townships
+whose onset falls inside the window.
+:::
+
+::: {.zh}
+马尔可夫链与固定效应模型描述的是已暴露镇区的升级。另一个问题是,冲突最初是如何
+到达每个镇区的。镇区的**爆发**定义为它首次记录到四起及以上事件(即持续冲突门槛)的
+季度。如果至少有一个 queen 邻居在**更早**的季度已经爆发,则称为**相邻爆发**,否则称为
+**跳跃爆发**。如果冲突是向外扩散到达各镇区的,那么相邻爆发应比「同样的爆发日期被
+随机分配给各镇区」时更常见。零模型保留 2021 年第一季度已处于持续冲突的镇区与从未
+达到该门槛的镇区不变,只在爆发时间位于窗口之内的 `r MK$onset$n_onsets` 个镇区之间
+打乱日期。
+:::
+
+```{r}
+#| label: fig-onset
+#| fig-cap: "<span class='en'>Left: the year in which each township first recorded four or more conflict events in a quarter, with jump onsets (no neighbour in sustained conflict before) outlined. Right: the share of adjacent onsets against 999 random reassignments of the same onset dates.</span><span class='zh'>左:各镇区首次在一个季度内记录到四起及以上冲突事件的年份,跳跃爆发(此前没有邻居处于持续冲突)加粗描边。右:相邻爆发占比与同样爆发日期的 999 次随机重分配对比。</span>"
+#| fig-alt: "Map of onset years dominated by 2021 across the country with jump onsets outlined, and a histogram showing the observed adjacent share inside the null distribution."
+#| fig-width: 10
+#| fig-height: 6.6
+
+on_sf <- ts_an |> select(TS_PCODE) |>
+  left_join(MK$onset$table, by = "TS_PCODE") |>
+  mutate(when = case_when(type == "Never sustained" ~ "Never",
+                          type == "Sustained from 2021 Q1" ~ "2021 Q1",
+                          TRUE ~ as.character(year(onset))),
+         when = factor(when, levels = c("2021 Q1", "2021", "2022", "2023", "2024", "2025", "Never")))
+
+on_cols <- c("2021 Q1" = "#49006a", "2021" = "#ae017e", "2022" = "#f768a1",
+             "2023" = "#fbb4b9", "2024" = "#fde0dd", "2025" = "#fff7f3", "Never" = "#e7e5e4")
+
+m_on <- map_base(
+  list(geom_sf(data = on_sf, aes(fill = when), colour = "white", linewidth = 0.05),
+       geom_sf(data = on_sf |> filter(type == "Jump onset"), fill = NA,
+               colour = "#1c1917", linewidth = 0.45)),
+  title = "First quarter of sustained conflict",
+  subtitle = "Outlined: jump onsets, with no neighbour in sustained conflict before",
+  state_lw = 0.2) +
+  scale_fill_manual("Onset", values = on_cols, drop = FALSE)
+
+h_on <- tibble(s = MK$onset$null) |>
+  ggplot(aes(s)) +
+  geom_histogram(bins = 30, fill = "#d6d3d1", colour = "white") +
+  geom_vline(xintercept = MK$onset$share_obs, colour = PAL$conflict, linewidth = 0.9) +
+  scale_x_continuous(labels = label_percent(accuracy = 1)) +
+  labs(title = "Adjacent onsets vs random timing",
+       subtitle = sprintf("Observed %s, permutation p = %.2f",
+                          pct(100 * MK$onset$share_obs), MK$onset$p),
+       x = "Share of onsets that are adjacent", y = "Permutations") +
+  theme_th(10)
+
+m_on + h_on + plot_layout(widths = c(1.15, 1))
+```
+
+```{r}
+#| label: onset-numbers
+#| include: false
+ot <- MK$onset$table |> mutate(y = year(onset))
+n_2021   <- sum(ot$y == 2021 & ot$type %in% c("Adjacent onset", "Jump onset"), na.rm = TRUE)
+on21 <- ot |> filter(y == 2021, type %in% c("Adjacent onset", "Jump onset")) |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "ST")], by = "TS_PCODE")
+top3_21 <- on21 |> count(ST, sort = TRUE) |> head(3) |>
+  mutate(s = paste0(ST, " (", n, ")")) |> pull(s) |> paste(collapse = ", ")
+jump_y   <- ot |> filter(type == "Jump onset") |> count(y)
+late     <- ot |> filter(y >= 2023, type %in% c("Adjacent onset", "Jump onset"))
+never_st <- ot |> filter(type == "Never sustained") |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "ST")], by = "TS_PCODE") |>
+  count(ST, sort = TRUE)
+```
+
+::: {.interp .en}
+**Onsets.** `r pct(100 * MK$onset$share_obs)` of onsets are adjacent, and
+random timing produces about `r pct(100 * mean(MK$onset$null))`; the
+difference is not significant (p = `r sprintf("%.2f", MK$onset$p)`). The map
+shows why. `r n_2021` of the `r MK$onset$n_onsets` onsets inside the window
+happened in 2021, within three quarters of the coup, in every one of MIMU's
+`r n_distinct(on21$ST)` state and region units, led by `r top3_21`. When most of the
+country ignites at once, almost any onset is next to an earlier one, and
+timing carries little spatial information. The jump onsets are all early:
+`r sum(jump_y$n[jump_y$y == 2021])` in 2021 and
+`r sum(jump_y$n[jump_y$y == 2022])` in 2022. After that the pattern is
+unambiguous. All `r nrow(late)` onsets from 2023 onwards were adjacent to a
+township already in sustained conflict. The `r sum(never_st$n)` townships
+that never reached sustained conflict are led by
+`r paste0(never_st$ST[1:3], " (", never_st$n[1:3], ")", collapse = ", ")`.
+:::
+
+::: {.interp .zh}
+**爆发。** `r pct(100 * MK$onset$share_obs)` 的爆发是相邻爆发,随机时间分配约产生
+`r pct(100 * mean(MK$onset$null))`;差异不显著(p = `r sprintf("%.2f", MK$onset$p)`)。
+地图说明了原因。窗口内的 `r MK$onset$n_onsets` 次爆发中,有 `r n_2021` 次发生在
+2021 年,即政变后三个季度之内,遍及全部 `r n_distinct(on21$ST)` 个省邦,居前的是
+`r top3_21`:这是一场全国性的浪潮。
+当全国大部分地区同时燃起时,几乎任何一次爆发都紧挨着更早的爆发,时间就几乎不携带
+空间信息。跳跃爆发全部发生在早期:2021 年 `r sum(jump_y$n[jump_y$y == 2021])` 次,
+2022 年 `r sum(jump_y$n[jump_y$y == 2022])` 次。此后格局就很清楚了:2023 年以后的全部
+`r nrow(late)` 次爆发,都与一个已处于持续冲突的镇区相邻。从未达到持续冲突的
+`r sum(never_st$n)` 个镇区中,居前的是
+`r paste0(never_st$ST[1:3], "(", never_st$n[1:3], ")", collapse = "、")`。
+:::
+
+## <span class="en">What the value-added analysis adds</span><span class="zh">附加价值分析补充了什么</span>
+
+::: {.en}
+The three analyses separate two processes that the hot spot maps run
+together. **Onset** was a national shock: the uprising after the coup broke
+out across the country within months, with no single source from which it
+spread, and the timing of first onsets is no more clustered than chance.
+**Escalation** is contagious: once conflict exists, a township's next
+quarter depends strongly on its neighbours, beyond its own history, beyond
+any permanent regional propensity, and beyond the nationwide trend. Since
+2023, conflict has entered new townships only from next door. For RQ3 the
+answer is therefore *escalation, not onset*. The practical consequence,
+taken up in @sec-implications, is that the edge of an active zone is
+predictable from one quarter to the next.
+
+**Assumptions and limitations.** The states discretise counts, and the
+thresholds are a choice; queen contiguity defines "neighbour", so spread
+along a road between non-adjacent townships is invisible. The chi-square
+test ignores dependence, which is why the permutation test is the one relied
+on. The fixed-effects logit with 18 quarters per township is subject to some
+incidental-parameter bias, and is observational.
+:::
+
+::: {.zh}
+三项分析把热点地图混在一起的两个过程区分开来。**爆发**是一场全国性冲击:政变后的
+起义在数月之内就遍及全国,并没有一个单一的扩散源,首次爆发的时间也不比随机情况更
+聚集。**升级**则具有传染性:一旦冲突存在,一个镇区下一季度的状况就强烈依赖于其邻居,
+这种依赖超出其自身历史、超出任何永久性的区域倾向,也超出全国趋势。2023 年以来,
+冲突只从**隔壁**进入新的镇区。因此,对 RQ3 的回答是**升级,而非爆发**。其实际意义
+(见 @sec-implications)在于:活跃区域的边缘在季度之间是可以预测的。
+
+**假设与局限。** 状态是对计数的离散化,阈值是一种选择;queen 邻接定义了「邻居」,
+因此沿道路在不相邻镇区之间的扩散是看不见的。卡方检验忽略了相依性,所以本研究依赖
+的是置换检验。每个镇区 18 个季度的固定效应 logit 存在一定的伴随参数偏误,而且是
+观察性的。
+:::

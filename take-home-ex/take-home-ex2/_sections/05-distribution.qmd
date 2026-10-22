@@ -1,0 +1,366 @@
+# <span class="en">The distribution of armed conflict</span><span class="zh">武装冲突的分布</span> {#sec-dist}
+
+::: {.en}
+Before any statistic is computed, this section looks at the data the way a
+reader of the maps would: how much conflict there was, when, of what kind,
+initiated by whom, and where. The statistics in the following sections test
+what the eye picks up here.
+:::
+
+::: {.zh}
+在计算任何统计量之前,本节先以地图读者的方式审视数据:冲突有多少、发生在何时、
+属于哪一类、由谁发起、发生在哪里。后续各节的统计量检验的正是这里肉眼所见的东西。
+:::
+
+## <span class="en">The national trajectory</span><span class="zh">全国走势</span> {#sec-dist-trend}
+
+```{r}
+#| label: fig-trend
+#| fig-cap: "<span class='en'>Armed-conflict events per quarter by type (upper panel) and reported fatalities per quarter (lower panel), Myanmar, 2021 Q1 to 2025 Q3. Vertical lines mark four reference events.</span><span class='zh'>按类型分列的每季度武装冲突事件数(上图)与每季度报告死亡人数(下图),缅甸,2021 年第一季度至 2025 年第三季度。竖线标出四个参照事件。</span>"
+#| fig-alt: "Stacked area chart of quarterly conflict events rising from about 400 in early 2021 to a peak near 4,000 in late 2023, and a line chart of fatalities."
+#| fig-width: 9.6
+#| fig-height: 6.4
+
+nat <- panel_q |>
+  group_by(period) |>
+  summarise(across(c(battles, erv, vac, fatalities, airstrike), sum), .groups = "drop")
+
+marks <- tibble(
+  date = as.Date(c("2021-02-01", "2021-09-07", "2023-10-27", "2025-03-28")),
+  lab  = c("Coup", "NUG declares\ndefensive war", "Operation\n1027", "Mandalay\nearthquake"))
+
+type_cols <- c("Battles" = "#9f1239",
+               "Explosions / remote violence" = "#f97316",
+               "Violence against civilians" = "#475569")
+
+p_ev <- nat |>
+  select(period, Battles = battles, `Explosions / remote violence` = erv,
+         `Violence against civilians` = vac) |>
+  pivot_longer(-period, names_to = "type", values_to = "n") |>
+  mutate(type = factor(type, levels = names(type_cols))) |>
+  ggplot(aes(period + 45, n, fill = type)) +
+  geom_col(width = 80, colour = "white", linewidth = 0.2) +
+  geom_vline(data = marks, aes(xintercept = date), linetype = "22",
+             colour = "#1c1917", linewidth = 0.35) +
+  geom_text(data = marks, aes(x = date, y = Inf, label = lab), inherit.aes = FALSE,
+            vjust = 1.1, hjust = -0.04, size = 2.8, lineheight = 0.9, colour = "#1c1917") +
+  scale_fill_manual(NULL, values = type_cols) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.12))) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "Armed-conflict events per quarter",
+       subtitle = "Explosions and remote violence have outnumbered battles in every quarter since late 2023",
+       x = NULL, y = "Events") +
+  theme_th(11)
+
+p_fat <- ggplot(nat, aes(period + 45, fatalities)) +
+  geom_col(width = 80, fill = "#7f1d1d") +
+  geom_vline(data = marks, aes(xintercept = date), linetype = "22",
+             colour = "#1c1917", linewidth = 0.35) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.08))) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "Reported fatalities per quarter", x = NULL, y = "Fatalities") +
+  theme_th(11)
+
+p_ev / p_fat + plot_layout(heights = c(1.6, 1))
+```
+
+```{r}
+#| label: trend-numbers
+#| include: false
+nat_tot <- nat |> mutate(conflict = battles + erv + vac)
+pk      <- nat_tot |> slice_max(conflict, n = 1)
+q1      <- nat_tot |> slice(1)
+last4   <- nat_tot |> tail(4)
+share_erv_first <- with(nat_tot |> filter(year(period) == 2022), sum(erv) / sum(conflict))
+share_erv_last  <- with(nat_tot |> filter(year(period) == 2025), sum(erv) / sum(conflict))
+air_y <- audit$sub_event_year |>
+  filter(sub_event_type == "Air/drone strike") |>
+  group_by(year) |> summarise(n = sum(n))
+```
+
+::: {.interp .en}
+**The trajectory.** Recorded armed conflict rose from
+`r n_fmt(q1$conflict)` events in the first quarter of 2021, the quarter of
+the coup, to a peak of `r n_fmt(pk$conflict)` in `r q_lab(pk$period)`, the
+quarter of Operation 1027, and has stayed near
+`r n_fmt(round(mean(last4$conflict), -2))` a quarter since. The composition
+changed as it grew. Violence against civilians peaked in 2022 and has
+declined since, while explosions and remote violence rose from
+`r pct(100 * share_erv_first)` of events in 2022 to
+`r pct(100 * share_erv_last)` in 2025. Air and drone strikes alone went from
+`r n_fmt(air_y$n[air_y$year == 2021])` in 2021 to
+`r n_fmt(air_y$n[air_y$year == 2024])` in 2024. Fatalities peak in the same
+quarters as events but are more volatile, because a handful of large battles,
+some with several hundred reported deaths, dominate any quarter in which they
+occur. **The national series is not stationary**, which matters for the
+emerging hot spot analysis in @sec-ehsa.
+:::
+
+::: {.interp .zh}
+**走势。** 记录在案的武装冲突从 2021 年第一季度(政变所在季度)的
+`r n_fmt(q1$conflict)` 起,上升到 `r q_lab(pk$period)`(1027 行动所在季度)的峰值
+`r n_fmt(pk$conflict)` 起,此后一直维持在每季度约
+`r n_fmt(round(mean(last4$conflict), -2))` 起。增长过程中构成也在变化。针对平民的
+暴力在 2022 年达到峰值后持续下降,而爆炸与远程暴力的占比从 2022 年的
+`r pct(100 * share_erv_first)` 升到 2025 年的 `r pct(100 * share_erv_last)`。仅空袭与
+无人机袭击一项,就从 2021 年的 `r n_fmt(air_y$n[air_y$year == 2021])` 起增加到 2024 年
+的 `r n_fmt(air_y$n[air_y$year == 2024])` 起。死亡人数的峰值与事件数出现在同样的季度,
+但波动更大,因为少数大规模战斗(有的报告数百人死亡)会主导它们所在的季度。
+**全国序列并不平稳**,这一点对 @sec-ehsa 的新兴热点分析很重要。
+:::
+
+## <span class="en">Who initiates the violence</span><span class="zh">暴力由谁发起</span>
+
+```{r}
+#| label: fig-actors
+#| fig-cap: "<span class='en'>Share of each event type by the type of the first actor (ACLED inter1), by year. 'Political militia' in ACLED's Myanmar coding includes the People's Defence Forces and unidentified armed groups.</span><span class='zh'>按年份与第一行动者类型(ACLED inter1)划分的各类事件占比。在 ACLED 的缅甸编码中,「政治民兵」包括人民防卫军与身份不明的武装团体。</span>"
+#| fig-alt: "Stacked bar chart of event shares by initiating actor type for battles, remote violence and violence against civilians, 2021 to 2025."
+#| fig-width: 9.6
+#| fig-height: 4.4
+
+act_cols <- c("State forces" = "#1e293b", "Political militia" = "#e11d48",
+              "Rebel group" = "#f59e0b", "Other" = "#d6d3d1")
+
+audit$actor_year |>
+  mutate(actor_type = ifelse(actor_type %in% names(act_cols), actor_type, "Other"),
+         actor_type = factor(actor_type, levels = names(act_cols)),
+         event_type = recode(event_type,
+                             `Explosions/Remote violence` = "Explosions / remote violence")) |>
+  group_by(year, event_type, actor_type) |>
+  summarise(n = sum(n), .groups = "drop_last") |>
+  mutate(share = n / sum(n)) |>
+  ggplot(aes(factor(year), share, fill = actor_type)) +
+  geom_col(width = 0.75, colour = "white", linewidth = 0.2) +
+  facet_wrap(~ event_type) +
+  scale_fill_manual("Initiating actor", values = act_cols) +
+  scale_y_continuous(labels = label_percent()) +
+  labs(title = "Who initiates each kind of event",
+       subtitle = "ACLED's first-actor type, share of events per year",
+       x = NULL, y = NULL) +
+  theme_th(10.5)
+```
+
+::: {.interp .en}
+**Actors.** The three event types are produced by different hands, and one
+of them changed hands. Violence against civilians is initiated mainly by
+state forces in every year, and increasingly so, which is consistent with the
+military's raids on villages suspected of supporting the resistance. Battles
+were initiated mostly by the resistance (political militias, which include
+the People's Defence Forces, and ethnic armed organisations coded as rebel
+groups) from 2022 to 2024. Explosions and remote violence reversed: in 2021
+most were the resistance's bombs and improvised explosives, and by 2025 the
+large majority were initiated by state forces, as the military came to rely
+on air strikes, drones and artillery. This is why the three types are
+analysed separately: a hot spot of battles marks a front line, a hot spot of
+violence against civilians marks where civilians bear the cost, and the two
+need not coincide.
+:::
+
+::: {.interp .zh}
+**行动者。** 三类事件出自不同之手,而其中一类还**易手**了。针对平民的暴力每年都
+主要由国家武装力量发起,且占比逐年上升,这与军方对被怀疑支持抵抗力量的村庄进行
+清剿相符。2022 至 2024 年间,战斗主要由抵抗力量发起(包括人民防卫军在内的政治民兵,
+以及被编码为叛军团体的民族武装组织)。爆炸与远程暴力则发生了逆转:2021 年大多是
+抵抗力量的炸弹与简易爆炸装置,到 2025 年绝大多数由国家武装力量发起,因为军方越来越
+依赖空袭、无人机与炮击。这正是三类事件分开分析的原因:战斗热点标示**前线**,针对
+平民的暴力热点标示**平民承受代价的地方**,二者未必重合。
+:::
+
+## <span class="en">Where: the whole period</span><span class="zh">在哪里:整个研究期</span> {#sec-dist-map}
+
+```{r}
+#| label: fig-choropleth
+#| fig-cap: "<span class='en'>The five conflict variables by township, summed over January 2021 to September 2025. Each map uses its own quantile classes, with zero as a class of its own, so that the maps compare where each variable is relatively high rather than absolute levels.</span><span class='zh'>五个冲突变量的镇区分布,汇总 2021 年 1 月至 2025 年 9 月。每幅图使用各自的分位数分级,零值单独成一级,因此这些地图比较的是各变量在**哪里相对较高**,而非绝对水平。</span>"
+#| fig-alt: "Five choropleth maps of Myanmar townships showing totals of conflict events, battles, remote violence, violence against civilians and fatalities."
+#| fig-width: 11
+#| fig-height: 6.6
+
+q_classes <- function(x, n = 5) {
+  pos <- x[x > 0]
+  br  <- unique(quantile(pos, probs = seq(0, 1, length.out = n + 1), names = FALSE))
+  lab <- paste0(n_fmt(head(br, -1) + c(0, rep(1, length(br) - 2))), "–", n_fmt(br[-1]))
+  out <- as.character(cut(x, br, include.lowest = TRUE, labels = lab))
+  out[x == 0] <- "0"
+  factor(out, levels = c("0", lab))
+}
+
+ramp6 <- c("#f5f5f4", "#fde0dd", "#fa9fb5", "#f768a1", "#c51b8a", "#7a0177")
+
+choro <- function(v) {
+  d <- ts_map |> mutate(cls = q_classes(.data[[v]]))
+  map_base(geom_sf(data = d, aes(fill = cls), colour = "white", linewidth = 0.04),
+           title = VAR_TINY[[v]], state_lw = 0.2) +
+    scale_fill_manual(NULL, values = setNames(ramp6[seq_len(nlevels(d$cls))],
+                                              levels(d$cls)), drop = FALSE) +
+    guides(fill = guide_legend(ncol = 2)) +
+    theme(legend.position = "bottom", legend.key.height = unit(0.32, "cm"),
+          legend.key.width = unit(0.32, "cm"), legend.text = element_text(size = 7.5),
+          plot.title = element_text(size = 10))
+}
+
+wrap_plots(lapply(names(VARS), choro), nrow = 1) +
+  plot_annotation(title = "Armed conflict by township, Jan 2021 – Sep 2025",
+                  subtitle = "Quantile classes of each variable; zero is a class of its own",
+                  theme = theme_th(11))
+```
+
+```{r}
+#| label: top-townships
+#| include: false
+top10 <- ts_map |> st_drop_geometry() |> slice_max(conflict, n = 10)
+top_share <- sum(top10$conflict) / sum(ts_map$conflict)
+st_share <- ts_map |> st_drop_geometry() |>
+  group_by(ST) |> summarise(n = sum(conflict)) |> mutate(s = n / sum(n)) |>
+  arrange(desc(n))
+dz <- st_share |> filter(ST %in% c("Sagaing", "Magway", "Mandalay"))
+```
+
+::: {.interp .en}
+**The whole period.** Conflict touched almost every township:
+`r N_TS - audit$n_ts_zero` of `r N_TS` recorded at least one event. But it is
+far from evenly spread. Sagaing, Magway and Mandalay together account for
+`r pct(100 * sum(dz$s))` of all events, and the darkest townships form a
+contiguous block where the three meet, around Monywa, Myaing, Pakokku and
+Shwebo. A second band of dark townships runs down the south-east, from
+eastern Bago through Kayin to Tanintharyi, and Hpakant in Kachin stands out
+on its own. The Ayeyarwady delta, Yangon and the east and south of Shan State
+are light on every map. The five variables share this broad geography, with two
+differences: battles reach further into Kachin and Kayah, and violence
+against civilians is the most concentrated in the Dry Zone. The ten
+townships with the most events account for `r pct(100 * top_share)` of the
+national total.
+:::
+
+::: {.interp .zh}
+**整个研究期。** 冲突几乎波及每一个镇区:`r N_TS` 个镇区中有
+`r N_TS - audit$n_ts_zero` 个至少记录了一起事件。但分布远不均匀。实皆、马圭与曼德勒
+合计占全部事件的 `r pct(100 * sum(dz$s))`,颜色最深的镇区在三者交界处构成一个连片
+区块,大致围绕蒙育瓦、敏建、木各具与瑞波。第二条深色带沿东南方向延伸,从勃固东部
+经克伦到德林达依;克钦的帕敢则单独突出。伊洛瓦底三角洲、仰光以及掸邦东部与南部
+在每幅图上都很浅。五个变量共享这一大致格局,只有两处不同:战斗更深入克钦与克耶,
+针对平民的暴力则最集中于干燥带。事件最多的十个镇区占全国总数的 `r pct(100 * top_share)`。
+:::
+
+## <span class="en">Where: year by year</span><span class="zh">在哪里:逐年</span> {#sec-dist-years}
+
+```{r}
+#| label: fig-years
+#| fig-cap: "<span class='en'>Conflict events per month by township, each calendar year. 2025 covers January to September, so it is shown per month like every other year and the classes are common to all five maps.</span><span class='zh'>各镇区每月冲突事件数,按日历年。2025 年只覆盖 1 月至 9 月,因此与其他年份一样按月显示,五幅图使用共同分级。</span>"
+#| fig-alt: "Five maps of conflict events per month by township for 2021 to 2025, showing spread from the Dry Zone to Rakhine and northern Shan."
+#| fig-width: 11
+#| fig-height: 5.6
+
+yr <- panel_y |>
+  mutate(per_month = conflict / months) |>
+  left_join(ts_an |> select(TS_PCODE), by = "TS_PCODE") |>
+  st_as_sf() |>
+  mutate(cls = cut(per_month, c(-Inf, 0, 0.5, 1, 2, 5, Inf),
+                   labels = c("0", "< 0.5", "0.5–1", "1–2", "2–5", "> 5")))
+
+map_base(geom_sf(data = yr, aes(fill = cls), colour = NA),
+         title = "Conflict events per month, by year",
+         subtitle = "Same classes in every panel; 2025 is January–September",
+         state_lw = 0.18) +
+  facet_wrap(~ year, nrow = 1) +
+  scale_fill_manual("Events / month", values = ramp6) +
+  theme(legend.position = "bottom", strip.text = element_text(size = 10))
+```
+
+```{r}
+#| label: year-numbers
+#| include: false
+yr_st <- panel_y |>
+  left_join(st_drop_geometry(ts_an)[, c("TS_PCODE", "ST")], by = "TS_PCODE") |>
+  group_by(year, ST) |>
+  summarise(pm = sum(conflict) / first(months), .groups = "drop")
+yr_get <- function(y, s) yr_st$pm[yr_st$year == y & yr_st$ST == s]
+active_y <- panel_y |> group_by(year) |>
+  summarise(n2 = sum(conflict / months >= 2))
+```
+
+::: {.interp .en}
+**Year by year.** In 2021 the map is mostly pale: the resistance was forming,
+and the heaviest violence was in Sagaing, in Kachin and Chin, and in Yangon,
+where the urban resistance's bombings and the crackdown kept conflict high
+until 2022. In 2022 and 2023 the Dry Zone fills in, with Sagaing at
+`r sprintf("%.0f", yr_get(2022, "Sagaing"))` events a month. In 2024 the map
+changes shape: Rakhine rises from `r sprintf("%.0f", yr_get(2023, "Rakhine"))`
+to `r sprintf("%.0f", yr_get(2024, "Rakhine"))` events a month as the Arakan
+Army offensive took the state's north and centre, and Mandalay reaches its
+peak. In 2025 Sagaing is at less than half its 2022 level, while Kayin,
+western Bago and even the Ayeyarwady delta record more conflict per month
+than in any earlier year. The number of
+townships averaging two or more events a month rose from
+`r active_y$n2[active_y$year == 2021]` in 2021 to
+`r max(active_y$n2)` at its highest. The picture is less one front moving
+than several fronts opening at different times.
+:::
+
+::: {.interp .zh}
+**逐年。** 2021 年地图大多较浅:抵抗力量尚在形成,最严重的暴力出现在实皆、克钦与
+钦邦,以及仰光,那里城市抵抗力量的爆炸袭击与镇压使冲突一直维持在高位,直到 2022 年。
+2022 与 2023 年,干燥带被逐渐填满,实皆达到每月 `r sprintf("%.0f", yr_get(2022, "Sagaing"))`
+起。2024 年地图的形状发生变化:随着若开军攻势夺取该邦北部与中部,若开的冲突从每月
+`r sprintf("%.0f", yr_get(2023, "Rakhine"))` 起升至 `r sprintf("%.0f", yr_get(2024, "Rakhine"))`
+起,曼德勒也达到峰值。2025 年,实皆不到其 2022 年水平的一半,而克伦、勃固西部乃至
+伊洛瓦底三角洲的月均冲突都高于此前任何一年。月均两起及以上事件的镇区数从 2021 年的
+`r active_y$n2[active_y$year == 2021]` 个增加到最高时的 `r max(active_y$n2)` 个。
+与其说是一条前线在移动,不如说是几条前线在不同时间相继打开。
+:::
+
+## <span class="en">The space-time cube, unfolded</span><span class="zh">展开的时空立方体</span> {#sec-dist-cube}
+
+```{r}
+#| label: fig-cube
+#| fig-cap: "<span class='en'>The space-time cube as a heat strip: one row per township, one column per quarter, coloured by conflict events. Townships are grouped by state and region, and ordered within each by their total.</span><span class='zh'>以热力条带展示的时空立方体:每行一个镇区,每列一个季度,颜色表示冲突事件数。镇区按省邦分组,组内按总量排序。</span>"
+#| fig-alt: "Heat map with 329 township rows grouped by state and 19 quarterly columns, showing when each township's conflict intensified."
+#| fig-width: 9.6
+#| fig-height: 11
+
+st_order <- ts_map |> st_drop_geometry() |>
+  group_by(ST) |> summarise(n = sum(conflict)) |> arrange(desc(n)) |> pull(ST)
+
+cube_df <- panel_q |>
+  left_join(st_drop_geometry(ts_map)[, c("TS_PCODE", "TS", "ST", "conflict")] |>
+              rename(total = conflict), by = "TS_PCODE") |>
+  mutate(ST = factor(ST, levels = st_order),
+         cls = cut(conflict, c(-Inf, 0, 3, 14, 29, 59, Inf),
+                   labels = c("0", "1–3", "4–14", "15–29", "30–59", "60+")))
+
+ggplot(cube_df, aes(period, reorder(TS_PCODE, total), fill = cls)) +
+  geom_tile() +
+  facet_grid(ST ~ ., scales = "free_y", space = "free_y", switch = "y") +
+  scale_fill_manual("Events in quarter", values = ramp6) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", expand = c(0, 0)) +
+  labs(title = "Every township, every quarter",
+       subtitle = "Rows grouped by state and region, most conflict-affected states first",
+       x = NULL, y = NULL) +
+  theme_th(9.5) +
+  theme(axis.text.y = element_blank(), panel.grid = element_blank(),
+        strip.text.y.left = element_text(angle = 0, hjust = 1, size = 7.5),
+        strip.placement = "outside", panel.spacing.y = unit(1.2, "pt"))
+```
+
+::: {.interp .en}
+**The cube.** Each row is a township's history. Three features stand out.
+First, the Dry Zone states at the top turn dark early, in the second half of
+2021, and most of their townships stay active to the end, so persistence is
+the norm there. Second, Rakhine shows a sharp break: rows that were pale
+until late 2023 turn dark within a quarter or two, the signature of an
+offensive rather than gradual spread; northern Shan shows the same thing as
+a single dark column in late 2023, Operation 1027, and another in mid-2024.
+Third, the bottom of the figure (Ayeyarwady, Nay Pyi Taw and eastern Shan)
+stays largely pale, apart from a late rise in the delta in 2025, and Yangon
+fades after 2022. These are the patterns the emerging hot spot analysis has
+to recover, and the figure is a check on whether its classes are plausible.
+:::
+
+::: {.interp .zh}
+**立方体。** 每一行是一个镇区的历史。有三个特征值得注意。第一,排在顶部的干燥带
+各省早在 2021 年下半年就转深,其中大多数镇区一直活跃到最后,**持续**是那里的常态。
+第二,若开呈现**陡然断裂**:直到 2023 年底还很浅的行,在一两个季度内迅速转深,这是
+攻势而非渐进扩散的特征;掸邦北部则在 2023 年底(1027 行动)和 2024 年中各出现一整列
+深色。第三,图的底部(伊洛瓦底、内比都与掸邦东部)大体保持较浅,只是三角洲在
+2025 年有所上升;仰光则在 2022 年后逐渐变浅。这些正是新兴热点分析需要还原的格局,
+因此该图也是检验其分类是否合理的参照。
+:::

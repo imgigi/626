@@ -1,0 +1,79 @@
+# <span class="en">Limitations</span><span class="zh">局限</span> {#sec-limits}
+
+::: {.en}
+**Recorded events are not all events.** ACLED depends on what is reported.
+Coverage is uneven across Myanmar, with internet shutdowns, restrictions on
+journalists and remoteness all reducing it, and it is likely to be thinnest
+in exactly the places a cold spot is found. Fatalities are estimates, often
+conservative and sometimes rounded, and a few battles with hundreds of
+reported deaths dominate the fatality variable.
+
+**The township and the quarter are choices.** Every result is conditional on
+aggregating to MIMU townships and calendar quarters, the modifiable areal unit
+problem [@openshaw1984] in both space and time. The township is justified
+by ACLED's location precision, and the quarter is tested against months, but
+other units would give somewhat different maps. Township sizes vary over two
+orders of magnitude, which the area-density sensitivity run shows can redraw
+the hot spot map entirely.
+
+**Counts, not risk.** Without a population denominator that survives three
+million displacements, the variables measure where violence happens, not how
+likely an individual is to be harmed.
+
+**Neighbourhoods are defined, not observed.** Queen contiguity, with two
+hand-made island links and one excluded township, defines who is a neighbour.
+It ignores roads, rivers and front lines, and treats a 12,000 km² Shan
+township and a 1 km² Yangon township alike. The k-nearest-neighbour runs show
+the core results survive a different definition but the edges move.
+
+**Many tests, few corrections.** The maps the brief asks for show unadjusted
+p < 0.05. FDR outlines are added to the LMSA maps, but EHSA classes are built
+from 19 tests per township with no correction, which is why
+@sec-ehsa-null calibrates the class counts against a null rather than
+reading every label at face value. The Mann-Kendall test assumes independent
+observations, which the space-time Gi\* series are not.
+
+**The tool, and its version.** The two sfdep defects documented in
+@sec-ehsa-check were found in sfdep 0.2.5. Later versions may correct them,
+and the comparison in `scripts/04_ehsa.R` should be re-run before relying on
+any other version.
+
+**Observational diffusion.** The Markov and fixed-effects results show that
+escalation follows neighbours' violence, controlling for permanent township
+differences and nationwide shocks. They do not identify a causal mechanism:
+an advancing armed group, a regional offensive, or displaced people moving
+between townships would all produce the same pattern.
+:::
+
+::: {.zh}
+**被记录的事件不等于全部事件。** ACLED 依赖于被报道的内容。其在缅甸各地的覆盖并不
+均匀,断网、对记者的限制以及偏远程度都会降低覆盖,而覆盖最薄弱的恰恰可能是冷点所在
+之处。死亡人数是估计值,往往偏保守,有时还经过取整;少数报告死亡数百人的战斗主导了
+死亡人数这一变量。
+
+**镇区与季度是一种选择。** 每个结果都以汇总到 MIMU 镇区与日历季度为前提,即空间与
+时间上的可变面积单元问题 [@openshaw1984]。镇区这一单元由 ACLED 的位置精度提供依据,
+季度也与月度做了对比检验,但其他单元会给出有所不同的地图。镇区面积相差两个数量级,
+按面积密度的敏感性分析表明,这足以把热点地图完全改画。
+
+**计数,而非风险。** 在三百万人流离失所之后,不存在可用的人口分母,因此这些变量度量的
+是暴力**发生在哪里**,而不是个人**受害的可能性**。
+
+**邻域是定义出来的,而非观测到的。** queen 邻接(加上两个人工添加的岛屿连接与一个
+被排除的镇区)定义了谁是邻居。它忽略道路、河流与前线,把 12,000 km² 的掸邦镇区与
+1 km² 的仰光镇区等同对待。k 近邻分析表明,核心结果在另一种定义下依然成立,但边缘会
+移动。
+
+**检验很多,校正很少。** 作业要求的地图显示未经校正的 p < 0.05。LMSA 地图加上了 FDR
+描边,但 EHSA 的类别是由每个镇区 19 次未经校正的检验构成的,这正是 @sec-ehsa-null
+用零模型校准类别计数、而不是照单全收每个标签的原因。Mann-Kendall 检验假定观测相互
+独立,而时空 Gi\* 序列并非如此。
+
+**工具及其版本。** @sec-ehsa-check 记录的两个 sfdep 缺陷是在 sfdep 0.2.5 中发现的。
+后续版本可能会修正它们;在依赖任何其他版本之前,应重新运行 `scripts/04_ehsa.R` 中的
+对比。
+
+**观察性的扩散。** 马尔可夫与固定效应结果表明,在控制镇区永久差异与全国性冲击之后,
+升级仍跟随邻居的暴力。它们并不能识别因果机制:一支推进中的武装力量、一次区域性攻势,
+或在镇区之间移动的流离失所者,都会产生同样的模式。
+:::

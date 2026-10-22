@@ -1,0 +1,994 @@
+---
+title: '<span class="en">Geospatial Analytics for Peace</span><span class="zh">面向和平的地理空间分析</span>'
+pagetitle: "Take-home Exercise 2 · Executive Summary"
+subtitle: '<span class="en">Hot spots, cold spots and the spread of armed conflict<br>Myanmar, by township · January 2021 – September 2025</span><span class="zh">武装冲突的热点、冷点与扩散<br>缅甸镇区 · 2021 年 1 月至 2025 年 9 月</span>'
+author: "Ji Guofang · ISSS626"
+date: 2026-10-22
+format:
+  revealjs:
+    theme: [default, slides.scss]
+    width: 1500
+    height: 900
+    margin: 0.035
+    center: false
+    auto-stretch: false
+    fig-dpi: 180
+    slide-number: c/t
+    show-slide-number: all
+    transition: fade
+    transition-speed: fast
+    incremental: false
+    fig-align: center
+    code-fold: true
+    code-summary: "code"
+    code-overflow: wrap
+    highlight-style: github
+    link-external-newwindow: true
+    controls: true
+    progress: true
+    hash-type: number
+    center-title-slide: false
+    title-slide-attributes:
+      id: title-slide
+      data-background-color: "#1e293b"
+    footer: '<span class="en">ISSS626 · Take-home Exercise 2 · Armed conflict in Myanmar, LMSA and EHSA</span><span class="zh">ISSS626 · 课后作业二 · 缅甸武装冲突的 LMSA 与 EHSA</span>'
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: false
+bibliography: references.bib
+csl: apa.csl
+suppress-bibliography: true
+---
+
+```{r}
+#| label: slides-setup
+#| include: false
+
+suppressPackageStartupMessages({
+  library(sf); library(dplyr); library(tidyr); library(purrr); library(ggplot2)
+  library(patchwork); library(scales); library(forcats); library(lubridate)
+  library(spdep); library(gt)
+})
+source("R/utils.R")
+source("R/ehsa.R")
+sf::sf_use_s2(FALSE); set.seed(1234)
+
+DER     <- "data/derived"
+audit   <- readRDS(file.path(DER, "acled_audit.rds"))
+ts_all  <- readRDS(file.path(DER, "township.rds"))
+ts_an   <- readRDS(file.path(DER, "township_an.rds"))
+ts_tot  <- readRDS(file.path(DER, "ts_tot.rds"))
+state   <- readRDS(file.path(DER, "state.rds"))
+panel_q <- readRDS(file.path(DER, "panel_q.rds"))
+panel_y <- readRDS(file.path(DER, "panel_y.rds"))
+LM      <- readRDS(file.path(DER, "lmsa.rds"))
+EH      <- readRDS(file.path(DER, "ehsa.rds"))
+MK      <- readRDS(file.path(DER, "markov.rds"))
+
+N_TS <- nrow(ts_an); N_EV <- audit$loc_flow$analysed
+q_lab <- function(d) paste0(year(d), " Q", quarter(d))
+
+# The deck's paper colour. Figures are drawn on it rather than on white, so a
+# plot does not read as a white card floating on the slide. Patchwork draws
+# the frame around a composite with the default theme, so the default is
+# changed too, and the PNG device is given the same background.
+PAPER <- "#f7f7f5"
+theme_update(plot.background = element_rect(fill = PAPER, colour = NA))
+knitr::opts_chunk$set(dev.args = list(bg = PAPER))
+
+theme_slide <- function(base = 17) theme_th(base) +
+  theme(plot.title    = element_text(size = rel(1.0),  margin = margin(b = 10)),
+        plot.subtitle = element_text(size = rel(0.82), margin = margin(b = 12)),
+        plot.background   = element_rect(fill = PAPER, colour = NA),
+        panel.background  = element_rect(fill = PAPER, colour = NA),
+        legend.background = element_rect(fill = PAPER, colour = NA),
+        legend.key        = element_rect(fill = PAPER, colour = NA))
+
+theme_slide_map <- function(base = 15) theme_map(base) +
+  theme(plot.title    = element_text(margin = margin(b = 10)),
+        plot.subtitle = element_text(margin = margin(b = 12)),
+        plot.background   = element_rect(fill = PAPER, colour = NA),
+        panel.background  = element_rect(fill = PAPER, colour = NA),
+        legend.background = element_rect(fill = PAPER, colour = NA),
+        legend.key        = element_rect(fill = PAPER, colour = NA))
+
+smap <- function(layer, title = NULL, subtitle = NULL, base = 14, lw = 0.28) {
+  ggplot() +
+    geom_sf(data = ts_all |> filter(!TS_PCODE %in% ts_an$TS_PCODE),
+            fill = "#e7e5e4", colour = NA) +
+    layer +
+    geom_sf(data = state, fill = NA, colour = "#44403c", linewidth = lw) +
+    coord_sf(datum = NA, expand = FALSE) +
+    labs(title = title, subtitle = subtitle) +
+    theme_slide_map(base)
+}
+
+lisa_sf <- ts_an |> select(TS_PCODE) |>
+  right_join(LM$lisa, by = "TS_PCODE")
+lc <- LM$lisa |> filter(var == "conflict")
+side <- function(q, g) {
+  l <- ifelse(q == "High-High", "hot", ifelse(q == "Low-Low", "cold", "none"))
+  h <- ifelse(g == "Hot spot", "hot", ifelse(g == "Cold spot", "cold", "none"))
+  sum(l == h)
+}
+gi_agree <- side(lc$quad, lc$gi_class)
+
+ec <- tibble(TS_PCODE = EH$locs,
+             cls = ehsa_label(EH$results$conflict$cls$classification),
+             n_hot  = rowSums(EH$results$conflict$p_fold <= EH$alpha & EH$results$conflict$G > 0),
+             n_cold = rowSums(EH$results$conflict$p_fold <= EH$alpha & EH$results$conflict$G < 0))
+ec_sf <- ts_an |> select(TS_PCODE, TS, ST) |> left_join(ec, by = "TS_PCODE")
+k_star <- min(EH$null_nq$k[EH$null_nq$surv_hot <= 0.01])
+
+nat <- panel_q |> group_by(period) |>
+  summarise(across(c(battles, erv, vac, fatalities), sum), .groups = "drop") |>
+  mutate(conflict = battles + erv + vac)
+pk <- nat |> slice_max(conflict, n = 1)
+
+bq1 <- EH$bins_by_null |> filter(period == min(period))
+ol  <- ts_an |> select(TS_PCODE, TS) |> left_join(MK$outlook, by = "TS_PCODE")
+edge <- ol |> filter(own <= 2, lag == 4)
+```
+
+## <span class="en">Contents</span><span class="zh">目录</span> {#contents}
+
+::: {.eyebrow}
+<span class="en">EXECUTIVE SUMMARY · TEN SLIDES</span><span class="zh">执行摘要 · 十页</span>
+:::
+
+::: {.card-grid .cols-2 .t-sm}
+::: {.card .card-quiet}
+::: {.en}
+1. Research question and key findings
+2. Study area and data
+3. Analytical approach
+4. How much conflict, when and of what kind
+5. Where: clusters and hot spots
+6. How the clusters moved, year by year
+:::
+::: {.zh}
+1. 研究问题与主要发现
+2. 研究区与数据
+3. 分析方法
+4. 冲突有多少、何时、何种类型
+5. 在哪里:聚集与热点
+6. 聚集如何逐年移动
+:::
+:::
+
+::: {.card .card-quiet}
+::: {.en}
+7. Checking the emerging hot spot tool
+8. Emerging hot spots, corrected
+9. Does conflict spread? An early-warning rule
+10. Limitations and implications for peace and public safety
+:::
+::: {.zh}
+7. 检验新兴热点分析工具
+8. 修正后的新兴热点
+9. 冲突会扩散吗?一条预警规则
+10. 局限,以及对和平与公共安全的启示
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">Full detail</span><span class="zh">完整内容</span>]{.lab}
+
+::: {.en}
+Every number here is computed in the [technical report](take-home-ex2.html),
+which documents the data preparation, the methods and their checks, and the
+code.
+:::
+::: {.zh}
+这里的每个数字都在[技术报告](take-home-ex2.html)中计算得出,报告记录了数据准备、
+方法及其检验,以及代码。
+:::
+:::
+
+## <span class="en">Research question and key findings</span><span class="zh">研究问题与主要发现</span> {#findings}
+
+::: {.eyebrow}
+<span class="en">01 · WHERE, HOW IT EVOLVES, HOW IT SPREADS</span><span class="zh">01 · 在哪里、如何演变、如何扩散</span>
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card .card-quiet}
+[<span class="en">RQ1 · Where</span><span class="zh">RQ1 · 在哪里</span>]{.lab}
+
+::: {.en}
+*Where are the significant hot spots, cold spots and outliers of armed
+conflict among Myanmar's townships?*
+:::
+::: {.zh}
+*缅甸各镇区武装冲突的显著热点、冷点与异常值在哪里?*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">RQ2 · How it evolves</span><span class="zh">RQ2 · 如何演变</span>]{.lab}
+
+::: {.en}
+*Which townships are new, persistent, sporadic or diminishing hot and cold
+spots, quarter by quarter?*
+:::
+::: {.zh}
+*逐季度来看,哪些镇区是新出现、持续、零星或减弱的热点与冷点?*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">RQ3 · How it spreads</span><span class="zh">RQ3 · 如何扩散</span>]{.lab}
+
+::: {.en}
+*Does conflict spread to neighbouring townships, and does that start it or
+escalate it?*
+:::
+::: {.zh}
+*冲突会扩散到相邻镇区吗?它是引发冲突,还是使冲突升级?*
+:::
+:::
+:::
+
+::: {.kpi-row}
+::: {.kpi}
+[`r n_fmt(N_EV)`]{.kpi-val}
+[<span class="en">Armed-conflict events analysed, 329 townships, 19 quarters</span><span class="zh">被分析的武装冲突事件,329 个镇区,19 个季度</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-fire}
+[`r sum(lc$quad == "High-High")`]{.kpi-val}
+[<span class="en">High-High townships: the Dry Zone and the south-east</span><span class="zh">「高-高」镇区:干燥带与东南</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r sprintf("%.2f", MK$fe$OR[3])`×]{.kpi-val}
+[<span class="en">Odds of escalating per unit of neighbours' log conflict, with fixed effects</span><span class="zh">邻居冲突(对数)每增加一单位的升级优势比(含固定效应)</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card .card-fire}
+[<span class="en">Where</span><span class="zh">在哪里</span>]{.lab}
+
+::: {.en}
+One dominant cluster in the **Dry Zone** where Sagaing, Magway and Mandalay
+meet; a weaker chain in the **south-east**; cold zones in the **delta,
+Yangon and eastern Shan**.
+:::
+::: {.zh}
+一个占主导的**干燥带**聚集(实皆、马圭、曼德勒交界);较弱的**东南**链条;冷区位于
+**三角洲、仰光与掸邦东部**。
+:::
+:::
+
+::: {.card}
+[<span class="en">How it evolves</span><span class="zh">如何演变</span>]{.lab}
+
+::: {.en}
+A **stable core with moving edges**: new hot spots on the south and east of
+the Dry Zone; Yangon turned **cold** after 2022. The off-the-shelf EHSA tool
+needed **three corrections** first.
+:::
+::: {.zh}
+**稳定的核心,移动的边缘**:干燥带南缘与东缘出现新热点;仰光在 2022 年后转为**冷点**。
+现成的 EHSA 工具需要先做**三项修正**。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">How it spreads</span><span class="zh">如何扩散</span>]{.lab}
+
+::: {.en}
+**Onset** in 2021 was nationwide and simultaneous. **Escalation** is
+contagious: a township's next quarter depends on its neighbours.
+:::
+::: {.zh}
+2021 年的**爆发**是全国同时发生的。**升级**则具有传染性:一个镇区下一季度的状况取决于
+其邻居。
+:::
+:::
+:::
+
+## <span class="en">Study area and data</span><span class="zh">研究区与数据</span> {#data}
+
+::: {.eyebrow}
+<span class="en">02 · STUDY AREA AND DATA</span><span class="zh">02 · 研究区与数据</span>
+:::
+
+::: {.columns}
+::: {.column width="40%"}
+```{r}
+#| label: slide-area
+#| fig-width: 5.6
+#| fig-height: 7.4
+
+pts <- state |> mutate(pt = st_point_on_surface(geometry)) |> st_drop_geometry() |>
+  mutate(x = st_coordinates(pt)[, 1], y = st_coordinates(pt)[, 2])
+d <- ts_tot |> mutate(cls = cut(conflict, c(-Inf, 0, 25, 80, 200, 450, Inf),
+                                  labels = c("0", "1–25", "26–80", "81–200", "201–450", "451+")))
+smap(geom_sf(data = d, aes(fill = cls), colour = "white", linewidth = 0.04),
+     title = "Conflict events per township", subtitle = "Jan 2021 – Sep 2025", base = 13) +
+  geom_text(data = pts, aes(x, y, label = ST), size = 2.3, colour = "#1c1917",
+            check_overlap = TRUE) +
+  scale_fill_manual(NULL, values = c("#f5f5f4", "#fde0dd", "#fa9fb5", "#f768a1", "#c51b8a", "#7a0177"))
+```
+:::
+
+::: {.column width="60%" .t-xs}
+::: {.card-grid .cols-2}
+::: {.card}
+[<span class="en">ACLED events</span><span class="zh">ACLED 事件</span>]{.lab}
+
+::: {.en}
+`r n_fmt(audit$n_raw)` records, Jan 2021 – Sep 2025. Three armed-conflict
+types kept: **battles, explosions/remote violence, violence against
+civilians**, plus their fatalities.
+:::
+::: {.zh}
+`r n_fmt(audit$n_raw)` 条记录,2021 年 1 月至 2025 年 9 月。保留三类武装冲突:
+**战斗、爆炸/远程暴力、针对平民的暴力**,以及相应的死亡人数。
+:::
+:::
+
+::: {.card}
+[<span class="en">MIMU townships v9.4</span><span class="zh">MIMU 镇区 v9.4</span>]{.lab}
+
+::: {.en}
+330 townships; **329 analysed** (Cocokyun, 126 km offshore and without a
+single event, excluded); two islands linked to the mainland.
+:::
+::: {.zh}
+330 个镇区;**分析 329 个**(距岸 126 km、没有任何事件的 Cocokyun 被排除);两个岛屿
+与大陆相连。
+:::
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Land mines cleared</span><span class="zh">清除的地雷</span>]{.lab}
+
+::: {.en}
+- `r audit$loc_flow$city_only` conflict events known only to a **city**
+  ("Mandalay – Unspecified") and `r audit$loc_flow$region_only` known only to a
+  **district or state** would each have landed on one city-centre township:
+  **excluded**.
+- Events placed by **spatial join**, not by name; ACLED's own township agrees
+  for `r sprintf("%.2f", audit$admin3_agreement_pct)`%.
+- `r pct(100 * sum(audit$exclusion_by_type$prec2) / sum(audit$exclusion_by_type$analysed), 0)`
+  of events are known only to the township, so **township and quarter** are
+  the units, not points.
+:::
+::: {.zh}
+- `r audit$loc_flow$city_only` 起只知道**城市**(「Mandalay – Unspecified」)的冲突事件,
+  以及 `r audit$loc_flow$region_only` 起只知道**县或省邦**的事件,本会各自落到一个城市
+  中心镇区:**予以排除**。
+- 事件通过**空间连接**而非名称定位;与 ACLED 自身镇区的一致率为
+  `r sprintf("%.2f", audit$admin3_agreement_pct)`%。
+- `r pct(100 * sum(audit$exclusion_by_type$prec2) / sum(audit$exclusion_by_type$analysed), 0)`
+  的事件只知道所在镇区,因此分析单元是**镇区与季度**,而不是点。
+:::
+:::
+:::
+:::
+
+## <span class="en">Analytical approach</span><span class="zh">分析方法</span> {#approach}
+
+::: {.eyebrow}
+<span class="en">03 · METHODS</span><span class="zh">03 · 分析方法</span>
+:::
+
+::: {.card-grid .cols-4 .t-xs}
+::: {.card .card-quiet}
+[<span class="en">1 · Prepare</span><span class="zh">1 · 准备</span>]{.lab}
+
+::: {.en}
+Audit and screen events; join to townships; complete a **329 × 19
+space-time cube** with zeros where nothing happened.
+:::
+::: {.zh}
+审计与筛查事件;连接到镇区;构建完整的 **329 × 19 时空立方体**,无事件之处填零。
+:::
+:::
+
+::: {.card}
+[<span class="en">2 · LMSA</span><span class="zh">2 · LMSA</span>]{.lab}
+
+::: {.en}
+Global Moran's I, then **local Moran's I** (clusters, outliers) and **Gi\***
+(hot, cold), 999 conditional permutations, FDR shown.
+:::
+::: {.zh}
+全局 Moran's I,然后是**局部 Moran's I**(聚集、异常值)与 **Gi\***(热、冷),999 次
+条件置换,并显示 FDR 结果。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">3 · EHSA</span><span class="zh">3 · EHSA</span>]{.lab}
+
+::: {.en}
+Space-time **Gi\*** per quarter, **Mann-Kendall** trend, Esri classes.
+sfdep's tool **checked against an independent implementation** first.
+:::
+::: {.zh}
+逐季度的时空 **Gi\***、**Mann-Kendall** 趋势、Esri 类别。先用**独立实现检验** sfdep 的工具。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">4 · Value added</span><span class="zh">4 · 附加价值</span>]{.lab}
+
+::: {.en}
+**Spatial Markov chain** of conflict states, **fixed-effects** logit and
+onset timing, each against a permutation null; **back-tested**.
+:::
+::: {.zh}
+冲突状态的**空间马尔可夫链**、**固定效应** logit 与爆发时间,各自对照置换零模型;
+并做**回测**。
+:::
+:::
+:::
+
+```{r}
+#| label: slide-weights
+#| fig-width: 15.5
+#| fig-height: 3.6
+
+lt <- LM$glob_year |>
+  ggplot(aes(year, I)) +
+  geom_line(colour = PAL$conflict, linewidth = 1) +
+  geom_point(colour = PAL$conflict, size = 3) +
+  geom_text(aes(label = sprintf("%.2f", I)), vjust = -1, size = 4.4) +
+  scale_y_continuous(limits = c(0, 0.7)) +
+  labs(title = "Global Moran's I of conflict, by year",
+       subtitle = "Every year p = 0.001: clustered, most of all in 2022–23",
+       x = NULL, y = "Moran's I") +
+  theme_slide(14)
+
+gb <- LM$glob |>
+  mutate(lab = c(conflict = "All conflict", battles = "Battles",
+                 erv = "Remote violence", vac = "Violence vs civilians",
+                 fatalities = "Fatalities")[var],
+         lab = fct_reorder(lab, I)) |>
+  ggplot(aes(I, lab)) +
+  geom_col(fill = PAL$conflict, width = 0.62) +
+  geom_text(aes(label = sprintf("%.2f", I)), hjust = -0.2, size = 4.4) +
+  scale_x_continuous(limits = c(0, 0.7)) +
+  labs(title = "Whole period, by variable", subtitle = "Queen contiguity, row-standardised",
+       x = "Moran's I", y = NULL) +
+  theme_slide(14)
+
+lt | gb
+```
+
+::: {.takeaway}
+[<span class="en">Why check the tool</span><span class="zh">为什么要检验工具</span>]{.lab}
+
+::: {.en}
+A hot spot map that is wrong looks exactly like one that is right. Every
+statistic here was **reproduced independently**, and each analytical choice
+was **varied one at a time** to see what moves.
+:::
+::: {.zh}
+一张错误的热点地图,看起来和正确的完全一样。这里的每个统计量都经过**独立复现**,每项
+分析选择都**逐一改变**,以观察哪些结果会随之移动。
+:::
+:::
+
+## <span class="en">How much conflict, when, and of what kind</span><span class="zh">冲突有多少、何时、何种类型</span> {#trend}
+
+::: {.eyebrow}
+<span class="en">04 · THE NATIONAL TRAJECTORY</span><span class="zh">04 · 全国走势</span>
+:::
+
+```{r}
+#| label: slide-trend
+#| fig-width: 15.5
+#| fig-height: 5.2
+
+marks <- tibble(date = as.Date(c("2021-02-01", "2021-09-07", "2023-10-27", "2025-03-28")),
+                lab = c("Coup", "NUG declares\ndefensive war", "Operation\n1027", "Earthquake"))
+type_cols <- c("Battles" = "#9f1239", "Explosions / remote violence" = "#f97316",
+               "Violence against civilians" = "#475569")
+p1 <- nat |>
+  select(period, Battles = battles, `Explosions / remote violence` = erv,
+         `Violence against civilians` = vac) |>
+  pivot_longer(-period, names_to = "type", values_to = "n") |>
+  mutate(type = factor(type, levels = names(type_cols))) |>
+  ggplot(aes(period + 45, n, fill = type)) +
+  geom_col(width = 80, colour = PAPER, linewidth = 0.3) +
+  geom_vline(data = marks, aes(xintercept = date), linetype = "22", linewidth = 0.4) +
+  geom_text(data = marks, aes(x = date, y = Inf, label = lab), inherit.aes = FALSE,
+            vjust = 1.1, hjust = -0.05, size = 3.8, lineheight = 0.9) +
+  scale_fill_manual(NULL, values = type_cols) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.15))) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "Armed-conflict events per quarter", x = NULL, y = "Events") +
+  theme_slide(14) + theme(legend.position = "top")
+
+act <- audit$actor_year |>
+  filter(event_type == "Explosions/Remote violence") |>
+  mutate(actor = ifelse(actor_type == "State forces", "State forces", "Resistance and others")) |>
+  group_by(year, actor) |> summarise(n = sum(n), .groups = "drop_last") |>
+  mutate(share = n / sum(n))
+p2 <- ggplot(act, aes(factor(year), share, fill = actor)) +
+  geom_col(width = 0.7, colour = PAPER) +
+  geom_text(data = act |> filter(actor == "State forces"),
+            aes(label = percent(share, 1)), position = position_stack(vjust = 0.5),
+            colour = "white", size = 4.2) +
+  scale_fill_manual(NULL, values = c("State forces" = "#1e293b",
+                                     "Resistance and others" = "#e11d48")) +
+  scale_y_continuous(labels = label_percent()) +
+  labs(title = "Remote violence changed hands", subtitle = "Who initiated explosions / remote violence",
+       x = NULL, y = NULL) +
+  theme_slide(14) + theme(legend.position = "top")
+
+p1 + p2 + plot_layout(widths = c(1.7, 1))
+```
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card}
+::: {.en}
+Conflict rose from `r n_fmt(nat$conflict[1])` events in 2021 Q1 to
+**`r n_fmt(pk$conflict)` in `r q_lab(pk$period)`**, the quarter of Operation
+1027, and has stayed near 3,000 a quarter since.
+:::
+::: {.zh}
+冲突从 2021 年第一季度的 `r n_fmt(nat$conflict[1])` 起,升至 **`r q_lab(pk$period)` 的
+`r n_fmt(pk$conflict)` 起**(1027 行动所在季度),此后一直维持在每季度约 3,000 起。
+:::
+:::
+::: {.card .card-fire}
+::: {.en}
+**Remote violence is now the largest category**, and by 2025 the military
+initiated `r percent(act$share[act$year == 2025 & act$actor == "State forces"], 1)`
+of it: air strikes, drones and artillery.
+:::
+::: {.zh}
+**远程暴力如今是最大的类别**,到 2025 年其中
+`r percent(act$share[act$year == 2025 & act$actor == "State forces"], 1)` 由军方发起:
+空袭、无人机与炮击。
+:::
+:::
+::: {.card .card-water}
+::: {.en}
+The national series **trends strongly**, which is exactly what breaks the
+standard EHSA null model (slide 7).
+:::
+::: {.zh}
+全国序列**趋势明显**,这恰恰是标准 EHSA 零模型失效的原因(第 7 页)。
+:::
+:::
+:::
+
+## <span class="en">Where: clusters and hot spots</span><span class="zh">在哪里:聚集与热点</span> {#lmsa}
+
+::: {.eyebrow}
+<span class="en">05 · LOCAL MEASURES OF SPATIAL ASSOCIATION</span><span class="zh">05 · 局部空间关联</span>
+:::
+
+::: {.columns}
+::: {.column width="64%"}
+```{r}
+#| label: slide-lisa
+#| fig-width: 10.4
+#| fig-height: 7.2
+
+lm1 <- function(v, title) {
+  d <- lisa_sf |> filter(var == v)
+  smap(list(geom_sf(data = d, aes(fill = quad), colour = "white", linewidth = 0.04),
+            geom_sf(data = d |> filter(quad_fdr != "Insignificant"), fill = NA,
+                    colour = "#1c1917", linewidth = 0.4)),
+       title = title, base = 13, lw = 0.2) +
+    scale_fill_manual("LISA, p < 0.05", values = PAL_LISA, drop = FALSE)
+}
+(lm1("conflict", "All conflict") | lm1("vac", "Violence vs civilians") |
+   lm1("erv", "Remote violence")) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+```
+:::
+
+::: {.column width="36%" .t-xs}
+::: {.card .card-fire}
+[<span class="en">Clusters</span><span class="zh">聚集</span>]{.lab}
+
+::: {.en}
+**`r sum(lc$quad == "High-High")` High-High townships**: a solid block in the
+**Dry Zone** (Sagaing–Magway–Mandalay), which survives FDR correction, and a
+weaker **south-eastern** chain that does not.
+:::
+::: {.zh}
+**`r sum(lc$quad == "High-High")` 个「高-高」镇区**:**干燥带**(实皆–马圭–曼德勒)的
+连片区块通过了 FDR 校正;较弱的**东南**链条则没有。
+:::
+:::
+
+::: {.card}
+[<span class="en">By type</span><span class="zh">按类型</span>]{.lab}
+
+::: {.en}
+Violence against civilians is **almost all Dry Zone**; remote violence adds the
+**south-east**. No significant High-Low outliers.
+:::
+::: {.zh}
+针对平民的暴力**几乎全在干燥带**;远程暴力还延伸到**东南**。没有显著的「高-低」
+异常值。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">Cold</span><span class="zh">冷区</span>]{.lab}
+
+::: {.en}
+**`r sum(lc$quad == "Low-Low")` Low-Low townships**: the delta, Yangon and the
+eastern Shan hills. Gi\* puts `r gi_agree` of `r N_TS` townships on the same
+side.
+:::
+::: {.zh}
+**`r sum(lc$quad == "Low-Low")` 个「低-低」镇区**:三角洲、仰光与掸邦东部山地。Gi\* 把
+`r N_TS` 个镇区中的 `r gi_agree` 个放在同一侧。
+:::
+:::
+:::
+:::
+
+## <span class="en">How the clusters moved</span><span class="zh">聚集如何移动</span> {#years}
+
+::: {.eyebrow}
+<span class="en">06 · LOCAL MORAN'S I, YEAR BY YEAR</span><span class="zh">06 · 逐年局部 Moran's I</span>
+:::
+
+```{r}
+#| label: slide-years
+#| fig-width: 15.5
+#| fig-height: 5.8
+
+ly <- ts_an |> select(TS_PCODE) |> right_join(LM$lisa_year, by = "TS_PCODE")
+smap(list(geom_sf(data = ly, aes(fill = quad), colour = NA),
+          geom_sf(data = ly |> filter(quad_fdr != "Insignificant"), fill = NA,
+                  colour = "#1c1917", linewidth = 0.3)),
+     base = 13, lw = 0.15) +
+  facet_wrap(~ year, nrow = 1) +
+  scale_fill_manual("LISA, p < 0.05", values = PAL_LISA, drop = FALSE) +
+  theme(legend.position = "right", strip.text = element_text(size = 14))
+```
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card}
+::: {.en}
+**2021–2023:** the Dry Zone cluster grows and holds; Moran's I peaks at
+`r sprintf("%.2f", max(LM$glob_year$I))`.
+:::
+::: {.zh}
+**2021–2023:** 干燥带聚集扩大并保持;Moran's I 在 `r sprintf("%.2f", max(LM$glob_year$I))`
+达到峰值。
+:::
+:::
+::: {.card .card-fire}
+::: {.en}
+**2024:** new fronts in **Rakhine** and northern Shan; the Dry Zone core
+thins as the rest of the country catches up.
+:::
+::: {.zh}
+**2024:** **若开**与掸邦北部开辟新前线;随着全国其他地区追赶上来,干燥带核心变得稀疏。
+:::
+:::
+::: {.card .card-water}
+::: {.en}
+**2025:** clusters split between the **Kayin border**, the uplands where
+**Mandalay meets northern Shan**, and a remnant of the core. The eastern Shan
+cold zone never moves.
+:::
+::: {.zh}
+**2025:** 聚集分散在**克伦边境**、**曼德勒–掸邦北部交界**山地与老核心残余三处。掸邦东部
+冷区从未移动。
+:::
+:::
+:::
+
+## <span class="en">Checking the emerging hot spot tool</span><span class="zh">检验新兴热点分析工具</span> {#check}
+
+::: {.eyebrow}
+<span class="en">07 · THREE DEFECTS IN sfdep 0.2.5, AND ONE TRAP</span><span class="zh">07 · sfdep 0.2.5 的三个缺陷与一个陷阱</span>
+:::
+
+```{r}
+#| label: slide-check
+#| fig-width: 15.5
+#| fig-height: 4.6
+
+tau_true <- tibble(location = EH$locs,
+                   tau_me = apply(EH$results$conflict$G, 1, function(g) Kendall::MannKendall(g)$tau))
+c1 <- ggplot(EH$validation$tau_mimu, aes(tau_me, tau_sf)) +
+  geom_abline(colour = "#a8a29e") +
+  geom_point(colour = PAL$conflict, alpha = 0.6, size = 1.6) +
+  coord_equal() +
+  labs(title = "1 · Labels: tau reported vs true",
+       subtitle = "Geometry not sorted by id: r = 0.12",
+       x = "True tau", y = "Reported tau") +
+  theme_slide(13)
+
+bn <- EH$bins_by_null |> mutate(null = ifelse(grepl("sfdep", null), "sfdep (pooled)", "Corrected"))
+c2 <- ggplot(bn, aes(period + 45, cold, colour = null)) +
+  geom_line(linewidth = 1.1) + geom_point(size = 1.8) +
+  scale_colour_manual(NULL, values = c("sfdep (pooled)" = "#a8a29e", "Corrected" = PAL$cool)) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "2 · Null: significant cold spots per quarter",
+       subtitle = "Pooled null reads the national trend as local",
+       x = NULL, y = "Townships") +
+  theme_slide(13) + theme(legend.position = "inside",
+                          legend.position.inside = c(0.72, 0.85))
+
+nc <- EH$null_classes |> filter(class %in% c("Sporadic hot spot", "Consecutive hot spot",
+                                             "Consecutive cold spot", "Sporadic cold spot",
+                                             "No pattern detected")) |>
+  mutate(class = fct_rev(droplevels(class)))
+c3 <- ggplot(nc, aes(y = class)) +
+  geom_linerange(aes(xmin = null_lo, xmax = null_hi), colour = "#a8a29e", linewidth = 4) +
+  geom_point(aes(x = observed), colour = PAL$conflict, size = 3.4) +
+  labs(title = "4 · Chance: classes vs random",
+       subtitle = "Grey: 95% range by chance · red: observed",
+       x = "Townships", y = NULL) +
+  theme_slide(13)
+
+c1 + c2 + c3 + plot_layout(widths = c(0.8, 1.2, 1.2))
+```
+
+::: {.card-grid .cols-4 .t-xxs}
+::: {.card .card-fire}
+[<span class="en">1 · Wrong township</span><span class="zh">1 · 张冠李戴</span>]{.lab}
+
+::: {.en}
+Unless the polygons are sorted by id, **`r pct(100 * EH$validation$share_wrong_mimu, 0)`**
+of townships get another township's result.
+:::
+::: {.zh}
+除非多边形按编号排序,否则 **`r pct(100 * EH$validation$share_wrong_mimu, 0)`** 的
+镇区会拿到另一个镇区的结果。
+:::
+:::
+::: {.card .card-fire}
+[<span class="en">2 · Pooled null</span><span class="zh">2 · 混合零模型</span>]{.lab}
+
+::: {.en}
+2021 Q1: **`r bq1$cold[grepl("sfdep", bq1$null)]`** "significant" cold spots
+against **`r bq1$cold[!grepl("sfdep", bq1$null)]`** with a same-quarter null.
+:::
+::: {.zh}
+2021 年第一季度:**`r bq1$cold[grepl("sfdep", bq1$null)]`** 个「显著」冷点,而同季度
+零模型下只有 **`r bq1$cold[!grepl("sfdep", bq1$null)]`** 个。
+:::
+:::
+::: {.card .card-fire}
+[<span class="en">3 · Class rule</span><span class="zh">3 · 分类规则</span>]{.lab}
+
+::: {.en}
+"Intensifying hot spot" ignores the sign: a township **cold in 18 of 19
+quarters** was labelled one.
+:::
+::: {.zh}
+「增强热点」规则忽略符号:一个 **19 个季度中 18 个为冷点**的镇区被贴上了这个标签。
+:::
+:::
+::: {.card .card-water}
+[<span class="en">4 · Chance</span><span class="zh">4 · 偶然</span>]{.lab}
+
+::: {.en}
+~`r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])`
+"sporadic hot spots" arise **by chance alone**; the count of hot quarters
+matters more than the label.
+:::
+::: {.zh}
+约 `r round(EH$null_classes$null_mean[EH$null_classes$class == "Sporadic hot spot"])` 个
+「零星热点」**单凭偶然**就会出现;热季度数比标签更重要。
+:::
+:::
+:::
+
+## <span class="en">Emerging hot spots, corrected</span><span class="zh">修正后的新兴热点</span> {#ehsa}
+
+::: {.eyebrow}
+<span class="en">08 · EMERGING HOT SPOT ANALYSIS</span><span class="zh">08 · 新兴热点分析</span>
+:::
+
+::: {.columns}
+::: {.column width="62%"}
+```{r}
+#| label: slide-ehsa
+#| fig-width: 10
+#| fig-height: 7.4
+
+e1 <- smap(geom_sf(data = ec_sf |> mutate(cls = replace(cls, cls == "No pattern detected", NA)),
+                   aes(fill = cls), colour = "white", linewidth = 0.04),
+           title = "EHSA class, all conflict", base = 13, lw = 0.2) +
+  scale_fill_manual(NULL, values = PAL_EHSA, na.value = "#fafaf9", drop = TRUE,
+                    na.translate = FALSE) +
+  theme(legend.position = "bottom", legend.direction = "vertical",
+        legend.key.height = unit(0.35, "cm"), legend.text = element_text(size = 9))
+e2 <- smap(list(geom_sf(data = ec_sf |> mutate(net = n_hot - n_cold), aes(fill = net),
+                        colour = "white", linewidth = 0.04),
+                geom_sf(data = ec_sf |> filter(n_hot >= k_star), fill = NA,
+                        colour = "#1c1917", linewidth = 0.45, linetype = "22")),
+           title = "Quarters hot (+) or cold (−)", base = 13, lw = 0.2) +
+  scale_fill_gradient2(NULL, low = "#08306b", mid = "#fafaf9", high = "#7f0000",
+                       limits = c(-19, 19)) +
+  theme(legend.position = "bottom", legend.key.width = unit(1.2, "cm"),
+        legend.key.height = unit(0.3, "cm"))
+e1 | e2
+```
+:::
+
+::: {.column width="38%" .t-xxs}
+::: {.card .card-fire}
+[<span class="en">Hot</span><span class="zh">热点</span>]{.lab}
+
+::: {.en}
+**Chronic core**: Myaing, Pakokku, Yesagyo, Salingyi and Singu hot every
+quarter since late 2021, plus `r sum(ec$cls == "Sporadic hot spot" & ec$n_hot >= k_star)`
+sporadic hot spots hot in `r k_star`+ quarters, Monywa among them. **New
+edge**: Chauk, Nyaung-U, Meiktila, Kyaukse, Pyinoolwin, south and east of
+the core.
+:::
+::: {.zh}
+**长期核心**:敏建、木各具、耶沙久、沙林基与新古自 2021 年底以来每季度都是热点;另有
+`r sum(ec$cls == "Sporadic hot spot" & ec$n_hot >= k_star)` 个零星热点在 `r k_star` 个
+以上季度为热点,包括蒙育瓦。**新边缘**:核心以南、以东的稍埠、良乌、密铁拉、皎施、眉谬。
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">Cold</span><span class="zh">冷点</span>]{.lab}
+
+::: {.en}
+**`r sum(ec$cls == "Consecutive cold spot")` consecutive** and
+**`r sum(ec$cls == "Persistent cold spot")` persistent** cold spots (chance:
+about 2 and 0). Eastern Shan and Wa: cold throughout. **Yangon: cold since
+2022**, after the urban resistance was suppressed.
+:::
+::: {.zh}
+**`r sum(ec$cls == "Consecutive cold spot")` 个连续**与 **`r sum(ec$cls == "Persistent cold spot")`
+个持续**冷点(偶然情况下约为 2 与 0)。掸邦东部与佤地区:始终是冷点。**仰光:2022 年后
+转冷**,源于城市抵抗被镇压。
+:::
+:::
+
+::: {.card}
+[<span class="en">Watch</span><span class="zh">注意</span>]{.lab}
+
+::: {.en}
+Three of the five townships with the most events (**Kawkareik, Kale,
+Hpakant**) show *no pattern*: a hot spot map is not a list of the most violent
+places.
+:::
+::: {.zh}
+事件最多的五个镇区中有三个(**高加力、葛礼、帕敢**)显示*无模式*:热点地图不是最暴力
+地点的名单。
+:::
+:::
+:::
+:::
+
+## <span class="en">Does conflict spread?</span><span class="zh">冲突会扩散吗?</span> {#spread}
+
+::: {.eyebrow}
+<span class="en">09 · VALUE-ADDED: SPATIAL MARKOV CHAIN AND EARLY WARNING</span><span class="zh">09 · 附加价值:空间马尔可夫链与预警</span>
+:::
+
+::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| label: slide-markov
+#| fig-width: 9.4
+#| fig-height: 6.8
+
+st <- MK$markov$states
+leave <- tibble(neigh = factor(st, levels = st),
+                p = vapply(MK$markov$P_cond, function(P) 1 - P[1, 1], numeric(1)),
+                esc = vapply(MK$markov$P_cond, function(P) sum(P[2, 3:4]), numeric(1))) |>
+  pivot_longer(c(p, esc), names_to = "what", values_to = "prob") |>
+  mutate(what = recode(what, p = "Quiet township sees conflict",
+                       esc = "Sporadic township escalates to 4+ events"))
+m1 <- ggplot(leave, aes(neigh, prob, fill = what)) +
+  geom_col(position = position_dodge(0.75), width = 0.7) +
+  geom_text(aes(label = sprintf("%.2f", prob)), position = position_dodge(0.75),
+            vjust = -0.4, size = 4.2) +
+  scale_fill_manual(NULL, values = c("#fda4af", PAL$conflict)) +
+  scale_y_continuous(limits = c(0, 0.7), labels = label_percent()) +
+  labs(title = "Next quarter, by the neighbours' state now",
+       subtitle = sprintf("%s transitions · permutation p = %.3f",
+                          n_fmt(MK$markov$n_trans), MK$markov$p_Q_perm),
+       x = "Neighbourhood this quarter", y = NULL) +
+  theme_slide(14) + theme(legend.position = "top", legend.direction = "vertical")
+
+m2 <- smap(list(geom_sf(data = ol, aes(fill = p_next), colour = "white", linewidth = 0.03),
+                geom_sf(data = edge, fill = NA, colour = "#1c1917", linewidth = 0.6)),
+           title = "Outlook, 2025 Q4", subtitle = "P(4+ events); outlined: the edge",
+           base = 13, lw = 0.2) +
+  scale_fill_gradientn(NULL, colours = c("#fafaf9", "#fde0dd", "#f768a1", "#ae017e", "#49006a"),
+                       limits = c(0, 1), labels = label_percent()) +
+  theme(legend.position = "bottom", legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(0.3, "cm"))
+m1 + m2 + plot_layout(widths = c(1.25, 1))
+```
+:::
+
+::: {.column width="42%" .t-xs}
+::: {.card .card-water}
+[<span class="en">Escalation is contagious</span><span class="zh">升级具有传染性</span>]{.lab}
+
+::: {.en}
+A quiet township beside intense fighting is **about twice as likely** to see
+conflict next quarter. With township and quarter **fixed effects** the odds
+ratio is **`r sprintf("%.2f", MK$fe$OR[3])`** (95% CI
+`r sprintf("%.2f–%.2f", MK$fe$lo[3], MK$fe$hi[3])`).
+:::
+::: {.zh}
+与激烈战斗相邻的平静镇区,下一季度出现冲突的可能性**约为两倍**。加入镇区与季度
+**固定效应**后,优势比为 **`r sprintf("%.2f", MK$fe$OR[3])`**(95% CI
+`r sprintf("%.2f–%.2f", MK$fe$lo[3], MK$fe$hi[3])`)。
+:::
+:::
+
+::: {.card}
+[<span class="en">Onset was not</span><span class="zh">爆发则不然</span>]{.lab}
+
+::: {.en}
+First onsets are **no more clustered than chance** (p =
+`r sprintf("%.2f", MK$onset$p)`): 2021 was a nationwide outbreak. Since 2023,
+**every** new onset bordered an active township.
+:::
+::: {.zh}
+首次爆发**不比偶然更聚集**(p = `r sprintf("%.2f", MK$onset$p)`):2021 年是全国性的
+爆发。2023 年以来,**每一次**新爆发都与活跃镇区相邻。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Back-tested</span><span class="zh">回测</span>]{.lab}
+
+::: {.en}
+Fitted to 2024, tested on 2025: the neighbourhood lifts AUC from
+**`r sprintf("%.2f", MK$backtest$auc[1])` to `r sprintf("%.2f", MK$backtest$auc[2])`**.
+`r nrow(edge)` edge townships are flagged for 2025 Q4.
+:::
+::: {.zh}
+用截至 2024 年的数据拟合、在 2025 年检验:邻域信息使 AUC 从
+**`r sprintf("%.2f", MK$backtest$auc[1])` 提高到 `r sprintf("%.2f", MK$backtest$auc[2])`**。
+为 2025 年第四季度标出了 `r nrow(edge)` 个边缘镇区。
+:::
+:::
+:::
+:::
+
+## <span class="en">Limitations and implications</span><span class="zh">局限与启示</span> {#implications}
+
+::: {.eyebrow}
+<span class="en">10 · FOR PEACE-BUILDING AND PUBLIC SAFETY</span><span class="zh">10 · 面向和平建设与公共安全</span>
+:::
+
+| <span class="en">Finding</span><span class="zh">研究结果</span> | <span class="en">Implication</span><span class="zh">启示</span> |
+|---|---|
+| <span class="en">Escalation spreads to neighbours, and the edge is predictable a quarter ahead</span><span class="zh">升级会向邻居扩散,边缘可以提前一个季度预测</span> | <span class="en">Pre-position protection, aid and monitoring in **edge townships** before violence arrives; refresh every quarter</span><span class="zh">在暴力到来之前,于**边缘镇区**预置保护、援助与监测;每季度更新</span> |
+| <span class="en">Violence against civilians is moving south of the Dry Zone and into western Bago</span><span class="zh">针对平民的暴力正向干燥带以南与勃固西部移动</span> | <span class="en">Extend documentation and humanitarian access **south** of the Sagaing core</span><span class="zh">把记录工作与人道准入延伸到实皆核心以**南**</span> |
+| <span class="en">Remote violence is the largest category and mostly the military's</span><span class="zh">远程暴力是最大的类别,且主要来自军方</span> | <span class="en">Plan early warning, shelter and medical capacity for a risk map **wider than the front line**</span><span class="zh">按照一张**比前线更宽**的风险地图,规划预警、避难与医疗能力</span> |
+| <span class="en">Eastern Shan is cold throughout; Yangon became cold by suppression</span><span class="zh">掸邦东部始终是冷点;仰光则因镇压而变冷</span> | <span class="en">The first may suit local ceasefires and returns; the second is **not** a settlement</span><span class="zh">前者或许适合地方停火与返乡;后者**不是**和解</span> |
+
+::: {.takeaway .takeaway-warn}
+[<span class="en">Limitations</span><span class="zh">局限</span>]{.lab}
+
+::: {.en}
+**Recorded, not all, events**: reporting is thinnest where cold spots are.
+**Counts, not risk**: no population figure survives three million
+displacements. Results depend on **township, quarter and queen
+contiguity**, and the diffusion results are **observational**.
+:::
+::: {.zh}
+**被记录的事件,而非全部事件**:冷点所在之处恰是报道最薄弱的地方。**计数,而非风险**:
+三百万人流离失所之后,不存在可用的人口数据。结果取决于**镇区、季度与 queen 邻接**,
+扩散结果是**观察性**的。
+:::
+:::
