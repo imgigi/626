@@ -17,6 +17,9 @@ project:
     # to render an XML file as a page. No document lives under a data/ folder,
     # so excluding the whole tree is safe.
     - "!**/data/**"
+    # The GWR exercise (r4gdsa chapter 13) belongs to Lesson 9, which has not
+    # been taught yet. Its source is kept, but it is not published until then.
+    - "!hand-on-ex/hand-on-ex-gwr/"
     # Take-home Exercise 1 is written but not published yet, so it stays out of
     # the build: leaving it in put its text into `_site/search.json`, which is
     # the whole site's search index, and a partial render of it had already
@@ -62,9 +65,6 @@ website:
           - text: "---"
           - text: "Exercise 8 · Market Area Analysis using Huff Model"
             href: hand-on-ex/hand-on-ex8/hand-on-ex8.qmd
-          - text: "---"
-          - text: "Supplementary · Hedonic Pricing Model with GWR"
-            href: hand-on-ex/hand-on-ex-gwr/hand-on-ex-gwr.qmd
       - text: "In-class Exercise"
         menu:
           - text: "Exercise 1 · Analytical Maps and the Raster Data Model"

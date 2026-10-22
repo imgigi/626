@@ -34,7 +34,7 @@ toc: false
     <div class="about-figure">
       <div class="about-ring">
         <div class="about-ring-inner">
-          <span class="about-ring-num">592</span>
+          <span class="about-ring-num">541</span>
           <span class="about-ring-lbl"><span class="en">code chunks</span><span class="zh">个代码块</span></span>
         </div>
       </div>
@@ -57,7 +57,7 @@ toc: false
       <h3>sf</h3>
       <p><span class="en">Reading GeoJSON and shapefiles, assigning and transforming coordinate
       systems, buffering, spatial joins and point-in-polygon counting.</span><span class="zh">读取 GeoJSON 与 shapefile，指定并转换坐标系统，缓冲区、空间连接，以及点在多边形内的计数。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all sixteen</b> exercises</span><span class="zh"><b>十六份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -68,7 +68,7 @@ toc: false
       <h3>tmap 4.x</h3>
       <p><span class="en">Choropleths, classification methods, colour schemes, small multiples,
       raster layers and interactive maps, written against the v4 API.</span><span class="zh">分级统计图、分级方法、配色方案、小多图、栅格图层与交互地图，全部按 v4 的 API 编写。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>fifteen</b> exercises</span><span class="zh">用于 <b>十五</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>fourteen</b> exercises</span><span class="zh">用于 <b>十四</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -121,7 +121,7 @@ toc: false
       </div>
       <h3>sfdep</h3>
       <p><span class="en">The same computations carried as list columns of an <code>sf</code> table: local Moran&#39;s I, Getis-Ord Gi*, distance bands and the emerging hot spot space-time cube.</span><span class="zh">同一套计算以 <code>sf</code> 表的列表列承载：局部 Moran&#39;s I、Getis-Ord Gi*、距离带，以及新兴热点分析的时空立方体。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>three</b> exercises</span><span class="zh">用于 <b>三</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>two</b> exercises</span><span class="zh">用于 <b>两</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -131,7 +131,7 @@ toc: false
       </div>
       <h3>GWmodel</h3>
       <p><span class="en">Kernel-weighted local statistics and geographically weighted regression, with bandwidth chosen by cross-validation or AIC, fixed or adaptive.</span><span class="zh">核加权的局部统计量与地理加权回归，带宽由交叉验证或 AIC 选定，可取固定或自适应。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>two</b> exercises</span><span class="zh">用于 <b>两</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>one</b> exercise</span><span class="zh">用于 <b>一</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -172,7 +172,7 @@ toc: false
       <h3>tidyverse</h3>
       <p><span class="en">Import, reshape and join with <b>readr</b>, <b>dplyr</b>, <b>tidyr</b>,
       <b>ggplot2</b> and <b>purrr</b> throughout.</span><span class="zh">全程用 <b>readr</b>、<b>dplyr</b>、<b>tidyr</b>、<b>ggplot2</b>、<b>purrr</b> 做导入、整形与连接。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all sixteen</b> exercises</span><span class="zh"><b>十六份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
     </div>
 
   </div>
