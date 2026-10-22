@@ -60,6 +60,9 @@ website:
           - text: "Exercise 7 · Modelling Geographical Accessibility"
             href: hand-on-ex/hand-on-ex7/hand-on-ex7.qmd
           - text: "---"
+          - text: "Exercise 8 · Market Area Analysis using Huff Model"
+            href: hand-on-ex/hand-on-ex8/hand-on-ex8.qmd
+          - text: "---"
           - text: "Supplementary · Hedonic Pricing Model with GWR"
             href: hand-on-ex/hand-on-ex-gwr/hand-on-ex-gwr.qmd
       - text: "In-class Exercise"
