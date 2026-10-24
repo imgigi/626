@@ -34,7 +34,7 @@ toc: false
     <div class="about-figure">
       <div class="about-ring">
         <div class="about-ring-inner">
-          <span class="about-ring-num">541</span>
+          <span class="about-ring-num">568</span>
           <span class="about-ring-lbl"><span class="en">code chunks</span><span class="zh">个代码块</span></span>
         </div>
       </div>
@@ -57,7 +57,7 @@ toc: false
       <h3>sf</h3>
       <p><span class="en">Reading GeoJSON and shapefiles, assigning and transforming coordinate
       systems, buffering, spatial joins and point-in-polygon counting.</span><span class="zh">读取 GeoJSON 与 shapefile，指定并转换坐标系统，缓冲区、空间连接，以及点在多边形内的计数。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all sixteen</b> exercises</span><span class="zh"><b>十六份</b>练习全部用到</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -68,7 +68,7 @@ toc: false
       <h3>tmap 4.x</h3>
       <p><span class="en">Choropleths, classification methods, colour schemes, small multiples,
       raster layers and interactive maps, written against the v4 API.</span><span class="zh">分级统计图、分级方法、配色方案、小多图、栅格图层与交互地图，全部按 v4 的 API 编写。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>fourteen</b> exercises</span><span class="zh">用于 <b>十四</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>fifteen</b> exercises</span><span class="zh">用于 <b>十五</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -101,7 +101,7 @@ toc: false
       <h3>ggstatsplot</h3>
       <p><span class="en">Charts that carry their own confirmatory test, turning a visual impression
       into a reportable correlation with a confidence interval.</span><span class="zh">图里自带确认性检验，把视觉印象变成可报告的相关系数及其置信区间。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>three</b> exercises</span><span class="zh">用于 <b>三</b> 份练习</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>four</b> exercises</span><span class="zh">用于 <b>四</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -160,8 +160,8 @@ toc: false
         <span class="dash-xchip">Market area</span>
       </div>
       <h3>MCI</h3>
-      <p><span class="en">Huff patronage probabilities from an interaction matrix of origins, stores, attractiveness and distance, and their totals as expected customers per store.</span><span class="zh">由起点、门店、吸引力与距离构成的交互矩阵计算 Huff 光顾概率，并汇总为各门店的预期顾客数。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>one</b> exercise</span><span class="zh">用于 <b>一</b> 份练习</span></span></div>
+      <p><span class="en">Huff patronage probabilities from an interaction matrix of origins, stores, attractiveness and distance, their totals as expected customers per store, the distance exponent fitted to observed store totals, and store attractiveness calibrated with <code>huff.fit()</code>.</span><span class="zh">由起点、门店、吸引力与距离构成的交互矩阵计算 Huff 光顾概率并汇总为各门店的预期顾客数，按观测的门店总量拟合距离指数，并用 <code>huff.fit()</code> 校准门店吸引力。</span></p>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>two</b> exercises</span><span class="zh">用于 <b>两</b> 份练习</span></span></div>
     </div>
 
     <div class="dash-xcard dash-xcard-empty">
@@ -172,7 +172,7 @@ toc: false
       <h3>tidyverse</h3>
       <p><span class="en">Import, reshape and join with <b>readr</b>, <b>dplyr</b>, <b>tidyr</b>,
       <b>ggplot2</b> and <b>purrr</b> throughout.</span><span class="zh">全程用 <b>readr</b>、<b>dplyr</b>、<b>tidyr</b>、<b>ggplot2</b>、<b>purrr</b> 做导入、整形与连接。</span></p>
-      <div class="dash-xmeta"><span><span class="en">Used in <b>all fifteen</b> exercises</span><span class="zh"><b>十五份</b>练习全部用到</span></span></div>
+      <div class="dash-xmeta"><span><span class="en">Used in <b>all sixteen</b> exercises</span><span class="zh"><b>十六份</b>练习全部用到</span></span></div>
     </div>
 
   </div>
@@ -272,12 +272,12 @@ toc: false
       <div class="about-tl-body">
         <div class="about-tl-head">
           <h3><span class="en">Lesson 8 · Market area analysis</span><span class="zh">第 8 讲 · 商圈分析</span></h3>
-          <span class="dash-xchip chip-coral">1 exercise</span>
+          <span class="dash-xchip chip-coral">2 exercises</span>
         </div>
         <p><span class="en">Huff trade areas for 28 fast-food stores across 617 Taichung villages. With
         every store given the same size, each village's most probable store is simply its
         nearest, and expected customers track actual sales at r = 0.58, rising to 0.66
-        under a gentler distance decay.</span><span class="zh">在台中 617 个村里上为 28 家快餐门店划定 Huff 商圈。各店规模设为相同时，每个村里最可能光顾的门店就是离它最近的那家；预期顾客数与实际销售额的相关为 r = 0.58，改用较平缓的距离衰减后升到 0.66。</span></p>
+        under a gentler distance decay. The in-class follow-up maps the trade areas of all 28 stores, fits the distance exponent to the store bills at &minus;1.14 and calibrates each store&#39;s attractiveness until the model reproduces its bills. The calibrated model moves 150 villages, about a quarter, to a different store, and the median probability of a village&#39;s most likely store falls from 0.41 to 0.18.</span><span class="zh">在台中 617 个村里上为 28 家快餐门店划定 Huff 商圈。各店规模设为相同时，每个村里最可能光顾的门店就是离它最近的那家；预期顾客数与实际销售额的相关为 r = 0.58，改用较平缓的距离衰减后升到 0.66。课堂练习划定了全部 28 家门店的商圈，按门店单数把距离指数拟合为 &minus;1.14，并校准各店吸引力直到模型复现其单数。校准后的模型使 150 个村里（约四分之一）改归另一家门店，村里最可能门店的概率中位数从 0.41 降到 0.18。</span></p>
       </div>
     </div>
 

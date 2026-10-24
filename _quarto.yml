@@ -78,6 +78,9 @@ website:
           - text: "---"
           - text: "Exercise 7 · Floating Catchment Methods for Accessibility"
             href: in-class-ex/in-class-ex7/in-class-ex7.qmd
+          - text: "---"
+          - text: "Exercise 8 · Trade Areas and Calibration of the Huff Model"
+            href: in-class-ex/in-class-ex8/in-class-ex8.qmd
       - text: "Take-home Exercise"
         menu:
           # These point at the built .html, not at the .qmd. Quarto rewrites a
