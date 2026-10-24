@@ -762,8 +762,8 @@ intensifying and `r ncls(ec, "Oscillating hot spot")` oscillating hot spots.
 The oscillating ones are informative: Ramree, in Rakhine, was a significant
 cold spot in 2021–2022 and has been a hot spot in every quarter of 2025 (for
 battles, since late 2024), as the fighting in Rakhine moved south down the
-coast; Lawksawk, in southern Shan, was cold in 2023 and hot again from late
-2024. Among the component variables, a single new hot spot of battles at
+coast; Lawksawk, in southern Shan, was cold in 2023 and hot again in late
+2024 and in the latest quarter. Among the component variables, a single new hot spot of battles at
 Bokpyin in the far south of Tanintharyi, and a new hot spot of violence
 against civilians at Sidoktaya in Magway, mark places where the latest
 quarter broke with the past, and Taungtha, south of Myingyan, is the one
@@ -778,7 +778,7 @@ agrees with the onset analysis in @sec-va-onset.
 而言,新出现热点 `r ncls(ec, "New hot spot")` 个、增强热点 `r ncls(ec, "Intensifying hot spot")`
 个、振荡热点 `r ncls(ec, "Oscillating hot spot")` 个。振荡热点是有信息量的:若开的兰里
 在 2021–2022 年是显著冷点,而在 2025 年的每个季度都是热点(战斗方面自 2024 年底起),
-因为若开的战事沿海岸向南推进;掸邦南部的罗索在 2023 年是冷点,自 2024 年底起再度转热。
+因为若开的战事沿海岸向南推进;掸邦南部的罗索在 2023 年是冷点,在 2024 年底与最近一个季度再度转热。
 在分项变量中,德林达依最南端博克平的一个战斗新热点,以及马圭锡多达亚的一个针对平民
 暴力的新热点,标出了最近一个季度与过去决裂的地方;敏建以南的当达是唯一真正的增强
 热点:在 19 个季度中有 18 个季度是针对平民暴力的热点,且趋势上升。这些类别几乎为空,

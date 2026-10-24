@@ -318,8 +318,8 @@ audit$city_only |>
 ::: {.en}
 Kept, they would lift Chanayethazan from outside Mandalay's top five to second
 place for protests, make Bahan Yangon's most eventful township by a wide
-margin (313 protests against 78 in the next township), and make Za Bu Thi Ri
-the centre of almost every event in the capital. For the conflict variables
+margin (313 protests against 78 in the next township), and raise Za Bu Thi
+Ri's count almost eightfold, from 34 events to 264. For the conflict variables
 the effect is smaller, `r audit$loc_flow$city_only` events, but the mechanism
 is the same.
 
@@ -340,7 +340,7 @@ hot spots in a handful of city-centre townships.
 ::: {.zh}
 如果保留它们,Chanayethazan 的抗议数会从曼德勒前五名之外升到第二位;Bahan 会以
 悬殊的差距成为仰光事件最多的镇区(抗议 313 起,排名其次的镇区只有 78 起);而
-Za Bu Thi Ri 会成为首都几乎所有事件的中心。对冲突变量而言,影响较小,为
+Za Bu Thi Ri 的事件数会从 34 起增至 264 起,接近原来的八倍。对冲突变量而言,影响较小,为
 `r audit$loc_flow$city_only` 起事件,但机制相同。
 
 **仅知区域的记录。** ACLED 的 `geo_precision` 3 意味着只知道事件发生在某个县或省邦,

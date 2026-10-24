@@ -22,8 +22,8 @@ likely an individual is to be harmed.
 
 **Neighbourhoods are defined, not observed.** Queen contiguity, with two
 hand-made island links and one excluded township, defines who is a neighbour.
-It ignores roads, rivers and front lines, and treats a 12,000 km² Shan
-township and a 1 km² Yangon township alike. The k-nearest-neighbour runs show
+It ignores roads, rivers and front lines, and treats Tanai in Kachin, over
+12,000 km², and Pabedan in downtown Yangon, under 1 km², alike. The k-nearest-neighbour runs show
 the core results survive a different definition but the edges move.
 
 **Many tests, few corrections.** The maps the brief asks for show unadjusted
@@ -33,7 +33,7 @@ from 19 tests per township with no correction, which is why
 reading every label at face value. The Mann-Kendall test assumes independent
 observations, which the space-time Gi\* series are not.
 
-**The tool, and its version.** The two sfdep defects documented in
+**The tool, and its version.** The three sfdep defects documented in
 @sec-ehsa-check were found in sfdep 0.2.5. Later versions may correct them,
 and the comparison in `scripts/04_ehsa.R` should be re-run before relying on
 any other version.
@@ -60,8 +60,8 @@ between townships would all produce the same pattern.
 是暴力**发生在哪里**,而不是个人**受害的可能性**。
 
 **邻域是定义出来的,而非观测到的。** queen 邻接(加上两个人工添加的岛屿连接与一个
-被排除的镇区)定义了谁是邻居。它忽略道路、河流与前线,把 12,000 km² 的掸邦镇区与
-1 km² 的仰光镇区等同对待。k 近邻分析表明,核心结果在另一种定义下依然成立,但边缘会
+被排除的镇区)定义了谁是邻居。它忽略道路、河流与前线,把面积超过 12,000 km² 的克钦邦 Tanai 与
+不足 1 km² 的仰光市中心 Pabedan 等同对待。k 近邻分析表明,核心结果在另一种定义下依然成立,但边缘会
 移动。
 
 **检验很多,校正很少。** 作业要求的地图显示未经校正的 p < 0.05。LMSA 地图加上了 FDR
@@ -69,7 +69,7 @@ between townships would all produce the same pattern.
 用零模型校准类别计数、而不是照单全收每个标签的原因。Mann-Kendall 检验假定观测相互
 独立,而时空 Gi\* 序列并非如此。
 
-**工具及其版本。** @sec-ehsa-check 记录的两个 sfdep 缺陷是在 sfdep 0.2.5 中发现的。
+**工具及其版本。** @sec-ehsa-check 记录的三个 sfdep 缺陷是在 sfdep 0.2.5 中发现的。
 后续版本可能会修正它们;在依赖任何其他版本之前,应重新运行 `scripts/04_ehsa.R` 中的
 对比。
 

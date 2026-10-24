@@ -23,7 +23,7 @@ tribble(
     "High-High and hot spot, survives FDR",
     "Consecutive or chronic sporadic hot spots since late 2021",
     "Peak 2022–23, declining since; persistent",
-  "South and east edge of the Dry Zone (Chauk, Nyaung-U, Taungtha, Meiktila, Kyaukse, Pyinoolwin)",
+  "South and east edge of the Dry Zone (Chauk, Nyaung-U, Pyinoolwin; Meiktila and Kyaukse for single variables)",
     "Mostly not significant over the whole period",
     "New consecutive hot spots, runs beginning 2024–25",
     "Spreading outwards from the core: adjacent onsets",
