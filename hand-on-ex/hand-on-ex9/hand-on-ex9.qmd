@@ -1,5 +1,5 @@
 ---
-title: "Supplementary Exercise: Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method"
+title: "Hands-on Exercise 9: Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method"
 author: "Ji Guofang"
 date: "last-modified"
 date-modified: "last-modified"
@@ -26,7 +26,7 @@ That assertion is a modelling assumption rather than a finding, and for a city i
 This exercise builds both models on 1,436 private condominium resale transactions in Singapore in 2015. The ordinary least squares half comes first, not as a formality but because its diagnostics are what justify moving to GWR: the global model's residuals turn out to be spatially autocorrelated, which is precisely the symptom GWR exists to address. By the end of the exercise the following are in place:
 
 - geospatial and aspatial data imported and converted into a single `sf` object,
-- exploratory analysis of the dependent variable and of the eighteen candidate predictors,
+- exploratory analysis of the dependent variable and of the nineteen candidate predictors,
 - a hedonic pricing model calibrated by multiple linear regression, with its collinearity, linearity, normality and spatial autocorrelation diagnostics,
 - the same model calibrated by GWR under both a fixed and an adaptive bandwidth, and
 - the local R² and local coefficient surfaces mapped with **tmap**.
@@ -40,7 +40,7 @@ This exercise builds both models on 1,436 private condominium resale transaction
 本练习在 2015 年新加坡 1,436 笔私人公寓转售交易上同时建这两种模型。普通最小二乘那一半放在前面，不是走形式，而是因为它的诊断结果才是转向 GWR 的理由：全局模型的残差被证明存在空间自相关，而这恰恰是 GWR 所要应对的症状。练习结束时应当完成：
 
 - 导入地理空间与非空间数据，并转换成单一的 `sf` 对象；
-- 对因变量和十八个候选自变量做探索性分析；
+- 对因变量和十九个候选自变量做探索性分析；
 - 用多元线性回归标定一个特征价格模型，并做共线性、线性、正态性、空间自相关四项诊断；
 - 在固定带宽与自适应带宽下分别用 GWR 标定同一个模型；
 - 用 **tmap** 绘制局部 R² 与局部系数面。
@@ -64,11 +64,11 @@ Two data sets are used:
 ## Getting Started
 
 ::: {.en}
-Ten packages are used, which is more than any earlier exercise in this portfolio, because the regression half draws on a different toolchain from the spatial half:
+Ten packages are used, because the regression half draws on a different toolchain from the spatial half:
 :::
 
 ::: {.zh}
-用到十个包，比本作品集中任何一份先前的练习都多，原因是回归那一半依赖的工具链与空间那一半不同：
+用到十个包，原因是回归那一半依赖的工具链与空间那一半不同：
 :::
 
 | Package | Role |
@@ -194,11 +194,11 @@ glimpse(condo_resale)
 ```
 
 ::: {.en}
-There are 1,436 transactions and 23 columns: the selling price, the two coordinate columns, the structural attributes `AREA_SQM`, `AGE`, `NO_Of_UNITS`, `FAMILY_FRIENDLY` and `FREEHOLD`, and fifteen `PROX_` columns giving the distance in kilometres from each unit to a particular kind of amenity.
+There are 1,436 transactions and 23 columns: the two coordinate columns, the postcode, the selling price, the structural attributes `AREA_SQM`, `AGE`, `NO_Of_UNITS` and `FAMILY_FRIENDLY`, the two tenure dummies `FREEHOLD` and `LEASEHOLD_99YR`, and thirteen `PROX_` columns giving the distance in kilometres from each unit to a particular kind of amenity.
 :::
 
 ::: {.zh}
-共 1,436 笔交易、23 列：成交价、两个坐标列、结构类属性 `AREA_SQM`、`AGE`、`NO_Of_UNITS`、`FAMILY_FRIENDLY`、`FREEHOLD`，以及十五个 `PROX_` 列，给出各单位到某一类设施的距离（公里）。
+共 1,436 笔交易、23 列：两个坐标列、邮编、成交价、结构类属性 `AREA_SQM`、`AGE`、`NO_Of_UNITS`、`FAMILY_FRIENDLY`，两个产权虚拟变量 `FREEHOLD` 与 `LEASEHOLD_99YR`，以及十三个 `PROX_` 列，给出各单位到某一类设施的距离（公里）。
 :::
 
 ::: {.en}
@@ -568,11 +568,11 @@ The matrix is computed from `condo_resale`, the plain data frame, rather than fr
 :::
 
 ::: {.en}
-The strongest pair is `PROX_CHILDCARE` and `PROX_BUS_STOP` at 0.78, which is high but below the 0.85 threshold conventionally used to justify dropping a variable. The grouping is otherwise intelligible: the amenity distances that cluster together are the ones found in the same kind of neighbourhood. No pair is excluded on the strength of this matrix, which leaves the formal check to the variance inflation factors computed later.
+The strongest pair is `FREEHOLD` and `LEASEHOLD_99YR` at −0.84. The two are tenure dummies and nearly complements: 607 units are freehold, 701 are on 99-year leases and only 128 are neither, so either variable largely determines the other. As in the textbook, only `FREEHOLD` is kept, and `LEASEHOLD_99YR` is left out of every model that follows. The next strongest pair, `PROX_CHILDCARE` and `PROX_BUS_STOP` at 0.77, is high but measures two different amenities, so both stay in. The grouping is otherwise intelligible: the amenity distances that cluster together are the ones found in the same kind of neighbourhood. No other variable is excluded on the strength of this matrix, which leaves the formal check to the variance inflation factors computed later.
 :::
 
 ::: {.zh}
-最强的一对是 `PROX_CHILDCARE` 与 `PROX_BUS_STOP`，0.78，虽高但低于通常用来支持剔除变量的 0.85 阈值。其余的分组也都讲得通：聚在一起的那些设施距离，正是出现在同一类街区里的那些。仅凭这个矩阵不剔除任何一对，正式的检查留给后面计算的方差膨胀因子。
+最强的一对是 `FREEHOLD` 与 `LEASEHOLD_99YR`，−0.84。两者都是产权虚拟变量，几乎互补：607 个单位是永久产权，701 个是 99 年租赁，两者都不是的只有 128 个，所以知道其中一个就基本知道另一个。与教材一样，这里只保留 `FREEHOLD`，后面所有模型都不纳入 `LEASEHOLD_99YR`。次强的一对是 `PROX_CHILDCARE` 与 `PROX_BUS_STOP`，0.77，虽高，但衡量的是两种不同的设施，因此两者都保留。其余的分组也都讲得通：聚在一起的那些设施距离，正是出现在同一类街区里的那些。除此之外不凭这个矩阵剔除任何变量，正式的检查留给后面计算的方差膨胀因子。
 :::
 
 ### Building a hedonic pricing model using multiple linear regression method
@@ -646,11 +646,11 @@ Every remaining coefficient is significant at the 1% level. Dropping four predic
 :::
 
 ::: {.en}
-The coefficients are readable as prices for attributes. An extra square metre adds 12,778 dollars. Each additional year of age subtracts 24,688. A kilometre further from the CBD subtracts 77,131, which is the clearest single statement of the premium Singapore places on centrality. Freehold tenure adds 350,600 over the 99-year leasehold baseline, and a family-friendly development adds 146,308.
+The coefficients are readable as prices for attributes. An extra square metre adds 12,778 dollars. Each additional year of age subtracts 24,688. A kilometre further from the CBD subtracts 77,131, which is the clearest single statement of the premium Singapore places on centrality. Freehold tenure adds 350,600 over all other tenures, most of them 99-year leases, and a family-friendly development adds 146,308.
 :::
 
 ::: {.zh}
-这些系数可以读作各项属性的价格。多一平方米加 12,778 元；房龄每多一年减 24,688 元；离 CBD 远一公里减 77,131 元——这是新加坡对中心区位所给溢价最清晰的单一表述。永久产权相对 99 年租赁的基准加 350,600 元，适合家庭的楼盘加 146,308 元。
+这些系数可以读作各项属性的价格。多一平方米加 12,778 元；房龄每多一年减 24,688 元；离 CBD 远一公里减 77,131 元——这是新加坡对中心区位所给溢价最清晰的单一表述。永久产权相对其他所有产权（大多为 99 年租赁）加 350,600 元，适合家庭的楼盘加 146,308 元。
 :::
 
 ::: {.en}
@@ -725,11 +725,11 @@ plot(mlr.vif)
 ```
 
 ::: {.en}
-Every VIF is below 3.3. The highest is `PROX_CHILDCARE` at 3.26, followed by `PROX_BUS_STOP` at 2.85 and `PROX_PRIMARY_SCH` at 2.21, and **performance** classifies the whole set as low correlation. The correlation of 0.78 seen in the matrix above has therefore not inflated the standard errors to a damaging degree, and no further variable needs to be removed. The odd signs discussed above are not a collinearity artefact.
+Every VIF is below 3.3. The highest is `PROX_CHILDCARE` at 3.26, followed by `PROX_BUS_STOP` at 2.85 and `PROX_PRIMARY_SCH` at 2.21, and **performance** classifies the whole set as low correlation. The correlation of 0.77 seen in the matrix above has therefore not inflated the standard errors to a damaging degree, and no further variable needs to be removed. The odd signs discussed above are not a collinearity artefact.
 :::
 
 ::: {.zh}
-所有 VIF 都低于 3.3。最高的是 `PROX_CHILDCARE` 的 3.26，其次是 `PROX_BUS_STOP` 的 2.85 与 `PROX_PRIMARY_SCH` 的 2.21，**performance** 把整组归为低相关。可见上面矩阵里那个 0.78 的相关并没有把标准误膨胀到有害的程度，也不需要再剔除变量。前面讨论的那几个反常符号不是共线性造成的假象。
+所有 VIF 都低于 3.3。最高的是 `PROX_CHILDCARE` 的 3.26，其次是 `PROX_BUS_STOP` 的 2.85 与 `PROX_PRIMARY_SCH` 的 2.21，**performance** 把整组归为低相关。可见上面矩阵里那个 0.77 的相关并没有把标准误膨胀到有害的程度，也不需要再剔除变量。前面讨论的那几个反常符号不是共线性造成的假象。
 :::
 
 #### Test for Non-Linearity
@@ -1216,11 +1216,33 @@ The local R² runs from 0.6718 to 0.9926 with a median of 0.9067. Even the worst
 :::
 
 ::: {.en}
-The weakest fits are scattered rather than concentrated in one district, which is informative. Had they formed a block, the reading would be that the specification is missing something about that part of the city. Scattered low values point instead at the developments whose 30 nearest transactions happen to be heterogeneous, which is a property of the sampling rather than of the location.
+The pattern on the map is easier to read against distance from the CBD. `PROX_CBD` is taken from `condo_resale.sf`, because in the GWR output the same name holds the local coefficient, and the transactions are in the same order in both:
 :::
 
 ::: {.zh}
-拟合最弱的那些点是散布的，而不是集中在某一个片区，这一点有信息量。若它们连成一块，读法就该是这套设定漏掉了关于城市那一部分的某些东西。散落的低值反而指向那些「最近 30 笔交易恰好异质」的楼盘，这是抽样的性质而不是位置的性质。
+这张图的格局对照到 CBD 的距离来读会更清楚。`PROX_CBD` 取自 `condo_resale.sf`，因为在 GWR 输出里同名的列存放的是局部系数；两者的交易顺序相同：
+:::
+
+```{r}
+r2_by_cbd <- tibble(local_r2 = condo_resale.sf.adaptive$Local_R2,
+                    km_to_cbd = condo_resale.sf$PROX_CBD)
+
+cor(r2_by_cbd$local_r2, r2_by_cbd$km_to_cbd, method = "spearman")
+
+r2_by_cbd %>%
+  mutate(fit_quintile = ntile(local_r2, 5)) %>%
+  group_by(fit_quintile) %>%
+  summarise(median_r2 = median(local_r2),
+            median_km_to_cbd = median(km_to_cbd),
+            n = n())
+```
+
+::: {.en}
+The weakest fits are not scattered. Local R² rises steadily with distance from the CBD, at a rank correlation of 0.81: the fifth of locations with the weakest fits lies a median of 5.3 km from the CBD and the best-fitting fifth 15.0 km. The pale points therefore form a band through the centre of the island, and the near-perfect fits sit in the north, west and east. A block of weak fits means the specification is missing something about that part of the city. The fourteen attributes explain suburban condominium prices almost completely, but in the centre, where neighbouring units are likely to differ in ways none of the variables records, such as view, frontage or the standing of the address, even a local model leaves more unexplained.
+:::
+
+::: {.zh}
+拟合最弱的点并不是散布的。局部 R² 随到 CBD 的距离稳步上升，秩相关为 0.81：拟合最弱的五分之一位置距 CBD 的中位距离为 5.3 公里，拟合最好的五分之一为 15.0 公里。因此浅色点在岛的中部连成一条带，近乎完美的拟合则分布在北部、西部和东部。连成一块的弱拟合意味着这套设定漏掉了关于城市那一部分的某些东西：这十四个属性几乎完全解释了郊区公寓的价格，但在市中心，相邻的单位很可能在景观、临街位置或地址名望这类任何变量都没有记录的方面各不相同，即便是局部模型也会留下更多无法解释的部分。
 :::
 
 ### Visualising coefficient estimates
@@ -1265,19 +1287,32 @@ tmap_arrange(AREA_SQM_SE, AREA_SQM_TV,
 ```
 
 ::: {.en}
-The two panels are drawn on a shared layout so that a given location can be found in both, which is what makes the pair readable: the question being asked of it is whether a location is dark on the left and pale on the right.
+The two panels are drawn on a shared layout so that a given location can be found in both, which is what makes the pair readable: the question being asked of it is whether a location that is dark on the left, a large standard error, is also red on the right, a low t value.
 :::
 
 ::: {.zh}
-两幅面板画在同一套版面上，使同一个位置在两幅里都能找到，这才使这一对图可读：要向它提的问题是——某个位置是否在左图里深、在右图里浅。
+两幅面板画在同一套版面上，使同一个位置在两幅里都能找到，这才使这一对图可读：要向它提的问题是——某个位置是否在左图里颜色深（标准误大），同时在右图里偏红（t 值低）。
 :::
+
+```{r}
+area_local <- tibble(coef = condo_resale.sf.adaptive$AREA_SQM,
+                     t_value = condo_resale.sf.adaptive$AREA_SQM_TV,
+                     km_to_cbd = condo_resale.sf$PROX_CBD)
+
+area_local %>%
+  summarise(share_significant = mean(abs(t_value) > 1.96),
+            n_not_significant = sum(abs(t_value) <= 1.96),
+            min_km_not_significant = min(km_to_cbd[abs(t_value) <= 1.96]),
+            min_coef = min(coef),
+            max_coef = max(coef))
+```
 
 ::: {.en}
-Floor area is the structural attribute, the one with no spatial content of its own, and the pair shows it behaving as a well-identified coefficient: the t value clears the conventional threshold at 96% of the 1,436 locations, and the large standard errors are confined to a small number of them. The local `AREA_SQM` surface can therefore be read as a finding in its own right. It runs from 3,319 to 23,064 dollars per square metre, so an extra square metre is worth several times more in the central districts than in the outer estates, which is the kind of variation the single global coefficient of 12,778 averages away.
+Floor area is the structural attribute, the one with no spatial content of its own, and the pair shows it behaving as a well-identified coefficient: the t value clears the conventional threshold at 96% of the 1,436 locations, and all 60 locations where it does not lie more than 10 km from the CBD, in the outer estates where the standard errors are also largest. The local `AREA_SQM` surface can therefore be read as a finding in its own right. It runs from 3,319 to 23,064 dollars per square metre, so an extra square metre is worth several times more in the central districts than in the outer estates, which is the kind of variation the single global coefficient of 12,778 averages away.
 :::
 
 ::: {.zh}
-面积是结构类属性，本身不含空间内容，而这一对图显示它表现得像一个被良好识别的系数：在 1,436 个位置中有 96% 的 t 值越过了通行阈值，标准误较大的只局限在少数几处。因此局部的 `AREA_SQM` 面本身就可以当作一项发现来读。它从每平方米 3,319 元到 23,064 元，也就是说多一平方米在中心区的价值是外围住区的数倍——而这正是那个 12,778 的单一全局系数所平均掉的那种变化。
+面积是结构类属性，本身不含空间内容，而这一对图显示它表现得像一个被良好识别的系数：在 1,436 个位置中有 96% 的 t 值越过了通行阈值，没有越过的 60 个位置全都距 CBD 超过 10 公里，位于标准误也最大的外围住区。因此局部的 `AREA_SQM` 面本身就可以当作一项发现来读。它从每平方米 3,319 元到 23,064 元，也就是说多一平方米在中心区的价值是外围住区的数倍——而这正是那个 12,778 的单一全局系数所平均掉的那种变化。
 :::
 
 ::: {.en}
