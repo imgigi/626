@@ -1,0 +1,81 @@
+# <span class="en">Ridership today</span><span class="zh">当前客流</span> {#sec-rid}
+
+```{r}
+#| label: fig-ridership
+#| fig-cap: "<span class='en'>Average daily tap-ins by station, August and September 2026. Colour is the morning balance: the share of a station's AM-peak gate use that is people leaving.</span><span class='zh'>2026 年 8、9 月各站平均每日进站量。颜色表示早高峰平衡：早高峰闸机使用中离站出行所占的比例。</span>"
+#| fig-height: 6.2
+#| code-fold: true
+
+lab <- dE |> filter(station_name %in% c("Jurong East", "Raffles Place", "Orchard", "Woodlands", "Tampines", "Buangkok",
+                                        "Keppel", "Hume", "Tuas Link", "Changi Airport", "Kent Ridge", "Punggol"))
+map_base(
+  net_layer(),
+  geom_point(data = dE, aes(x, y, size = daily_in, fill = phi), shape = 21, colour = "white", stroke = .2),
+  geom_text_repel(data = lab, aes(x, y, label = station_name), size = 2.6, min.segment.length = 0,
+                  segment.size = .2, seed = 2, box.padding = .35)
+) +
+  scale_size_area(max_size = 8, breaks = c(1000, 10000, 30000, 60000), labels = comma, name = "Daily tap-ins",
+                  guide = guide_legend(override.aes = list(fill = "#a8a29e", colour = "#78716c"))) +
+  scale_fill_gradientn(colours = c("#b2182b", "#f4a582", "#f7f7f7", "#92c5de", "#2166ac"), limits = c(0, 1),
+                       labels = percent, name = "Home share") +
+  labs(title = "Where ridership is, and what kind it is",
+       subtitle = "Blue stations fill from homes in the morning. Red stations fill from people arriving, and empty at night.") +
+  theme(legend.position = "right")
+```
+
+::: {.interp .en}
+**Stations split cleanly into places people leave and places people go.** Home share runs from
+`r pct(100 * min(dE$phi))` at `r dE$station_name[which.min(dE$phi)]` to `r pct(100 * max(dE$phi))` at `r dE$station_name[which.max(dE$phi)]`. The CBD, one-north, Kent
+Ridge and the Tuas estates are red: their tap-ins are people leaving work. The heartland towns are blue.
+Half of all tap-ins (`r pct(100 * sum(dE$T_H) / sum(dE$daily_in))`) fall on the home side, which is what round trips
+would produce. Size says something different from colour: Jurong East, a red-tinted
+interchange, is the busiest station at `r n_fmt(stn("Jurong East", "daily_in"), 0)` tap-ins a day, and big blue stations
+such as Punggol and Tampines fill mostly from homes. This split is what the calibration uses.
+:::
+
+::: {.interp .zh}
+**车站清楚地分为人们离开的地方和人们前往的地方。** 居住端比例从 `r dE$station_name[which.min(dE$phi)]` 的 `r pct(100 * min(dE$phi))` 到
+`r dE$station_name[which.max(dE$phi)]` 的 `r pct(100 * max(dE$phi))`。CBD、纬壹、肯特岗与大士工业区呈红色：其进站者是下班离开的人；组屋区市镇呈蓝色。
+全部进站量的一半（`r pct(100 * sum(dE$T_H) / sum(dE$daily_in))`）落在居住端，这正是往返出行应有的结果。大小传达的信息与颜色不同：
+Jurong East 这个偏红的换乘站是最繁忙的车站，每日 `r n_fmt(stn("Jurong East", "daily_in"), 0)` 次；而榜鹅、淡滨尼这些大型蓝色车站主要来自住所。校准使用的正是这种拆分。
+:::
+
+```{r}
+#| label: fig-rank
+#| fig-cap: "<span class='en'>Stations ranked by daily tap-ins, on a log scale. Stations in the handout's story of delayed opening are labelled, with others of interest.</span><span class='zh'>按每日进站量排序的车站（对数尺度）。图中标出了手册提到的延迟开放的车站及其他值得关注的车站。</span>"
+#| fig-height: 3.9
+#| code-fold: true
+
+ranked <- dE |> arrange(desc(daily_in)) |> mutate(rank = row_number(), mode = ifelse(lrt == 1, "LRT only", "MRT"))
+lab <- ranked |> filter(station_name %in% c("Jurong East", "Buangkok", "Woodleigh", "Hume", "Keppel", "Teck Lee",
+                                            "Cantonment", "Prince Edward Road")) |>
+  mutate(nx = case_when(station_name == "Jurong East" ~ 8, station_name == "Hume" ~ -14, TRUE ~ 0),
+         ny = case_when(station_name == "Jurong East" ~ -.42, station_name == "Hume" ~ -.3, TRUE ~ 0))
+ggplot(ranked, aes(rank, daily_in, colour = mode)) +
+  geom_hline(yintercept = SC$LOW20, linetype = 3, colour = PAL$grey) +
+  annotate("text", x = 180, y = SC$LOW20 * 1.2, label = "Lowest fifth of MRT stations", hjust = 1, size = 2.8, colour = PAL$grey) +
+  geom_point(size = 1.5) +
+  geom_text_repel(data = lab, aes(label = station_name), size = 2.9, colour = PAL$ink, seed = 3,
+                  nudge_x = lab$nx, nudge_y = lab$ny, min.segment.length = 0, segment.size = .2, box.padding = .5) +
+  scale_y_log10(labels = comma) +
+  scale_colour_manual(values = c("LRT only" = "#a8a29e", MRT = PAL$rail), name = NULL) +
+  labs(x = "Rank", y = "Daily tap-ins (log scale)") +
+  theme_th(10)
+```
+
+::: {.interp .en}
+**Stations once kept shut can do very well, and a new one can still be nearly empty.** Buangkok
+carries `r n_fmt(stn("Buangkok", "daily_in"), 0)` tap-ins a day and Woodleigh `r n_fmt(stn("Woodleigh", "daily_in"), 0)`, both comfortably above the MRT median of
+`r n_fmt(median(dE$daily_in[dE$lrt == 0]), 0)`. Hume, 18 months after opening, has `r n_fmt(stn("Hume", "daily_in"), 0)`, and only three MRT stations are lower.
+Keppel is the extreme case: open since July, it records `r n_fmt(stn("Keppel", "daily_in"), 0)` a day, about a four-hundredth of Jurong East,
+because the Greater Southern Waterfront it was built to serve has not arrived [@wiki_keppel].
+Ridership at a station says less about the station than about what has been built around it,
+and that is the limit of any forecast made from land use today.
+:::
+
+::: {.interp .zh}
+**曾被关闭的车站可以表现很好，而新车站也可能几乎无人使用。** Buangkok 每日 `r n_fmt(stn("Buangkok", "daily_in"), 0)` 次进站，Woodleigh `r n_fmt(stn("Woodleigh", "daily_in"), 0)` 次，
+都明显高于地铁车站中位数 `r n_fmt(median(dE$daily_in[dE$lrt == 0]), 0)`。Hume 开放 18 个月后只有 `r n_fmt(stn("Hume", "daily_in"), 0)` 次，只有三个地铁车站比它更低。
+Keppel 是极端例子：7 月开放至今，每日只有 `r n_fmt(stn("Keppel", "daily_in"), 0)` 次，是 Jurong East 的约四百分之一，因为它要服务的大南部水岸尚未建成 [@wiki_keppel]。
+车站的客流与其说反映车站本身，不如说反映周围已经建成了什么，而这正是任何基于当前土地利用的预测的局限。
+:::

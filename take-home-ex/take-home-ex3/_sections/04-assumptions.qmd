@@ -1,0 +1,101 @@
+# <span class="en">Analytical assumptions and methodological decisions</span><span class="zh">分析假设与方法决策</span> {#sec-assump}
+
+## <span class="en">The model</span><span class="zh">模型</span>
+
+::: {.en}
+For origin $i$ and station $j$, the Huff probability [@huff1963] with a multiplicative
+attractiveness is
+:::
+
+::: {.zh}
+对起点 $i$ 与车站 $j$，采用乘法形式吸引力的 Huff 概率 [@huff1963] 为
+:::
+
+$$
+P_{ij} = \frac{A_j\, d_{ij}^{\,\lambda}}{\sum_{k:\, d_{ik} \le D} A_k\, d_{ik}^{\,\lambda}},
+\qquad
+A_j = \exp\!\Big(\sum_m \beta_m x_{jm}\Big),
+\qquad
+E_j = \sum_i M_i\, P_{ij},
+$$
+
+::: {.en}
+where $M_i$ is the local market, $x_{jm}$ the attraction variables, $\lambda$ the distance
+exponent and $D$ a maximum access distance. It is calibrated separately for two purposes, and
+the expected ridership is their sum:
+:::
+
+::: {.zh}
+其中 $M_i$ 为本地市场，$x_{jm}$ 为吸引力变量，$\lambda$ 为距离指数，$D$ 为最大到达距离。模型按两种出行目的分别校准，预期客流是
+两者之和：
+:::
+
+$$
+T_j^{H} = \phi_j T_j, \qquad T_j^{W} = (1-\phi_j) T_j, \qquad \phi_j = \frac{\text{AM tap-ins}_j}{\text{AM tap-ins}_j + \text{AM tap-outs}_j}.
+$$
+
+::: {.en}
+Parameters are found by minimising squared log errors, $\sum_j (\log T_j - \log E_j)^2$.
+Ridership runs from under 200 to about 70,000 a day, and the stations this exercise cares about
+most are at the bottom of that range; on the raw scale the fit would be decided by a dozen
+interchanges. The calibration uses exact gradients in matrix form (`R/huff.R`), because the
+validation and bootstrap need thousands of calibrations. @sec-calib-mci confirms that it gives
+what `MCI::huff.shares()` gives [@wieland2017].
+:::
+
+::: {.zh}
+参数通过最小化对数误差平方和 $\sum_j (\log T_j - \log E_j)^2$ 求得。客流从每日不足 200 到约 70,000 不等，而本研究最关心的车站
+都处在这个范围的底部；若用原始尺度，拟合结果将由十几个换乘站决定。校准以矩阵形式使用精确梯度（`R/huff.R`），因为验证与自助法
+需要进行数千次校准。@sec-calib-mci 确认其结果与 `MCI::huff.shares()` 的结果相同 [@wieland2017]。
+:::
+
+## <span class="en">Decisions</span><span class="zh">决策</span>
+
+```{r}
+#| label: tbl-decisions
+#| tbl-cap: "<span class='en'>Analytical decisions, their rationale, and where each is tested.</span><span class='zh'>分析决策、理由及检验位置。</span>"
+#| echo: false
+
+tribble(
+  ~Decision, ~Choice, ~Rationale, ~`Tested in`,
+  "Ridership measure", "Average daily tap-ins, weekday and weekend weighted as in a normal week", "The brief's quantity; removes the calendar", "\u00a73",
+  "Origin unit", "500 m hexagon, at its population-weighted centre", "Small enough for access to differ across it, large enough to keep the problem tractable", "\u00a79.4: 250 m and 1,000 m",
+  "Trip purpose", "Home end and activity end, split by the morning balance", "A CBD station's tap-ins are people going home to somewhere else. Treated as residents, they make it draw on the whole island", "\u00a76.1",
+  "Markets", "Home: residents, dormitories. Activity: workplace footprint, points of interest", "Each end of the trip has its own origin", "\u00a76.1",
+  "Attractiveness", "Bus stops, retail, food, LRT only, extra lines, rail time to the CBD", "What surrounds a station and where it leads. Available for stations not yet built", "\u00a76.3",
+  "Decay", "Power", "Better than exponential on lines held out", "\u00a76.1",
+  "Maximum access distance", "5 km", "Removes an implausible far-field effect at a modest cost in fit", "\u00a76.2",
+  "Validation", "Leave one line out", "Imitates the real task: a line the model has never seen, absent during calibration", "\u00a76.1",
+  "Existing stations in the scenario", "Pivot: the model's ratio applied to observed ridership", "Keeps each station's actual level, without giving high-ridership stations an inflated reach", "\u00a79.4",
+  "New stations in the scenario", "Model only, with a spread from hold-out errors", "They have no history to pivot on", "\u00a78",
+  "Stations gaining a line", "Interchange effect applied", "The model's own estimate, but it comes from comparing stations rather than watching a line arrive", "\u00a79.2: no uplift",
+  "Jurong Region Line", "Treated as MRT", "A line of its own, but medium capacity", "\u00a79.4: half the LRT effect",
+  "Total demand", "Fixed (closed model), with an outside option as the alternative", "The data do not separate them", "\u00a710.1",
+  "Land use", "As of 2026", "The model's only evidence", "\u00a78.3: Tengah at planned size"
+) |>
+  gt() |>
+  cols_width(Decision ~ px(140), Choice ~ px(200), Rationale ~ px(310), `Tested in` ~ px(120)) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+## <span class="en">Why two purposes</span><span class="zh">为什么区分两种目的</span>
+
+::: {.en}
+The Huff model describes people at an origin choosing a destination, and the obvious origin of a
+rail trip is home. That works for a morning tap-in at Buangkok. It does not work for an evening
+tap-in at Raffles Place, whose rider lives somewhere else entirely. A single model
+of all tap-ins has no way to say this: to explain Raffles Place's `r n_fmt(stn("Raffles Place", "daily_in"), 0)` daily tap-ins, it must
+assign it residents from across the island, and those long reaches are what later let a station
+in Jurong take riders from the CBD. Splitting ridership by the morning balance gives each kind of
+trip an origin it could plausibly start from. It is an approximation: the morning balance is not
+the whole day's, and a station's visitors are not all commuters. It is, however, directly
+observed for every station, and it reads as it should (@fig-ridership).
+:::
+
+::: {.zh}
+Huff 模型描述的是某个起点的人选择目的地，而轨道出行最明显的起点是家。这适用于 Buangkok 的早晨进站，却不适用于 Raffles Place
+的傍晚进站，因为这位乘客住在完全不同的地方。单一的全量进站模型无法表达这一点：为了解释 Raffles Place 每日
+`r n_fmt(stn("Raffles Place", "daily_in"), 0)` 次进站，它只能把全岛各地的居民都分配给这个车站，而正是这种过远的辐射，使裕廊的车站后来能从 CBD 抢走
+乘客。按早高峰的平衡拆分客流，使每类出行都有一个合理的起点。这只是近似：早高峰的平衡不等于全天的平衡，车站的访客也不都是通勤者。
+但这个量对每个车站都是直接观测到的，而且结果也符合常理（@fig-ridership）。
+:::

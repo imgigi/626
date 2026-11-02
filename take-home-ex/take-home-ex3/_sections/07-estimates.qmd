@@ -1,0 +1,47 @@
+# <span class="en">Ridership estimated at existing stations</span><span class="zh">既有车站的客流估计</span> {#sec-est}
+
+::: {.en}
+Applied to the stations it was calibrated on, the selected model gives an R² of `r num(lad("M8 ")$insample)` on the log scale and a
+rank correlation of `r num(lad("M8 ")$insample_rho)`. @fig-residual maps what it misses. Each station's residual is the log of
+observed over estimated ridership, so a value of 0.7 means it carries about twice what the model expects.
+:::
+
+::: {.zh}
+应用于参与校准的车站时，入选模型在对数尺度上的 R² 为 `r num(lad("M8 ")$insample)`，秩相关为 `r num(lad("M8 ")$insample_rho)`。@fig-residual 显示了它遗漏的部分。每个车站的残差是观测客流与估计客流之比的对数，所以 0.7 表示它的客流约为模型预期的两倍。
+:::
+
+```{r}
+#| label: fig-residual
+#| fig-cap: "<span class='en'>Where the model misses at existing stations. Blue stations carry more than the model expects, red stations less. Labels mark the largest misses each way.</span><span class='zh'>模型在既有车站上的遗漏。蓝色车站的客流高于模型预期，红色低于预期。标注的是两个方向上最大的偏差。</span>"
+#| fig-height: 6
+#| code-fold: true
+
+rs <- RP$residuals_tbl
+lab <- bind_rows(slice_max(rs, resid, n = 9), slice_min(rs, resid, n = 8))
+map_base(
+  net_layer(),
+  geom_point(data = rs, aes(x, y, fill = resid, size = abs(resid)), shape = 21, colour = "#78716c", stroke = .15),
+  geom_text_repel(data = lab, aes(x, y, label = station_name), size = 2.6, min.segment.length = 0, segment.size = .2,
+                  seed = 5, box.padding = .4, max.overlaps = 40)
+) +
+  scale_fill_gradientn(colours = RAMP_DIV, limits = c(-2.4, 2.4), name = "log(observed\n/ estimated)") +
+  scale_size_continuous(range = c(.8, 4.5), guide = "none") +
+  labs(title = "What attractiveness and local markets cannot explain")
+```
+
+::: {.interp .en}
+**The misses point to reasons the data do not record.** Above expectation: Bayfront
+(`r num(exp(rs$resid[rs$station_name == "Bayfront"]), 1)` times its estimate), Kranji, HarbourFront, Downtown, Newton, Novena and Somerset. Below it:
+Keppel, Teck Lee, Petir, Marina Bay and Hume. One can suggest a story for several, such as a resort, a ferry
+terminal or a land checkpoint, but those are guesses. A model limited to retail counts and footprints has no way to
+test them. Some of this is spatially organised: Moran's I on the residuals, with six nearest stations as
+neighbours, is `r num(RP$moran$I)` (p = `r num(RP$moran$p, 3)`), weak but real. Neighbouring stations share things
+the model does not see, so the bootstrap intervals in this report, which treat stations as independent, are
+somewhat too narrow.
+:::
+
+::: {.interp .zh}
+**偏差指向数据未记录的原因。** 高于预期的有：Bayfront（是估计值的 `r num(exp(rs$resid[rs$station_name == "Bayfront"]), 1)` 倍）、Kranji、HarbourFront、Downtown、Newton、Novena 与 Somerset。
+低于预期的有：Keppel、Teck Lee、Petir、Marina Bay 与 Hume。其中几个可以想到某种解释，比如度假胜地、渡轮码头或陆路关卡，但这些只是猜测，只依赖零售数量和建筑占地的模型无法检验。其中一部分有空间组织：以六个最近车站为邻居，残差的 Moran's I 为 `r num(RP$moran$I)`（p = `r num(RP$moran$p, 3)`），
+微弱但真实。相邻车站共享模型看不到的因素，所以本报告中假定车站相互独立的自助法区间略显偏窄。
+:::

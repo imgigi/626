@@ -1,0 +1,109 @@
+# <span class="en">Data and study design</span><span class="zh">数据与研究设计</span> {#sec-data}
+
+## <span class="en">Data sources</span><span class="zh">数据来源</span>
+
+```{r}
+#| label: tbl-sources
+#| tbl-cap: "<span class='en'>Data used, what each contributes, and whether it is in the repository. Files marked no are large or are re-downloadable; everything the report reads is committed in aggregated form.</span><span class='zh'>所用数据、各自的作用，以及是否收入代码库。标为 no 的文件体积较大或可重新下载；报告读取的内容都已以聚合形式提交。</span>"
+#| echo: false
+
+tribble(
+  ~Data, ~Source, ~Role, ~`In repository`,
+  "Passenger Volume by Train Stations, Jul to Sep 2026", "LTA DataMall (API)", "Observed tap-ins and tap-outs by station, day type and hour", "No (API key)",
+  "Passenger Volume by Origin Destination Train Stations, Jul to Sep 2026", "LTA DataMall (API)", "Station-to-station flows, for the value-added model", "No (API key)",
+  "Train Station, September 2026", "LTA DataMall", "Which stations exist, including those built but closed", "No",
+  "Bus Stop Location, March 2026", "LTA DataMall", "Bus stops around each station", "No",
+  "Station coordinates, March 2026", "GitHub (from URA and LTA)", "A code, a name and a point for every open and future station", "Yes",
+  "HDB Existing Building, June 2026", "data.gov.sg", "Block footprints, so where each block stands", "No (57 MB)",
+  "HDB Property Information, October 2026", "data.gov.sg", "Dwellings by flat type in each block", "Yes",
+  "Residents by subzone and dwelling type, June 2024", "Dept of Statistics", "How many people live in each subzone, in which kind of home", "Yes",
+  "Master Plan 2019 subzones", "URA via data.gov.sg", "The frame for allocating residents and labelling places", "Yes",
+  "OpenStreetMap, 31 October 2026", "Geofabrik", "Points of interest, private housing, workplaces, dormitories", "No (505 MB)"
+) |>
+  gt() |>
+  cols_width(Data ~ px(250), Source ~ px(140), Role ~ px(290), `In repository` ~ px(90)) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+## <span class="en">Study design</span><span class="zh">研究设计</span>
+
+::: {.en}
+**Destinations** are physical stations. Interchange codes and renumbered codes are
+collapsed, which gives `r nrow(dE)` open stations, `r sum(dE$lrt)` of them LRT only. **Origins**
+are 500 m hexagons (flat-to-flat) holding residents, workplaces or dormitories,
+`r n_fmt(nrow(origins))` in all. Each is represented by its population-weighted centre, which
+removes most of the error of treating a cell as a point. **Distance** is straight-line, in
+kilometres; walking networks and feeder bus routes are not modelled (see @sec-limits).
+
+**Ridership** is the average daily tap-in, over August and September 2026, with weekdays
+and weekends weighted as in a normal week: `r n_fmt(AR$daily_total)` tap-ins a day. Tap-ins count entries
+through a gate, so a transfer inside the paid area is not ridership at the station where it
+happens. This is the quantity the brief asks for, and also the main limitation of a
+station-level model, to which @sec-va returns. Two reference points give this figure scale:
+`r n_fmt(AR$wd_total)` tap-ins on an average weekday and `r n_fmt(AR$we_total)` on a weekend or holiday.
+
+**The proposed network** is the brief's: all Jurong Region Line stations opening by 2029
+and Cross Island Line Phase 1. That is `r AF$n_new + AF$n_gains` station codes. They are not `r AF$n_new + AF$n_gains` new
+places. Seven are new codes at stations that already exist: Choa Chu Kang, Boon Lay,
+Jurong East, Pasir Ris, Hougang, Ang Mo Kio and Bright Hill. A passenger reaches them through
+the same gates as today, so they are treated as existing stations gaining a line. The
+other `r AF$n_new` are new access points. @fig-network shows both.
+:::
+
+::: {.zh}
+**目的地**是实体车站。换乘站代码与更改过的代码都被合并，得到 `r nrow(dE)` 个开放车站，其中 `r sum(dE$lrt)` 个
+只有轻轨。**起点**是 500 米的六边形（对边距离），其中有居民、工作场所或宿舍，共
+`r n_fmt(nrow(origins))` 个；每个六边形以人口加权中心代表，这消除了把单元当作一个点所带来的大部分误差。
+**距离**为直线距离，单位公里；步行网络与接驳公交线路未纳入模型（见 @sec-limits）。
+
+**客流**是 2026 年 8、9 月的平均每日进站量，按正常一周的结构为工作日与周末加权：每日
+`r n_fmt(AR$daily_total)` 次。进站量统计的是通过闸机的次数，因此付费区内的换乘不算发生换乘的车站的客流。
+这是题目要求的量，也是车站层面模型的主要局限，@sec-va 将再次讨论。两个参照点可以说明这个数字的规模：
+平均工作日 `r n_fmt(AR$wd_total)` 次，周末或假日 `r n_fmt(AR$we_total)` 次。
+
+**拟建网络**按题目要求，包括 2029 年前开通的裕廊区域线全部车站与跨岛线第一期，共 `r AF$n_new + AF$n_gains` 个
+车站代码。但它们并不是 `r AF$n_new + AF$n_gains` 个新地点。其中 7 个是现有车站的新代码：Choa Chu Kang、Boon Lay、
+Jurong East、Pasir Ris、Hougang、Ang Mo Kio 与 Bright Hill。乘客仍通过今天的闸机进站，因此它们被视为
+增加一条线路的现有车站；其余 `r AF$n_new` 个才是新的进站点。@fig-network 显示了这两类车站。
+:::
+
+```{r}
+#| label: fig-network
+#| fig-cap: "<span class='en'>The rail network in September 2026 and the proposed stations. Colours are the official line colours of the two new lines.</span><span class='zh'>2026 年 9 月的铁路网与拟建车站。颜色为两条新线的官方线路色。</span>"
+#| fig-height: 6.2
+#| code-fold: true
+
+new_pts <- dP |> filter(role == "new access point")
+gain_pts <- dP |> filter(role == "existing, gains a line")
+map_base(
+  net_layer(), new_layer(0.9),
+  geom_point(data = filter(dP, status == "open"), aes(x, y), size = 0.55, colour = "#78716c"),
+  geom_point(data = new_pts, aes(x, y, fill = "New access point"), shape = 21, size = 2.1, colour = "white", stroke = .25),
+  geom_point(data = gain_pts, aes(x, y, fill = "Existing station, gains a line"), shape = 23, size = 3, colour = "white", stroke = .3),
+  geom_text_repel(data = gain_pts, aes(x, y, label = station_name), size = 2.7, min.segment.length = 0,
+                  segment.size = .2, box.padding = .5, seed = 1)
+) +
+  scale_colour_manual(values = PAL_LINE) +
+  scale_fill_manual(values = c("New access point" = PAL$new, "Existing station, gains a line" = "#1d4ed8"), name = NULL) +
+  labs(title = paste(AF$n_new, "new access points, and seven existing stations that gain a line"),
+       subtitle = "Grey: the network open in September 2026. Teal: Jurong Region Line. Green: Cross Island Line Phase 1.") +
+  theme(legend.position = "bottom")
+```
+
+::: {.interp .en}
+**Most of the new stations fill gaps rather than extend the network.** The Jurong Region Line
+weaves through the west, where most residents are already within reach of the East-West or
+North-South lines, and the Cross Island Line runs across the north-east through towns already
+served by the North East and Circle lines. The share of residents within 800 m of a station rises only
+from `r pct(100 * SC$cov_old["within_0.8"])` to `r pct(100 * SC$cov_new["within_0.8"])`, and `r pct(100 * AF$res_by_nearest[1] + 100 * AF$res_by_nearest[2] + 100 * AF$res_by_nearest[3] + 100 * AF$res_by_nearest[4], 1)`
+already live within 2 km. That makes competition with existing stations, not fresh territory,
+the central modelling problem.
+:::
+
+::: {.interp .zh}
+**大多数新站是在填补空隙，而不是向外延伸。** 裕廊区域线在西部穿行，那里的多数居民本来就能到达东西线或南北线；
+跨岛线则横穿东北部，途经已有东北线与环线服务的市镇。居住在车站 800 米范围内的居民比例只从
+`r pct(100 * SC$cov_old["within_0.8"])` 升到 `r pct(100 * SC$cov_new["within_0.8"])`，而
+`r pct(100 * AF$res_by_nearest[1] + 100 * AF$res_by_nearest[2] + 100 * AF$res_by_nearest[3] + 100 * AF$res_by_nearest[4], 1)`
+的居民已经住在车站 2 公里之内。因此建模的核心问题是与既有车站的竞争，而不是开拓新的地域。
+:::

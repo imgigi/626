@@ -1,0 +1,100 @@
+# <span class="en">Introduction and study context</span><span class="zh">引言与研究背景</span> {#sec-intro}
+
+::: {.en}
+Rail transit shapes a city as much as it serves one. In Singapore the MRT has linked new
+towns to jobs since 1987, and it is the backbone of a land-scarce, high-density plan.
+Building it is also a wager on future demand. A station's structure has to go in when the
+line is built, years before anyone can know how many people will live around it.
+
+The wager has not always paid promptly. Buangkok and Woodleigh were complete when the
+North East Line opened in June 2003, and both stayed closed for lack of development around
+them. Buangkok opened in January 2006 and Woodleigh in June 2011
+[@wiki_buangkok; @wiki_woodleigh]. Hume, on the Downtown Line, was left as a structural
+shell because projected ridership did not justify finishing it, and it opened only in
+February 2025 [@wiki_hume]. These are not stories of bad planning. Building a shell
+early is cheap against building it later, and running an empty station is expensive.
+What the decision needs is a defensible estimate of how many people a station would
+serve and from where, and a clear statement of how sure that estimate is.
+
+By 2030 two more projects will test the same judgement. The Jurong Region Line opens in
+stages from 2028 with 24 stations by 2029 [@lta_jrl]. Cross Island Line Phase 1 follows
+in 2030 with 12 [@lta_crl]. Together they reach Tengah, Jurong West, Nanyang Technological
+University and the industrial west, and connect Pasir Ris, Hougang and Ang Mo Kio without
+passing through the city.
+
+Probabilistic spatial interaction models were built for this kind of question. The Huff
+model treats a place as a choice among competing destinations, with the probability of each
+rising with its attractiveness and falling with distance [@huff1963]. It has since been
+applied well beyond retail, to park-and-ride catchments [@lin2016], hospital service areas
+[@bai2023], store closures [@bahrami2022] and rail station catchments [@zhu2021]. The last
+of these is closest to the present work, and differs in one way that shapes this report. Zhu
+et al. adopt a distance exponent of 2 and weight station attractiveness by expert opinion,
+rather than calibrating attractiveness against observed ridership. Singapore publishes tap-ins
+for every station in every hour, so here the model can be calibrated and, more usefully, tested.
+:::
+
+::: {.zh}
+轨道交通既服务城市，也塑造城市。自 1987 年以来，新加坡地铁把新市镇与就业中心连接起来，是这座土地稀缺、
+高密度城市规划的骨干。但修建地铁也是对未来需求的一场押注：车站结构必须在建线时一并完成，而那时距离
+人们入住周边还有很多年，谁也无法确知会有多少人住在那里。
+
+这场押注并不总能及时兑现。东北线 2003 年 6 月开通时，Buangkok 与 Woodleigh 均已建成，却因周边缺乏
+开发而继续关闭。Buangkok 于 2006 年 1 月开放，Woodleigh 则迟至 2011 年 6 月
+[@wiki_buangkok; @wiki_woodleigh]。滨海市区线的 Hume 因预测客流不足而只留下结构外壳，到 2025 年
+2 月才开放 [@wiki_hume]。这些并非规划失误的故事：提前留好结构比日后再建便宜，而运营一座空车站却很昂贵。
+这类决策需要的是：对车站将服务多少人、这些人来自何处的站得住脚的估计，以及清楚说明这个估计有多可靠。
+
+到 2030 年，又有两个项目将考验同样的判断。裕廊区域线自 2028 年起分阶段开通，到 2029 年共 24 个车站
+[@lta_jrl]；跨岛线第一期随后于 2030 年开通，共 12 个车站 [@lta_crl]。它们将通达登加、裕廊西、南洋理工
+大学与西部工业区，并在不经过市区的情况下连接巴西立、后港与宏茂桥。
+
+概率空间交互模型正是为这类问题而生。Huff 模型把一个地点视为对多个竞争目的地的选择，选择每个目的地的概率
+随吸引力上升、随距离下降 [@huff1963]。它早已超出零售领域，被应用于停车换乘的集散范围 [@lin2016]、医院
+服务区 [@bai2023]、门店关闭决策 [@bahrami2022] 以及轨道车站的集散范围 [@zhu2021]。最后这项研究与本文
+最接近，但有一处差别决定了本报告的走向：Zhu 等人采用 2 作为距离指数，并以专家意见为车站吸引力加权，而不是
+依据观测客流校准吸引力。新加坡公布了每个车站每小时的进站量，因此这里的模型可以校准，更重要的是可以检验。
+:::
+
+## <span class="en">Research questions and objectives</span><span class="zh">研究问题与目标</span>
+
+::: {.rq .en}
+*RQ1 · Calibrate.* How well can a probabilistic spatial interaction model reproduce
+ridership at Singapore's stations, including stations it was not calibrated on, and what
+makes a station attractive once distance and competition are accounted for?
+:::
+
+::: {.rq .zh}
+*研究问题一 · 校准。* 概率空间交互模型能在多大程度上复现新加坡各车站的客流，包括未参与校准的车站？在考虑
+距离与竞争之后，是什么让一个车站具有吸引力？
+:::
+
+::: {.rq .en}
+*RQ2 · Predict.* What ridership can the proposed Jurong Region Line and Cross Island Line
+Phase 1 stations expect, how uncertain is it, and which of them risk being the next
+station too quiet to justify opening?
+:::
+
+::: {.rq .zh}
+*研究问题二 · 预测。* 拟建的裕廊区域线与跨岛线第一期车站可望有多少客流？不确定性有多大？其中哪些有可能成为
+下一个因太冷清而难以开放的车站？
+:::
+
+::: {.rq .en}
+*RQ3 · Impact.* How would the proposed stations change the ridership and market areas of
+stations already open, and how far from the new lines does the effect reach?
+:::
+
+::: {.rq .zh}
+*研究问题三 · 影响。* 拟建车站将如何改变既有车站的客流与市场区？这种影响能从新线延伸到多远？
+:::
+
+::: {.en}
+The value-added analysis in @sec-va asks two further questions the core model cannot
+answer: how many of the new stations' riders would be new to rail, and where they go once
+through the gate.
+:::
+
+::: {.zh}
+@sec-va 的附加价值分析进一步提出核心模型无法回答的两个问题：新站的乘客中有多少是轨道交通的新用户，以及
+他们进站之后去向何处。
+:::

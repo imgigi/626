@@ -1,0 +1,35 @@
+# <span class="en">Implications for transport planning</span><span class="zh">对交通规划的启示</span> {#sec-implications}
+
+::: {.en}
+The handout's list of report sections carries over wording from the previous exercise ("peace-keeping", "public safety"). This section
+reads those as implications for the policy question this exercise poses, which is sustainable rail planning. These are one student's readings of a model with the limits set out in
+@sec-limits, offered as questions the analysis raises rather than as recommendations to a transport authority.
+
+**Sequence shell stations by land use, not by line.** The stations at risk of low ridership are identifiable well ahead of time: Aviation Park, Jurong Pier,
+Tengah, Jurong Hill. The Hume and Woodleigh precedent suggests a choice that an operator can revisit: build the structure with the line, and tie fit-out and opening to a
+measurable threshold in the surrounding market. Keppel, open and nearly empty, shows the running cost of doing the opposite.
+
+**Plan interchanges for transfers, not for the tap-ins this report predicts.** Boon Lay, Hougang, Ang Mo Kio and Choa Chu Kang each stand to gain tens of thousands of daily
+transfers. Station-level ridership would not reveal this, and a forecast of falling tap-ins at Boon Lay could read as reassurance. Boon Lay in particular has no
+transfer flow today.
+
+**Expect western East-West stations to change character.** Pioneer, Lakeside and Chinese Garden lose much of their home-end catchment, as
+do feeder bus routes that serve them today. Bus network planning is the natural counterpart. The riders who leave these stations are those who lived furthest from them, so
+the same residents with shorter access is a gain, even though the station's tap-ins fall.
+
+**Measure the opening.** The largest unknown in this report, how much ridership a new line creates, could be settled by data the system already
+produces. Stage-by-stage openings of the Jurong Region Line from 2028 are a natural experiment. Saving OD data around each one, which DataMall deletes after three
+months, would allow a before-and-after estimate that no cross-section can give.
+:::
+
+::: {.zh}
+手册所列的报告章节沿用了上一次作业的措辞（“维和”“公共安全”）。本节把它们理解为本次作业所提政策问题的启示，即可持续的轨道规划。这些只是一名学生基于具有 @sec-limits 所述局限的模型所作的解读，是分析提出的问题，而非对交通主管部门的建议。
+
+**按土地利用而非线路安排外壳车站的时序。** 低客流风险的车站可以提前识别：Aviation Park、Jurong Pier、Tengah、Jurong Hill。Hume 与 Woodleigh 的先例提示了一个可以调整的选择：随线路建好结构，并把装修与开放与周边市场的可测阈值挂钩。Keppel 已开放却几乎无人使用，显示了相反做法的运营代价。
+
+**按换乘而不是本报告预测的进站量来规划换乘站。** Boon Lay、Hougang、Ang Mo Kio 与 Choa Chu Kang 每日都将增加数万次换乘。车站层面的客流不会显示这一点，而 Boon Lay 进站量下降的预测甚至可能被解读为令人安心。Boon Lay 今天尤其没有换乘客流。
+
+**预期东西线西段车站的性质改变。** Pioneer、Lakeside 与 Chinese Garden 将失去大部分居住端集散范围，服务它们的接驳公交也是如此。公交网络规划是自然的配套。离开这些车站的乘客是住得最远的那些人，所以同样的居民到达距离变短是一种收益，尽管车站的进站量下降。
+
+**对开通进行测量。** 本报告最大的未知数，也就是新线能创造多少客流，可以用系统已经产生的数据来回答。裕廊区域线自 2028 年起的分阶段开通是天然实验。保存每次开通前后的 OD 数据（DataMall 三个月后即删除），就能得到任何截面数据都无法提供的前后对比估计。
+:::

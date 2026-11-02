@@ -1,0 +1,941 @@
+---
+title: '<span class="en">Geospatial Analytics for Urban Sustainability</span><span class="zh">面向城市可持续发展的地理空间分析</span>'
+pagetitle: "Take-home Exercise 3 · Executive Summary"
+subtitle: '<span class="en">Station ridership and what new lines do to it<br>Singapore · Jurong Region Line and Cross Island Line Phase 1</span><span class="zh">车站客流，以及新线带来的影响<br>新加坡 · 裕廊区域线与跨岛线第一期</span>'
+author: "Ji Guofang · ISSS626"
+date: 2026-11-02
+format:
+  revealjs:
+    theme: [default, slides.scss]
+    width: 1500
+    height: 900
+    margin: 0.035
+    center: false
+    auto-stretch: false
+    fig-dpi: 180
+    slide-number: c/t
+    show-slide-number: all
+    transition: fade
+    transition-speed: fast
+    incremental: false
+    fig-align: center
+    code-fold: true
+    code-summary: "code"
+    code-overflow: wrap
+    highlight-style: github
+    link-external-newwindow: true
+    controls: true
+    progress: true
+    hash-type: number
+    center-title-slide: false
+    title-slide-attributes:
+      id: title-slide
+      data-background-color: "#1e293b"
+    footer: '<span class="en">ISSS626 · Take-home Exercise 3 · MRT station ridership, Huff and MCI</span><span class="zh">ISSS626 · 课后作业三 · 地铁车站客流，Huff 与 MCI</span>'
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: false
+bibliography: references.bib
+csl: apa.csl
+suppress-bibliography: true
+---
+
+```{r}
+#| label: slides-setup
+#| include: false
+
+suppressPackageStartupMessages({
+  library(sf); library(dplyr); library(tidyr); library(ggplot2); library(stringr)
+  library(patchwork); library(scales); library(forcats); library(ggrepel); library(gt)
+})
+source("R/utils.R")
+sf::sf_use_s2(FALSE); set.seed(1234)
+
+DER <- "data/derived"
+RP <- readRDS(file.path(DER, "report.rds"))
+SC <- readRDS(file.path(DER, "scenario.rds"))
+MC <- readRDS(file.path(DER, "mci.rds"))
+AR <- readRDS(file.path(DER, "audit_ridership.rds"))
+AF <- readRDS(file.path(DER, "audit_frames.rds"))
+AM <- readRDS(file.path(DER, "audit_markets.rds"))
+dE <- readRDS(file.path(DER, "dest_existing.rds"))
+hex <- readRDS(file.path(DER, "hex_markets.rds"))
+land <- readRDS(file.path(DER, "land.rds"))
+
+NT <- SC$new_tbl; OT <- SC$old_tbl; TT <- SC$totals; SN <- SC$sens_tbl; LT <- RP$ladder_tbl
+lad <- function(key) LT[grepl(key, LT$model, fixed = TRUE), ]
+ch  <- function(par, term) par$estimate[par$term == term]
+stn <- function(name, col, t = OT) t[[col]][t$station_name == name]
+chg <- function(x, d = 0) sprintf("%s%s%%", ifelse(x >= 0, "+", "−"), formatC(abs(100 * x), format = "f", digits = d))
+num <- function(x, d = 2) formatC(x, format = "f", digits = d) |> str_replace("^-", "−")
+rnd <- function(x, to = 100) n_fmt(round(x / to) * to)
+lnk <- function(a, b) MC$links$pct[MC$links$a_name == a & MC$links$b_name == b]
+xf  <- function(s, col = "change") MC$xfer[[col]][MC$xfer$station_name == s]
+
+# The deck's paper colour, so that a plot does not read as a white card on the slide.
+PAPER <- "#f7f7f5"
+theme_update(plot.background = element_rect(fill = PAPER, colour = NA))
+knitr::opts_chunk$set(dev.args = list(bg = PAPER))
+
+paper_bits <- function() theme(
+  plot.background   = element_rect(fill = PAPER, colour = NA),
+  panel.background  = element_rect(fill = PAPER, colour = NA),
+  legend.background = element_rect(fill = PAPER, colour = NA),
+  legend.key        = element_rect(fill = PAPER, colour = NA))
+theme_slide <- function(base = 15) theme_th(base) + paper_bits()
+theme_slide_map <- function(base = 14) theme_map(base) + paper_bits()
+
+XL <- c(2500, 47500); YL <- c(21500, 50500)
+links_old <- MC$links |> filter(!line %in% c("JS", "JE", "JW", "CR"))
+links_new <- MC$links |> filter(line %in% c("JS", "JE", "JW", "CR"))
+net_layer <- function(col = "#a8a29e", lw = 0.35) geom_segment(data = links_old, aes(x = ax, y = ay, xend = bx, yend = by), colour = col, linewidth = lw)
+new_layer <- function(lw = 0.8) geom_segment(data = links_new, aes(x = ax, y = ay, xend = bx, yend = by), colour = PAL$new, linewidth = lw)
+map_base <- function(..., base = 14, xl = XL, yl = YL) {
+  ggplot() +
+    geom_sf(data = land, fill = "#ecebe8", colour = "#d6d3d1", linewidth = 0.25) +
+    list(...) +
+    coord_sf(datum = NA, expand = FALSE, xlim = xl, ylim = yl) +
+    theme_slide_map(base)
+}
+# The sea south-east of the island is empty, so the legends go there and the map keeps the width.
+inside_legend <- function(x = .84, y = .13) theme(
+  legend.position = "inside", legend.position.inside = c(x, y), legend.box = "vertical",
+  legend.direction = "horizontal", legend.title.position = "top",
+  legend.key.width = unit(.75, "cm"), legend.key.height = unit(.3, "cm"), legend.spacing.y = unit(.1, "cm"))
+hi <- hex |> select(hex_id) |> inner_join(SC$hex_impact, by = c("hex_id" = "origin")) |> filter(residents > 0)
+RES <- sum(SC$hex_impact$residents)
+```
+
+## <span class="en">Contents</span><span class="zh">目录</span> {#contents}
+
+::: {.eyebrow}
+<span class="en">EXECUTIVE SUMMARY · TEN SLIDES</span><span class="zh">执行摘要 · 十页</span>
+:::
+
+::: {.card-grid .cols-2 .t-sm}
+::: {.card .card-quiet}
+::: {.en}
+1. Research question and key findings
+2. Study area and data
+3. Analytical approach
+4. Calibration: what makes a station attractive
+5. Ridership at the new stations
+:::
+::: {.zh}
+1. 研究问题与主要发现
+2. 研究区与数据
+3. 分析方法
+4. 校准：什么让车站具有吸引力
+5. 新站的客流
+:::
+:::
+
+::: {.card .card-quiet}
+::: {.en}
+6. Which stations risk being too quiet
+7. Impact on existing stations
+8. Market areas
+9. Beyond the gate: new riders and transfers
+10. Limitations and implications
+:::
+::: {.zh}
+6. 哪些车站可能过于冷清
+7. 对既有车站的影响
+8. 市场区
+9. 闸机之外：新增乘客与换乘
+10. 局限与启示
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">Full detail</span><span class="zh">完整内容</span>]{.lab}
+
+::: {.en}
+Every number here is computed in the [technical report](take-home-ex3.html), which documents the
+data preparation, the methods and their checks, and the code.
+:::
+::: {.zh}
+这里的每个数字都在[技术报告](take-home-ex3.html)中计算得出，报告记录了数据准备、方法及其检验，以及代码。
+:::
+:::
+
+## <span class="en">Research question and key findings</span><span class="zh">研究问题与主要发现</span> {#findings}
+
+::: {.eyebrow}
+<span class="en">01 · CALIBRATE, PREDICT, EVALUATE</span><span class="zh">01 · 校准、预测、评估</span>
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card .card-quiet}
+[<span class="en">RQ1 · Calibrate</span><span class="zh">RQ1 · 校准</span>]{.lab}
+
+::: {.en}
+*How well can a spatial interaction model reproduce ridership, including at stations it never saw, and what makes a station attractive?*
+:::
+::: {.zh}
+*空间交互模型能在多大程度上复现客流（包括未见过的车站）？什么让车站具有吸引力？*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">RQ2 · Predict</span><span class="zh">RQ2 · 预测</span>]{.lab}
+
+::: {.en}
+*What ridership can the Jurong Region Line and Cross Island Line Phase 1 stations expect, and which risk being too quiet?*
+:::
+::: {.zh}
+*裕廊区域线与跨岛线第一期车站可望有多少客流？哪些可能过于冷清？*
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">RQ3 · Impact</span><span class="zh">RQ3 · 影响</span>]{.lab}
+
+::: {.en}
+*How would they change ridership and market areas at stations already open, and how far does the effect reach?*
+:::
+::: {.zh}
+*它们将如何改变既有车站的客流与市场区？影响能延伸多远？*
+:::
+:::
+:::
+
+::: {.kpi-row}
+::: {.kpi}
+[`r num(lad("M8 ")$lolo_r2)`]{.kpi-val}
+[<span class="en">Held-out R² on lines left out of calibration; a direct regression reaches `r num(lad("DRM")$lolo_r2)`</span><span class="zh">校准时留出线路上的 R²；直接回归为 `r num(lad("DRM")$lolo_r2)`</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r rnd(TT$new_stations[1], 1000)`]{.kpi-val}
+[<span class="en">Tap-ins a day at `r nrow(NT)` new access points, on today's land use</span><span class="zh">`r nrow(NT)` 个新进站点的每日进站量（基于当前土地利用）</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-fire}
+[`r chg(SC$by_distance$median_chg[1])`]{.kpi-val}
+[<span class="en">Median change within 1 km of a new station, fading to nothing beyond 8 km</span><span class="zh">新站 1 公里内的变化中位数，8 公里外消失</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card-grid .cols-3 .t-xs}
+::: {.card}
+[<span class="en">Calibrate</span><span class="zh">校准</span>]{.lab}
+
+::: {.en}
+Distance alone explains **nothing**. Mode, interchange status, retail and rail time to the CBD do. **Bus stops add nothing.**
+:::
+::: {.zh}
+单靠距离**什么也解释不了**。起作用的是制式、换乘地位、零售与到 CBD 的轨道时间。**公交站数量没有贡献。**
+:::
+:::
+
+::: {.card .card-water}
+[<span class="en">Predict</span><span class="zh">预测</span>]{.lab}
+
+::: {.en}
+**Serangoon North** leads at about `r rnd(NT$E_closed[NT$station_name == "Serangoon North"], 1000)`. **Aviation Park, Jurong Pier, Tengah** are lowest, near 3,000.
+:::
+::: {.zh}
+**Serangoon North** 居首，约 `r rnd(NT$E_closed[NT$station_name == "Serangoon North"], 1000)` 次。**Aviation Park、Jurong Pier、Tengah** 最低，约 3,000 次。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Impact</span><span class="zh">影响</span>]{.lab}
+
+::: {.en}
+**Pioneer `r chg(stn("Pioneer", "chg_closed"))`**, Lakeside `r chg(stn("Lakeside", "chg_closed"))`. Boon Lay's tap-ins fall, but it gains **`r rnd(xf("Boon Lay"), 1000)` transfers a day**.
+:::
+::: {.zh}
+**Pioneer `r chg(stn("Pioneer", "chg_closed"))`**，Lakeside `r chg(stn("Lakeside", "chg_closed"))`。Boon Lay 进站量下降，却每日增加 **`r rnd(xf("Boon Lay"), 1000)` 次换乘**。
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">In one line</span><span class="zh">一句话</span>]{.lab}
+
+::: {.en}
+The new stations fill gaps in a dense network: they shorten access for many residents, draw much of their ridership from stations nearby, and turn one-line stations into busy interchanges.
+:::
+::: {.zh}
+新站填补了密集网络中的空隙：它们缩短了许多居民的到达距离，客流大多来自附近车站，并使只有一条线路的车站变成繁忙的换乘站。
+:::
+:::
+
+## <span class="en">Study area and data</span><span class="zh">研究区与数据</span> {#data}
+
+::: {.eyebrow}
+<span class="en">02 · STUDY AREA AND DATA</span><span class="zh">02 · 研究区与数据</span>
+:::
+
+::: {.columns}
+::: {.column width="56%"}
+```{r}
+#| label: slide-area
+#| fig-width: 7.8
+#| fig-height: 5.1
+
+map_base(
+  net_layer("#a8a29e", .45), new_layer(1),
+  geom_point(data = dE, aes(x, y), size = .55, colour = "#78716c"),
+  geom_point(data = NT, aes(x, y, fill = project), shape = 21, size = 2.5, colour = "white", stroke = .3),
+  geom_text_repel(data = filter(NT, station_name %in% c("Jurong Pier", "Aviation Park", "Serangoon North", "Tengah", "Nanyang Gateway")),
+                  aes(x, y, label = station_name), size = 3.4, seed = 3, box.padding = .5, min.segment.length = 0, segment.size = .25),
+  base = 13
+) +
+  scale_fill_manual(NULL, values = c(JRL = PAL$new, `CRL Phase 1` = "#7c2d12")) +
+  theme(legend.position = "inside", legend.position.inside = c(.9, .1))
+```
+
+::: {.card .card-fire .t-xxs}
+[<span class="en">Land mines cleared</span><span class="zh">清除的地雷</span>]{.lab}
+
+::: {.en}
+Of 36 proposed codes, **7 are existing stations gaining a line**, so 29 are new. A new Circle Line stage opened in July, so ridership is **August and September only**.
+:::
+::: {.zh}
+36 个拟建代码中，**7 个是增加线路的既有车站**，所以新站为 29 个。环线新阶段于 7 月开通，所以客流**只取 8、9 月**。
+:::
+:::
+:::
+
+::: {.column width="44%" .t-xxs}
+::: {.card}
+[<span class="en">Ridership: LTA DataMall</span><span class="zh">客流：LTA DataMall</span>]{.lab}
+
+::: {.en}
+`r n_fmt(nrow(dE))` open stations, `r sum(dE$lrt)` LRT only. **`r n_fmt(AR$daily_total)` tap-ins a day**, weighted as a normal week. Tap-ins exclude transfers; the OD table supplies those later.
+:::
+::: {.zh}
+`r n_fmt(nrow(dE))` 个开放车站，其中 `r sum(dE$lrt)` 个只有轻轨。**每日 `r n_fmt(AR$daily_total)` 次进站**，按正常一周加权。进站量不含换乘，换乘之后由 OD 表提供。
+:::
+:::
+
+::: {.card}
+[<span class="en">Markets: 500 m hexagons</span><span class="zh">市场：500 米六边形</span>]{.lab}
+
+::: {.en}
+**`r n_fmt(AF$n_origins)` origins.** `r n_fmt(RES)` residents placed from HDB flat types and SingStat subzones; workplaces, dormitories and points of interest from OpenStreetMap.
+:::
+::: {.zh}
+**`r n_fmt(AF$n_origins)` 个起点。**根据 HDB 户型与 SingStat 小区安置 `r n_fmt(RES)` 名居民；工作场所、宿舍与兴趣点来自 OpenStreetMap。
+:::
+:::
+
+::: {.card}
+[<span class="en">Attraction: within 400 m</span><span class="zh">吸引力：400 米以内</span>]{.lab}
+
+::: {.en}
+Bus stops, retail, food, LRT or MRT, extra lines, and rail time to the CBD from a graph of the network.
+:::
+::: {.zh}
+公交站、零售、餐饮、轻轨或地铁、额外线路，以及由铁路网图计算的到 CBD 的轨道时间。
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">The frames the brief asks for</span><span class="zh">题目要求的数据框</span>]{.lab}
+
+::: {.en}
+`r n_fmt(AF$n_pairs_existing)` existing and `r n_fmt(AF$n_pairs_proposed)` proposed origin-station pairs, plus origins and destinations tables.
+:::
+::: {.zh}
+既有 `r n_fmt(AF$n_pairs_existing)` 个、拟建 `r n_fmt(AF$n_pairs_proposed)` 个起点-车站对，以及起点表与目的地表。
+:::
+:::
+:::
+:::
+
+## <span class="en">Analytical approach</span><span class="zh">分析方法</span> {#approach}
+
+::: {.eyebrow}
+<span class="en">03 · A HUFF MODEL WITH TWO ENDS</span><span class="zh">03 · 两端的 Huff 模型</span>
+:::
+
+$$P_{ij} = \frac{A_j\, d_{ij}^{\,\lambda}}{\sum_{k:\, d_{ik}\le 5\,\text{km}} A_k\, d_{ik}^{\,\lambda}}, \qquad A_j = \exp(\mathbf{x}_j'\boldsymbol\beta), \qquad E_j = \sum_i M_i P_{ij}$$
+
+::: {.card-grid .cols-4 .t-xxs}
+::: {.card}
+[<span class="en">1 · Split the trip</span><span class="zh">1 · 拆分出行</span>]{.lab}
+
+::: {.en}
+Morning tap-ins and tap-outs divide each station's ridership into a **home end** (residents, dormitories) and an **activity end** (workplaces, points of interest), fitted separately.
+:::
+::: {.zh}
+早高峰进出站量把每个车站的客流分为**居住端**（居民、宿舍）与**活动端**（工作场所、兴趣点），分别拟合。
+:::
+:::
+
+::: {.card}
+[<span class="en">2 · Calibrate</span><span class="zh">2 · 校准</span>]{.lab}
+
+::: {.en}
+Squared log error with exact gradients. Attraction variables, the exponent and market weights are estimated, with a **5 km choice set**.
+:::
+::: {.zh}
+以平方对数误差为目标，使用精确梯度。估计吸引力变量、指数与市场权重，**选择集为 5 公里**。
+:::
+:::
+
+::: {.card}
+[<span class="en">3 · Test against nulls</span><span class="zh">3 · 对照基准模型</span>]{.lab}
+
+::: {.en}
+A ladder from nearest station to the final model; **leave-one-line-out** on nine lines; a permutation null; a low-ridership AUC.
+:::
+::: {.zh}
+从最近车站到最终模型的阶梯；九条线路的**逐线留出**；置换基准；低客流 AUC。
+:::
+:::
+
+::: {.card}
+[<span class="en">4 · Forecast</span><span class="zh">4 · 预测</span>]{.lab}
+
+::: {.en}
+Existing stations **pivot** on what they carry; new stations come from the model. 300 bootstrap draws, with noise from hold-out errors.
+:::
+::: {.zh}
+既有车站以实际客流为**转折基准**；新站来自模型。300 次自助抽样，噪声来自留出误差。
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">Why not `huff.fit()`</span><span class="zh">为何不用 `huff.fit()`</span>]{.lab}
+
+::: {.en}
+Exact calibration reproduces every station and turns unexplained ridership into reach: Kranji's mean catchment triples. The matrix form was checked against `MCI::huff.shares()`, differing by at most `r formatC(RP$mci_check$max_abs_gap, format = "e", digits = 0)` tap-ins. Value-added: an **outside option** and an **MCI on OD shares** (slide 9).
+:::
+::: {.zh}
+精确校准能复现每个车站，却把未解释的客流变成辐射范围：Kranji 的平均集散范围扩大到三倍。矩阵形式已与 `MCI::huff.shares()` 对照，差距最多 `r formatC(RP$mci_check$max_abs_gap, format = "e", digits = 0)` 次进站。附加价值：**外部选项**与**基于 OD 份额的 MCI**（第 9 页）。
+:::
+:::
+
+## <span class="en">Calibration: what makes a station attractive</span><span class="zh">校准：什么让车站具有吸引力</span> {#calibration}
+
+::: {.eyebrow}
+<span class="en">04 · FINDINGS, RQ1</span><span class="zh">04 · 发现，研究问题一</span>
+:::
+
+::: {.columns}
+::: {.column width="54%"}
+```{r}
+#| label: slide-ladder
+#| fig-width: 7.4
+#| fig-height: 6.5
+
+keep <- c("M1 ", "M3 ", "M4 ", "M5 ", "M7 ", "M8 ", "DRM")
+lb <- c(`M1 ` = "Huff, equal attraction", `M3 ` = "+ mode and interchange", `M4 ` = "+ retail and food",
+        `M5 ` = "+ non-residential markets", `M7 ` = "Two ends, rail time, no limit", `M8 ` = "Selected: 5 km choice set",
+        DRM = "Direct regression, same variables")
+d <- bind_rows(lapply(keep, \(k) lad(k) |> mutate(key = k))) |>
+  mutate(lab = factor(lb[key], rev(lb[keep])), sel = key == "M8 ") |>
+  pivot_longer(c(insample, lolo_r2)) |>
+  mutate(name = recode(name, insample = "In sample", lolo_r2 = "Lines held out"))
+ggplot(d, aes(value, lab)) +
+  geom_vline(xintercept = 0, colour = PAL$grey_l) +
+  geom_line(aes(group = lab), colour = PAL$grey_l, linewidth = 1) +
+  geom_point(aes(colour = name, size = sel)) +
+  geom_text(data = filter(d, name == "Lines held out"), aes(label = num(value)), nudge_y = .34, size = 4, colour = PAL$ink) +
+  scale_size_manual(values = c(`TRUE` = 5, `FALSE` = 3.4), guide = "none") +
+  scale_colour_manual(NULL, values = c(`In sample` = "#a8a29e", `Lines held out` = PAL$new)) +
+  scale_x_continuous(limits = c(-.32, .85)) +
+  labs(x = "R² of log ridership", y = NULL) +
+  theme_slide(15)
+```
+:::
+
+::: {.column width="46%" .t-xs}
+::: {.card .card-water}
+[<span class="en">What the model says</span><span class="zh">模型说明了什么</span>]{.lab}
+
+::: {.en}
+- An LRT-only station pulls about **`r pct(100 * exp(ch(RP$coef_H, "lrt")), 0)`** of an MRT station in the same surroundings
+- Each extra line: **×`r num(exp(ch(RP$coef_H, "ic")), 1)`**
+- Doubling retail: **+`r pct(100 * (2^ch(RP$coef_H, "l_ret") - 1), 0)`**
+- Doubling rail time to the CBD: **−`r pct(100 * (1 - 2^ch(RP$coef_H, "l_cbd")), 0)`**
+- Home access decays at **`r num(ch(RP$coef_H, "lambda"), 1)`**; the activity end is flatter and uncertain
+:::
+::: {.zh}
+- 纯轻轨车站的吸引力约为周边相同的地铁车站的 **`r pct(100 * exp(ch(RP$coef_H, "lrt")), 0)`**
+- 每多一条线路：**×`r num(exp(ch(RP$coef_H, "ic")), 1)`**
+- 零售加倍：**+`r pct(100 * (2^ch(RP$coef_H, "l_ret") - 1), 0)`**
+- 到 CBD 的轨道时间加倍：**−`r pct(100 * (1 - 2^ch(RP$coef_H, "l_cbd")), 0)`**
+- 居住端衰减指数为 **`r num(ch(RP$coef_H, "lambda"), 1)`**；活动端更平缓且不确定
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">The best score was the wrong model</span><span class="zh">分数最高的并非正确模型</span>]{.lab}
+
+::: {.en}
+With no distance limit, hold-out reaches `r num(lad("M7")$lolo_r2)`, but a station 10 km from any new line loses 10%. A 5 km choice set gives back a little fit and removes that.
+:::
+::: {.zh}
+不限距离时留出分数达 `r num(lad("M7")$lolo_r2)`，但距新线 10 公里的车站也损失 10%。5 公里选择集牺牲少量拟合，消除了这一点。
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">Checks</span><span class="zh">检验</span>]{.lab}
+
+::: {.en}
+Permutation p = `r num(RP$perm_p)`. Low-ridership AUC `r num(RP$auc_low)`. Rank correlation `r num(lad("M8 ")$lolo_rho)`.
+:::
+::: {.zh}
+置换检验 p = `r num(RP$perm_p)`。低客流 AUC `r num(RP$auc_low)`。秩相关 `r num(lad("M8 ")$lolo_rho)`。
+:::
+:::
+:::
+:::
+
+## <span class="en">Ridership at the new stations</span><span class="zh">新站的客流</span> {#newstations}
+
+::: {.eyebrow}
+<span class="en">05 · FINDINGS, RQ2</span><span class="zh">05 · 发现，研究问题二</span>
+:::
+
+::: {.columns}
+::: {.column width="63%"}
+```{r}
+#| label: slide-new
+#| fig-width: 8.7
+#| fig-height: 7.0
+
+nt <- NT |> mutate(station_name = fct_reorder(station_name, E_closed))
+ggplot(nt, aes(y = station_name)) +
+  geom_vline(xintercept = SC$HUME, linetype = 3, colour = PAL$grey) +
+  geom_vline(xintercept = SC$LOW20, linetype = 2, colour = "#a8a29e") +
+  geom_segment(aes(x = lo_closed, xend = hi_closed, yend = station_name), colour = PAL$new_l, linewidth = 1.8) +
+  annotate("text", x = SC$HUME, y = levels(nt$station_name)[29], label = "Hume", size = 3.6, colour = PAL$grey, vjust = -1.5) +
+  annotate("text", x = SC$LOW20, y = levels(nt$station_name)[29], label = "Lowest fifth of MRT", size = 3.6, colour = PAL$grey, vjust = -1.5) +
+  geom_point(aes(x = E_closed, colour = project), size = 2.5) +
+  scale_colour_manual(NULL, values = c(JRL = PAL$new, `CRL Phase 1` = "#7c2d12")) +
+  scale_x_log10(labels = comma, breaks = c(1000, 3000, 10000, 30000)) +
+  coord_cartesian(clip = "off") +
+  labs(x = "Daily tap-ins with 90% range (log scale)", y = NULL) +
+  theme_slide(13) +
+  theme(panel.grid.major.y = element_blank(), plot.margin = margin(18, 8, 4, 2), legend.position = "inside", legend.position.inside = c(.88, .1))
+```
+:::
+
+::: {.column width="37%" .t-xs}
+::: {.kpi-row}
+::: {.kpi .kpi-water}
+[`r rnd(TT$new_stations[1], 1000)`]{.kpi-val}
+[<span class="en">A day in all; simulated `r rnd(SC$totals_ci$closed$new[1], 1000)` to `r rnd(SC$totals_ci$closed$new[2], 1000)`</span><span class="zh">每日合计；模拟范围 `r rnd(SC$totals_ci$closed$new[1], 1000)` 至 `r rnd(SC$totals_ci$closed$new[2], 1000)`</span>]{.kpi-lab}
+:::
+:::
+
+::: {.card}
+[<span class="en">Reading it</span><span class="zh">如何解读</span>]{.lab}
+
+::: {.en}
+- **Heartland infill leads**, west industrial and airport stations trail
+- A station's range is about **fivefold**, so **order** is firmer than level
+- **JRL `r rnd(SC$by_project$closed[SC$by_project$project == "JRL"], 1000)`**, **CRL `r rnd(SC$by_project$closed[SC$by_project$project != "JRL"], 1000)`**; the median station is alike on both
+- Median new station `r rnd(median(NT$E_closed), 100)`, a little over half the MRT median
+:::
+::: {.zh}
+- **组屋区填补型车站居前**，西部工业区与机场车站居后
+- 单站范围约为**五倍**，所以**排序**比水平更可靠
+- **裕廊区域线 `r rnd(SC$by_project$closed[SC$by_project$project == "JRL"], 1000)`**，**跨岛线 `r rnd(SC$by_project$closed[SC$by_project$project != "JRL"], 1000)`**；两线中位车站相近
+- 新站中位数 `r rnd(median(NT$E_closed), 100)`，略高于地铁中位数的一半
+:::
+:::
+
+::: {.card .card-quiet}
+[<span class="en">Why the range sits high</span><span class="zh">范围为何偏高</span>]{.lab}
+
+::: {.en}
+Errors with a long upper tail sum upward, so the simulated total lies mostly above the central estimate.
+:::
+::: {.zh}
+长上尾的误差相加后偏高，所以模拟总量大多高于中心估计。
+:::
+:::
+:::
+:::
+
+## <span class="en">Which stations risk being too quiet</span><span class="zh">哪些车站可能过于冷清</span> {#risk}
+
+::: {.eyebrow}
+<span class="en">06 · FINDINGS, RQ2</span><span class="zh">06 · 发现，研究问题二</span>
+:::
+
+::: {.columns}
+::: {.column width="52%"}
+```{r}
+#| label: slide-risk-map
+#| fig-width: 7.2
+#| fig-height: 4.7
+
+nl <- NT |> mutate(home = E_H / E_closed)
+map_base(
+  net_layer("#b8b3ae", .4), new_layer(.45),
+  geom_point(data = nl, aes(x, y, size = E_closed, fill = p_below_low20), shape = 21, colour = "#44403c", stroke = .25),
+  geom_text_repel(data = slice_max(nl, p_below_low20, n = 5), aes(x, y, label = station_name), size = 3.3, seed = 7,
+                  box.padding = .55, min.segment.length = 0, segment.size = .25),
+  base = 12
+) +
+  scale_size_area(max_size = 8, labels = comma, name = "Tap-ins", breaks = c(3000, 8000, 15000)) +
+  scale_fill_gradient(low = "#fff7ec", high = "#b2182b", limits = c(0, 1), labels = percent, name = "P(lowest fifth)") +
+  inside_legend()
+```
+
+::: {.card .card-water .t-xxs}
+[<span class="en">Tengah at its planned size</span><span class="zh">规划规模下的登加</span>]{.lab}
+
+::: {.en}
+Adding `r n_fmt(SC$tengah$residents_added)` residents lifts Tengah Plantation from `r rnd(stn("Tengah Plantation", "E_closed", NT))` to `r rnd(stn("Tengah Plantation", "E_2030", NT))` and Tengah from `r rnd(stn("Tengah", "E_closed", NT))` to `r rnd(stn("Tengah", "E_2030", NT))`. Shops and buses would add more.
+:::
+::: {.zh}
+增加 `r n_fmt(SC$tengah$residents_added)` 名居民后，Tengah Plantation 从 `r rnd(stn("Tengah Plantation", "E_closed", NT))` 升至 `r rnd(stn("Tengah Plantation", "E_2030", NT))`，Tengah 从 `r rnd(stn("Tengah", "E_closed", NT))` 升至 `r rnd(stn("Tengah", "E_2030", NT))`。商店与公交还会带来更多。
+:::
+:::
+:::
+
+::: {.column width="48%" .t-xs}
+```{r}
+#| label: slide-risk-table
+
+NT |>
+  arrange(desc(p_below_hume)) |>
+  head(6) |>
+  transmute(Station = station_name, `Tap-ins` = E_closed, `P(< Hume)` = p_below_hume, `P(lowest fifth)` = p_below_low20) |>
+  gt() |>
+  fmt_number(`Tap-ins`, decimals = 0) |>
+  fmt_percent(c(`P(< Hume)`, `P(lowest fifth)`), decimals = 0) |>
+  tab_options(table.font.size = px(21), table.background.color = PAPER, table.width = pct(100),
+              column_labels.font.weight = "bold", data_row.padding = px(4))
+```
+
+::: {.card}
+[<span class="en">The yardsticks</span><span class="zh">标尺</span>]{.lab}
+
+::: {.en}
+**Hume today: `r n_fmt(SC$HUME)`** a day, the last station held back for lack of demand. **Lowest fifth of MRT: `r n_fmt(SC$LOW20)`**. No station is more likely than not to fall below Hume, but **`r sum(NT$p_below_low20 > .5)` of `r nrow(NT)`** probably land in the lowest fifth.
+:::
+::: {.zh}
+**Hume 目前每日 `r n_fmt(SC$HUME)` 次**，它是最近一个因需求不足而推迟的车站。**地铁最低五分之一界线 `r n_fmt(SC$LOW20)` 次**。没有车站低于 Hume 的概率过半，但 **`r nrow(NT)` 个中有 `r sum(NT$p_below_low20 > .5)` 个**很可能落入最低五分之一。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Risk is more likely understated</span><span class="zh">风险更可能被低估</span>]{.lab}
+
+::: {.en}
+The model gives Hume `r rnd(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Hume"])`, not `r n_fmt(SC$HUME)`. It overpredicts at the very bottom.
+:::
+::: {.zh}
+模型给 Hume 的估计是 `r rnd(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Hume"])`，而不是 `r n_fmt(SC$HUME)`。它在最底部倾向于高估。
+:::
+:::
+:::
+:::
+
+## <span class="en">Impact on existing stations</span><span class="zh">对既有车站的影响</span> {#impact}
+
+::: {.eyebrow}
+<span class="en">07 · FINDINGS, RQ3</span><span class="zh">07 · 发现，研究问题三</span>
+:::
+
+::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| label: slide-impact
+#| fig-width: 8.1
+#| fig-height: 5.2
+
+ot <- OT |> mutate(ch_cl = pmax(pmin(chg_closed, .5), -.6))
+lab <- OT |> slice_min(chg_closed, n = 7) |> filter(station_name != "South View")
+map_base(
+  net_layer("#b8b3ae", .4), new_layer(.45),
+  geom_point(data = ot, aes(x, y, fill = ch_cl, size = abs(abs_closed)), shape = 21, colour = "#78716c", stroke = .15),
+  geom_text_repel(data = lab, aes(x, y, label = paste0(station_name, " ", chg(chg_closed))), size = 3.3, seed = 8,
+                  box.padding = .5, min.segment.length = 0, segment.size = .25, max.overlaps = 30),
+  base = 12
+) +
+  scale_fill_gradientn(colours = RAMP_DIV, limits = c(-.6, .6), labels = percent, name = "Change") +
+  scale_size_area(max_size = 6.5, labels = comma, name = "Tap-ins gained or lost", breaks = c(2000, 8000, 20000)) +
+  inside_legend()
+```
+
+::: {.card .card-quiet .t-xxs}
+[<span class="en">Two bounds</span><span class="zh">两个界限</span>]{.lab}
+
+::: {.en}
+Existing stations lose **`r rnd(TT$existing_loss[2], 1000)` to `r rnd(TT$existing_loss[1], 1000)`** tap-ins a day, depending on how much ridership is new (slide 9). Changi Airport's `r chg(stn("Changi Airport", "chg_closed"))` is an artefact: its riders are not a local market.
+:::
+::: {.zh}
+既有车站每日损失 **`r rnd(TT$existing_loss[2], 1000)` 至 `r rnd(TT$existing_loss[1], 1000)`** 次进站，取决于有多少客流是新增的（第 9 页）。Changi Airport 的 `r chg(stn("Changi Airport", "chg_closed"))` 是人为结果：其乘客不是本地市场。
+:::
+:::
+:::
+
+::: {.column width="42%"}
+```{r}
+#| label: slide-fade
+#| fig-width: 5.8
+#| fig-height: 3.2
+
+bd <- SC$by_distance |> mutate(km = c(.5, 1.5, 2.5, 4, 6.5, 10))
+ggplot(OT, aes(km_new, chg_closed)) +
+  geom_hline(yintercept = 0, colour = PAL$grey_l) +
+  geom_point(colour = PAL$new, size = 1.4, alpha = .45) +
+  geom_line(data = bd, aes(km, median_chg), colour = PAL$ink, linewidth = .9) +
+  geom_point(data = bd, aes(km, median_chg), colour = PAL$ink, size = 2.2) +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Km to nearest new station", y = "Change, with median") +
+  theme_slide(13)
+```
+
+::: {.card .t-xxs}
+[<span class="en">Interchanges: the sign depends on an assumption</span><span class="zh">换乘站：符号取决于假设</span>]{.lab}
+
+::: {.en}
+Ang Mo Kio `r chg(stn("Ang Mo Kio", "chg_closed"))` with an interchange uplift, `r chg(stn("Ang Mo Kio", "chg_noup"))` without. Hougang `r chg(stn("Hougang", "chg_closed"))` or `r chg(stn("Hougang", "chg_noup"))`. Only Boon Lay and Jurong East fall either way. The data cannot settle this.
+:::
+::: {.zh}
+Ang Mo Kio 有换乘提升时 `r chg(stn("Ang Mo Kio", "chg_closed"))`，没有时 `r chg(stn("Ang Mo Kio", "chg_noup"))`。Hougang 为 `r chg(stn("Hougang", "chg_closed"))` 或 `r chg(stn("Hougang", "chg_noup"))`。只有 Boon Lay 与 Jurong East 两种情形下都下降。数据无法定论。
+:::
+:::
+
+::: {.card .card-fire .t-xxs}
+[<span class="en">Local</span><span class="zh">局部性</span>]{.lab}
+
+::: {.en}
+`r sum(OT$chg_closed < -.05)` of `r nrow(OT)` stations lose over 5%. Beyond 8 km the median change is zero.
+:::
+::: {.zh}
+`r nrow(OT)` 个车站中有 `r sum(OT$chg_closed < -.05)` 个损失超过 5%。8 公里以外变化中位数为零。
+:::
+:::
+:::
+:::
+
+## <span class="en">Market areas</span><span class="zh">市场区</span> {#markets}
+
+::: {.eyebrow}
+<span class="en">08 · FINDINGS, RQ3</span><span class="zh">08 · 发现，研究问题三</span>
+:::
+
+::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| label: slide-share
+#| fig-width: 8.1
+#| fig-height: 5.3
+
+map_base(
+  geom_sf(data = hi, aes(fill = share_new), colour = NA),
+  geom_sf(data = filter(hi, to_new), fill = NA, colour = "#44403c", linewidth = .25),
+  net_layer("#78716c", .25),
+  geom_point(data = NT, aes(x, y), size = .9, colour = "white"),
+  geom_point(data = NT, aes(x, y), size = .5, colour = PAL$ink),
+  base = 12
+) +
+  scale_fill_gradientn(colours = c("#fff7ec", "#fdd49e", "#fc8d59", "#d7301f", "#7f0000"), limits = c(0, 1), labels = percent,
+                       name = "Home market going to new stations") +
+  inside_legend(.8)
+```
+
+::: {.kpi-row}
+::: {.kpi .kpi-fire}
+[`r rnd(sum(SC$hex_impact$residents[SC$hex_impact$to_new], na.rm = TRUE), 1000)`]{.kpi-val}
+[<span class="en">Residents whose most likely station becomes a new one (outlined)</span><span class="zh">最可能使用的车站变为新站的居民（轮廓线）</span>]{.kpi-lab}
+:::
+::: {.kpi .kpi-water}
+[`r pct(100 * SC$cov_old[2], 0)` → `r pct(100 * SC$cov_new[2], 0)`]{.kpi-val}
+[<span class="en">Residents within 800 m of a station</span><span class="zh">住在车站 800 米以内的居民</span>]{.kpi-lab}
+:::
+:::
+:::
+
+::: {.column width="42%"}
+```{r}
+#| label: slide-dominant
+#| fig-width: 5.8
+#| fig-height: 3
+
+west <- c(8500, 24000, 30500, 44000)
+dom_map <- function(col, title, show_new) {
+  d <- hi |> filter(!is.na(.data[[col]])) |> group_by(st = .data[[col]]) |> summarise(.groups = "drop")
+  d$k <- factor(((seq_len(nrow(d)) * 7) %% 11) + 1)
+  ggplot() +
+    geom_sf(data = land, fill = "#ecebe8", colour = "#d6d3d1", linewidth = .25) +
+    geom_sf(data = d, aes(fill = k), colour = "white", linewidth = .4, alpha = .8, show.legend = FALSE) +
+    geom_point(data = dE, aes(x, y), size = .8, colour = PAL$ink) +
+    { if (show_new) geom_point(data = NT, aes(x, y), size = 1.3, colour = PAL$new) } +
+    scale_fill_brewer(palette = "Set3") +
+    coord_sf(datum = NA, expand = FALSE, xlim = west[1:2], ylim = west[3:4]) +
+    labs(title = title) + theme_slide_map(12)
+}
+dom_map("dominant_old", "Dominant station today", FALSE) + dom_map("dominant_new", "With the JRL", TRUE)
+```
+
+::: {.card .t-xxs}
+[<span class="en">The west contracts</span><span class="zh">西部收缩</span>]{.lab}
+
+::: {.en}
+Boon Lay's dominant area loses `r rnd(-stn("Boon Lay", "dom_change"), 1000)` residents, Bukit Gombak `r rnd(-stn("Bukit Gombak", "dom_change"), 1000)`, Lakeside `r rnd(-stn("Lakeside", "dom_change"), 1000)`. Those who stay live nearer: mean distance falls `r pct(100 * (1 - median(OT$km_new_net[OT$km_new <= 2] / OT$km_old[OT$km_new <= 2])), 0)` at the median station within 2 km.
+:::
+::: {.zh}
+Boon Lay 的主导区减少 `r rnd(-stn("Boon Lay", "dom_change"), 1000)` 名居民，Bukit Gombak 减少 `r rnd(-stn("Bukit Gombak", "dom_change"), 1000)` 名，Lakeside 减少 `r rnd(-stn("Lakeside", "dom_change"), 1000)` 名。留下的人住得更近：2 公里内车站的平均距离中位数下降 `r pct(100 * (1 - median(OT$km_new_net[OT$km_new <= 2] / OT$km_old[OT$km_new <= 2])), 0)`。
+:::
+:::
+
+::: {.card .card-quiet .t-xxs}
+[<span class="en">A boundary hides most of it</span><span class="zh">边界隐藏了大部分变化</span>]{.lab}
+
+::: {.en}
+`r rnd(sum(SC$hex_impact$residents[SC$hex_impact$share_new > 1/3 & !SC$hex_impact$to_new], na.rm = TRUE), 1000)` residents live outside the outlines yet send over a third of their market to a new station.
+:::
+::: {.zh}
+`r rnd(sum(SC$hex_impact$residents[SC$hex_impact$share_new > 1/3 & !SC$hex_impact$to_new], na.rm = TRUE), 1000)` 名居民住在轮廓线之外，却有超过三分之一的市场流向新站。
+:::
+:::
+:::
+:::
+
+## <span class="en">Beyond the gate: new riders and transfers</span><span class="zh">闸机之外：新增乘客与换乘</span> {#valueadded}
+
+::: {.eyebrow}
+<span class="en">09 · VALUE-ADDED ANALYSIS</span><span class="zh">09 · 附加价值分析</span>
+:::
+
+::: {.columns}
+::: {.column width="34%"}
+```{r}
+#| label: slide-transfers
+#| fig-width: 4.7
+#| fig-height: 4.5
+
+x <- MC$xfer |> slice_max(change, n = 6) |> mutate(station_name = fct_reorder(station_name, change))
+ggplot(x, aes(y = station_name)) +
+  geom_segment(aes(x = base, xend = after, yend = station_name), colour = PAL$new_l, linewidth = 2.2) +
+  geom_point(aes(x = base), colour = "#a8a29e", size = 3) +
+  geom_point(aes(x = after), colour = PAL$new, size = 3) +
+  geom_text(aes(x = after, label = rnd(change, 1000)), nudge_y = .32, size = 3.6) +
+  scale_x_continuous(labels = comma, limits = c(0, 138000), breaks = c(0, 50000, 100000)) +
+  labs(x = "Daily transfers: today (grey), proposed (orange)", y = NULL) +
+  theme_slide(12)
+```
+:::
+
+::: {.column width="66%"}
+```{r}
+#| label: slide-links
+#| fig-width: 9.2
+#| fig-height: 4.5
+
+lk <- MC$links |> filter(base > 0) |> mutate(pc = pmax(pmin(pct, .3), -.3))
+ggplot() +
+  geom_sf(data = land, fill = "#ecebe8", colour = "#d6d3d1", linewidth = .25) +
+  geom_segment(data = filter(MC$links, base == 0), aes(x = ax, y = ay, xend = bx, yend = by), colour = "#a8a29e", linewidth = .7) +
+  geom_segment(data = lk, aes(x = ax, y = ay, xend = bx, yend = by, colour = pc, linewidth = base)) +
+  scale_colour_gradientn(colours = RAMP_DIV, limits = c(-.3, .3), labels = percent, name = "Load change") +
+  scale_linewidth_continuous(range = c(.3, 2.4), labels = comma, name = "Load today") +
+  coord_sf(datum = NA, expand = FALSE, xlim = XL, ylim = YL) +
+  theme_slide_map(12) + inside_legend(.82)
+```
+:::
+:::
+
+::: {.card-grid .cols-3 .t-xxs}
+::: {.card .card-water}
+[<span class="en">MCI on OD shares: feeder lines</span><span class="zh">基于 OD 份额的 MCI：接驳线</span>]{.lab}
+
+::: {.en}
+**`r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project == "JRL"], 0)`** of JRL and **`r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project != "JRL"], 0)`** of CRL boardings leave the new line. Stations losing tap-ins become the **interchanges** that carry them on.
+:::
+::: {.zh}
+裕廊区域线 **`r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project == "JRL"], 0)`**、跨岛线 **`r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project != "JRL"], 0)`** 的上车乘客会离开新线。损失进站量的车站成为继续运送他们的**换乘站**。
+:::
+:::
+
+::: {.card}
+[<span class="en">Relief stops at Jurong East</span><span class="zh">缓解止于 Jurong East</span>]{.lab}
+
+::: {.en}
+Jurong East to Chinese Garden `r chg(lnk("Jurong East", "Chinese Garden"))`, but Clementi to Jurong East only `r chg(lnk("Clementi", "Jurong East"))`. Serangoon to Lorong Chuan `r chg(lnk("Serangoon", "Lorong Chuan"))`.
+:::
+::: {.zh}
+Jurong East 至 Chinese Garden `r chg(lnk("Jurong East", "Chinese Garden"))`，而 Clementi 至 Jurong East 只有 `r chg(lnk("Clementi", "Jurong East"))`。Serangoon 至 Lorong Chuan `r chg(lnk("Serangoon", "Lorong Chuan"))`。
+:::
+:::
+
+::: {.card .card-fire}
+[<span class="en">Outside option: not identified</span><span class="zh">外部选项：无法识别</span>]{.lab}
+
+::: {.en}
+The share of home-end riders new to rail can run from `r pct(100 * RP$prof_a0$share_induced[1], 0)` to `r pct(100 * RP$prof_a0$share_induced[RP$prof_a0$lA0 == 2], 0)` with in-sample fit unchanged. `r pct(100 * sum(AF$res_by_nearest[1:4]), 0)` of residents already live within 2 km of a station.
+:::
+::: {.zh}
+居住端乘客中轨道新用户的比例可在 `r pct(100 * RP$prof_a0$share_induced[1], 0)` 到 `r pct(100 * RP$prof_a0$share_induced[RP$prof_a0$lA0 == 2], 0)` 之间变化，而样本内拟合不变。`r pct(100 * sum(AF$res_by_nearest[1:4]), 0)` 的居民已住在车站 2 公里内。
+:::
+:::
+:::
+
+## <span class="en">Limitations and implications</span><span class="zh">局限与启示</span> {#implications}
+
+::: {.eyebrow}
+<span class="en">10 · FOR TRANSPORT PLANNING</span><span class="zh">10 · 对交通规划的意义</span>
+:::
+
+::: {.columns}
+::: {.column width="46%" .t-xs}
+::: {.card .card-fire}
+[<span class="en">Limitations</span><span class="zh">局限</span>]{.lab}
+
+::: {.en}
+- **One cross-section.** Competition today stands in for what a new line does
+- **Today's land use.** Buangkok was shut once too; shops and buses follow homes
+- **Tap-ins, not line ridership.** Not comparable with LTA's whole-line figures
+- **Straight-line access.** No walking network or feeder bus routes
+- **Assumption-heavy total.** `r rnd(min(SN$new_total), 1000)` to `r rnd(max(SN$new_total), 1000)` across cases, though the ranking holds (ρ ≈ 0.88 or better in all but one)
+:::
+::: {.zh}
+- **只有一个截面。** 用今天的竞争代替新线的实际效果
+- **当前土地利用。** Buangkok 也曾关闭；商店与公交随住宅而来
+- **进站量不是线路客流。** 不能与 LTA 的全线数字比较
+- **直线到达距离。** 没有步行网络与接驳公交线路
+- **总量依赖假设。** 各情形从 `r rnd(min(SN$new_total), 1000)` 到 `r rnd(max(SN$new_total), 1000)`，但排序稳健（除一种情形外 ρ 约为 0.88 或以上）
+:::
+:::
+:::
+
+::: {.column width="54%" .t-xs}
+::: {.card .card-water}
+[<span class="en">Implications</span><span class="zh">启示</span>]{.lab}
+
+::: {.en}
+- **Stage shell stations by land use.** Aviation Park, Jurong Pier, Tengah and Jurong Hill are identifiable now; tie fit-out and opening to a measurable local threshold
+- **Plan interchanges for transfers.** Falling tap-ins at Boon Lay could read as reassurance; its platforms say otherwise
+- **Expect the western East-West Line to change.** Feeder buses are the natural counterpart, and shorter access is a gain even as tap-ins fall
+- **Measure the openings.** Staged openings from 2028 are a natural experiment that could settle how much ridership a line creates, if OD data are kept
+:::
+::: {.zh}
+- **按土地利用安排外壳车站。** Aviation Park、Jurong Pier、Tengah 与 Jurong Hill 现在就能识别；把装修与开放同可测的本地阈值挂钩
+- **按换乘规划换乘站。** Boon Lay 进站量下降可能令人安心，它的站台却并非如此
+- **预期东西线西段发生变化。** 接驳公交是自然的配套；即使进站量下降，到达距离变短也是收益
+- **对开通进行测量。** 2028 年起的分阶段开通是天然实验，只要保存 OD 数据，就能回答一条线能创造多少客流
+:::
+:::
+:::
+:::
+
+::: {.takeaway}
+[<span class="en">The handout's wording</span><span class="zh">手册的措辞</span>]{.lab}
+
+::: {.en}
+The handout's "public-safety" and "peace-keeping" implications are read as transport-planning implications, the policy question this exercise poses. These are one student's readings, offered as questions.
+:::
+::: {.zh}
+手册中的“公共安全”与“维和”启示被理解为交通规划启示，也就是本次作业所提的政策问题。这些只是一名学生的解读，是提出的问题。
+:::
+:::

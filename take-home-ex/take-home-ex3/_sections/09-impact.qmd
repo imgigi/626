@@ -1,0 +1,260 @@
+# <span class="en">Impact on existing stations</span><span class="zh">对既有车站的影响</span> {#sec-impact}
+
+## <span class="en">Who loses, and how far it reaches</span><span class="zh">谁受损，影响能到多远</span> {#sec-impact-loss}
+
+::: {.en}
+For an existing station the model is used only for a ratio, the station's expected ridership on the proposed
+network over its expected ridership on today's, separately for each end of the trip. That ratio is applied to what the
+station actually carries. A station the model underestimates keeps its real level. Under the closed model
+existing stations lose `r n_fmt(TT$existing_loss[1], 0)` tap-ins a day, `r pct(100 * TT$existing_loss[1] / TT$base[1])` of today's total, against the
+`r n_fmt(TT$new_stations[1], 0)` the new stations carry. The two would be nearly equal in the model's own units; they differ here
+because each station's loss is proportional to what it really carries rather than to what the model assigned it.
+:::
+
+::: {.zh}
+对既有车站，模型只用于一个比值：车站在拟建网络上的预期客流与在当前网络上的预期客流之比，按出行两端分别计算，再把这个比值乘到车站的实际客流上。模型低估的车站仍保持其真实水平。在封闭模型下，既有车站每日损失 `r n_fmt(TT$existing_loss[1], 0)` 次进站，占当前总量的 `r pct(100 * TT$existing_loss[1] / TT$base[1])`，而新站承载
+`r n_fmt(TT$new_stations[1], 0)` 次。两者在模型自身的单位中应当几乎相等；这里有差异，是因为每个车站的损失与其实际客流成比例，而不是与模型分配给它的客流成比例。
+:::
+
+```{r}
+#| label: fig-impact
+#| fig-cap: "<span class='en'>Change in daily tap-ins at existing stations under the closed model. Red loses, blue gains. Orange points are the new access points.</span><span class='zh'>封闭模型下既有车站每日进站量的变化。红色为减少，蓝色为增加。橙色点为新进站点。</span>"
+#| fig-height: 6
+#| code-fold: true
+
+ot <- OT |> mutate(ch_cl = pmax(pmin(chg_closed, .5), -.6))
+lab <- OT |> slice_min(chg_closed, n = 10)
+lab2 <- OT |> filter(role == "existing, gains a line", chg_closed > .1)
+map_base(
+  net_layer(), new_layer(.5),
+  geom_point(data = NT, aes(x, y), size = 1.1, colour = PAL$new),
+  geom_point(data = ot, aes(x, y, fill = ch_cl, size = abs(abs_closed)), shape = 21, colour = "#78716c", stroke = .15),
+  geom_text_repel(data = lab, aes(x, y, label = paste0(station_name, " ", chg(chg_closed))), size = 2.5, min.segment.length = 0,
+                  segment.size = .2, seed = 8, box.padding = .45, max.overlaps = 30),
+  geom_text_repel(data = lab2, aes(x, y, label = paste0(station_name, " ", chg(chg_closed))), size = 2.5, min.segment.length = 0,
+                  segment.size = .2, seed = 9, box.padding = .45, colour = "#1d4ed8")
+) +
+  scale_colour_manual(values = PAL_LINE, guide = "none") +
+  scale_fill_gradientn(colours = RAMP_DIV, limits = c(-.6, .6), labels = percent, name = "Change") +
+  scale_size_area(max_size = 6, labels = comma, name = "Tap-ins gained\nor lost a day", breaks = c(2000, 8000, 20000))
+```
+
+::: {.interp .en}
+**The cost falls on the western stations the Jurong Region Line runs beside.** Pioneer, Lakeside, Chinese Garden and Joo Koon lose
+more than half their tap-ins, and Boon Lay and Bukit Batok more than a third, because the residents of Jurong West and
+Bukit Batok West who walk or bus to them today, and at Joo Koon the workers of the industrial estates, would gain a nearer station. The largest absolute loss
+is at `r OT$station_name[which.min(OT$abs_closed)]`, about `r rnd(-min(OT$abs_closed), 1000)` a day. Along the Cross Island Line the effect is milder, about a fifth at
+Kovan, Mayflower and Tampines East. Read these as upper bounds. They come from the closed model, which credits every new
+rider to an existing station, and the open model reduces most of them by a few points. Changi Airport's
+`r chg(stn("Changi Airport", "chg_closed"))` should not be taken at face value: its tap-ins are air passengers and airport staff, not nearby residents,
+so applying a ratio from the local market overstates its loss.
+:::
+
+::: {.interp .zh}
+**代价落在裕廊区域线沿线的西部车站。** Pioneer、Lakeside、Chinese Garden 与 Joo Koon 损失一半以上的进站量，Boon Lay 与 Bukit Batok 损失三分之一以上，因为今天步行或乘公交前往这些车站的裕廊西与武吉巴督西居民，以及 Joo Koon 工业区的工人，将有一个更近的车站。绝对损失最大的是
+`r OT$station_name[which.min(OT$abs_closed)]`，每日约 `r rnd(-min(OT$abs_closed), 1000)` 次。跨岛线沿线的影响较温和，Kovan、Mayflower 与 Tampines East 约为五分之一。这些数字应视为上限：它们来自封闭模型，该模型把每位新乘客都算作来自既有车站，开放模型会使其中多数减少几个百分点。Changi Airport 的
+`r chg(stn("Changi Airport", "chg_closed"))` 不应照字面理解：其进站者是航空旅客与机场员工，而不是附近居民，所以套用本地市场的比值高估了它的损失。
+:::
+
+```{r}
+#| label: fig-fade
+#| fig-cap: "<span class='en'>Change in daily tap-ins against distance to the nearest new access point. The line is the median in each distance band. Existing stations that gain a line are in blue.</span><span class='zh'>每日进站量变化与到最近新进站点距离的关系。折线为各距离带的中位数。增加线路的既有车站为蓝色。</span>"
+#| fig-height: 3.6
+#| code-fold: true
+
+mids <- c(.5, 1.5, 2.5, 4, 6.5, 10)
+bd <- SC$by_distance |> mutate(km = mids[seq_len(n())])
+ggplot(OT, aes(km_new, chg_closed)) +
+  geom_hline(yintercept = 0, colour = PAL$grey_l) +
+  geom_point(aes(colour = role == "existing, gains a line", size = daily_in), alpha = .65) +
+  geom_line(data = bd, aes(km, median_chg), colour = PAL$ink, linewidth = .7) +
+  geom_point(data = bd, aes(km, median_chg), colour = PAL$ink, size = 1.8) +
+  scale_colour_manual(values = c(`TRUE` = "#1d4ed8", `FALSE` = PAL$new), guide = "none") +
+  scale_size_area(max_size = 4.5, guide = "none") +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Distance to nearest new access point (km)", y = "Change in daily tap-ins") +
+  theme_th(10)
+```
+
+::: {.interp .en}
+**The effect is local, and fades to nothing where it should.** Within 2 km of a new station the median existing station
+loses about a fifth of its tap-ins (`r chg(SC$by_distance$median_chg[1])` under 1 km, `r chg(SC$by_distance$median_chg[2])` from 1 to 2 km). By 3 to 5 km it has fallen to
+`r chg(SC$by_distance$median_chg[4])`, by 5 to 8 km `r chg(SC$by_distance$median_chg[5], 1)`, and beyond 8 km it is effectively zero. Of the `r nrow(OT)` existing stations,
+`r sum(OT$chg_closed < -.05)` lose more than 5%, and `r sum(OT$km_new > 5)` are more than 5 km from anything new. An earlier version of this model, with no limit on
+access, gave stations 8 to 12 km away a median loss of about 10% (§6.2), which shows why this picture had to be checked as well as
+the fit. The spread within a band is large, because a station's loss depends on how much of its market lies toward the
+new station and on how many alternatives are nearby.
+:::
+
+::: {.interp .zh}
+**影响是局部的，并在该消失的地方消失。** 在新站 2 公里内，既有车站的进站量中位数损失约五分之一（1 公里内 `r chg(SC$by_distance$median_chg[1])`，1 至 2 公里 `r chg(SC$by_distance$median_chg[2])`）。到 3 至 5 公里降至 `r chg(SC$by_distance$median_chg[4])`，5 至 8 公里 `r chg(SC$by_distance$median_chg[5], 1)`，8 公里以外实际上为零。在 `r nrow(OT)` 个既有车站中，
+`r sum(OT$chg_closed < -.05)` 个损失超过 5%，`r sum(OT$km_new > 5)` 个距任何新站超过 5 公里。此前不限制到达距离的模型版本曾让 8 至 12 公里外的车站损失中位数约 10%（§6.2），这说明除了拟合度，这样的图也必须检查。同一距离带内差异很大，因为车站的损失取决于其市场有多少位于新站方向，以及附近还有多少替代选择。
+:::
+
+```{r}
+#| label: tbl-losers
+#| tbl-cap: "<span class='en'>Largest proportional losses among existing stations. The 90% range is the closed model's; the open column is the alternative in §10.1.</span><span class='zh'>既有车站中比例损失最大者。90% 范围来自封闭模型；开放列为 §10.1 的替代模型。</span>"
+#| echo: false
+
+OT |>
+  arrange(chg_closed) |>
+  head(12) |>
+  transmute(Station = station_name, `Today` = daily_in, `After, closed` = E_closed, Change = chg_closed,
+            `90% low` = lo_closed / daily_in - 1, `90% high` = hi_closed / daily_in - 1, `Change, open` = chg_open,
+            `Km to new station` = km_new, `Home share` = phi) |>
+  gt() |>
+  fmt_number(c(Today, `After, closed`), decimals = 0) |>
+  fmt_percent(c(Change, `90% low`, `90% high`, `Change, open`), decimals = 0) |>
+  fmt_percent(`Home share`, decimals = 0) |>
+  fmt_number(`Km to new station`, decimals = 1) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+## <span class="en">Stations that gain a line</span><span class="zh">增加线路的车站</span> {#sec-impact-gain}
+
+::: {.en}
+For the seven stations gaining a line, the answer depends on an assumption the data can barely test. The model
+estimates that each extra line multiplies a station's pull by about `r num(exp(ch(RP$coef_H, "ic")), 1)`, but that comes from comparing stations,
+and interchanges tend to be in town centres. Whether adding a line to an existing station has the same effect is not something
+three months of data can show. @tbl-gains therefore gives both ends.
+:::
+
+::: {.zh}
+对增加线路的七个车站，答案取决于一个数据几乎无法检验的假设。模型估计每多一条线路，车站吸引力约变为 `r num(exp(ch(RP$coef_H, "ic")), 1)` 倍，但这来自车站之间的比较，而换乘站往往位于市镇中心。给现有车站增加一条线路是否有同样效果，三个月的数据无法说明。因此 @tbl-gains 给出了两端的结果。
+:::
+
+```{r}
+#| label: tbl-gains
+#| tbl-cap: "<span class='en'>Tap-ins at existing stations gaining a line, with and without the interchange uplift. Transfers are added in §10.2 and are not tap-ins.</span><span class='zh'>增加线路的既有车站的进站量，分别考虑与不考虑换乘提升。换乘在 §10.2 中另行增加，不属于进站量。</span>"
+#| echo: false
+
+OT |>
+  filter(role == "existing, gains a line") |>
+  arrange(desc(daily_in)) |>
+  transmute(Station = station_name, Today = daily_in, `With uplift` = chg_closed, `No uplift` = chg_noup, `With uplift, open` = chg_open) |>
+  gt() |>
+  fmt_number(Today, decimals = 0) |>
+  fmt_percent(c(`With uplift`, `No uplift`, `With uplift, open`), decimals = 0) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+The sign changes at five of them. Ang Mo Kio moves from `r chg(stn("Ang Mo Kio", "chg_noup"))` to `r chg(stn("Ang Mo Kio", "chg_closed"))`, Hougang from
+`r chg(stn("Hougang", "chg_noup"))` to `r chg(stn("Hougang", "chg_closed"))`. Only Boon Lay and Jurong East fall on both, because the Jurong Region Line's stations take so much of their
+catchments. The honest conclusion is that tap-ins at these seven stations are not reliably predicted in either direction, and that the
+more certain change there is in transfers, which @sec-va-mci takes up.
+:::
+
+::: {.zh}
+其中五个车站的符号会改变。Ang Mo Kio 从 `r chg(stn("Ang Mo Kio", "chg_noup"))` 变为 `r chg(stn("Ang Mo Kio", "chg_closed"))`，Hougang 从 `r chg(stn("Hougang", "chg_noup"))` 变为 `r chg(stn("Hougang", "chg_closed"))`。只有 Boon Lay 与 Jurong East 在两种情形下都下降，因为裕廊区域线的车站取走了它们太多的集散范围。实事求是的结论是：这七个车站的进站量无论朝哪个方向都无法可靠预测，更确定的变化在于换乘，@sec-va-mci 将讨论这一点。
+:::
+
+## <span class="en">Market areas</span><span class="zh">市场区</span> {#sec-impact-market}
+
+```{r}
+#| label: fig-share
+#| fig-cap: "<span class='en'>Share of each hexagon's home-end market that the model sends to the new access points. Outlines mark hexagons whose most likely station becomes a new one.</span><span class='zh'>模型把每个六边形的居住端市场分配给新进站点的份额。轮廓线标出最可能使用的车站变为新站的六边形。</span>"
+#| fig-height: 5.6
+#| code-fold: true
+
+hi <- hex |> select(hex_id) |> inner_join(SC$hex_impact, by = c("hex_id" = "origin")) |> filter(residents > 0)
+map_base(
+  geom_sf(data = hi, aes(fill = share_new), colour = NA),
+  geom_sf(data = filter(hi, to_new), fill = NA, colour = "#44403c", linewidth = .22),
+  net_layer("#78716c", .22), new_layer(.5),
+  geom_point(data = NT, aes(x, y), size = .9, colour = "white"),
+  geom_point(data = NT, aes(x, y), size = .5, colour = PAL$ink)
+) +
+  scale_colour_manual(values = PAL_LINE, guide = "none") +
+  scale_fill_gradientn(colours = c("#fff7ec", "#fdd49e", "#fc8d59", "#d7301f", "#7f0000"), limits = c(0, 1), labels = percent,
+                       name = "Share to\nnew stations")
+```
+
+::: {.interp .en}
+**About one resident in fourteen would have a new first choice, and many more would have a new option.** The dominant
+station changes for hexagons holding `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$switched]), 0)` residents, and for `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$to_new]), 0)` of them
+(`r pct(100 * sum(SC$hex_impact$residents[SC$hex_impact$to_new]) / sum(SC$hex_impact$residents))` of all residents) it becomes a new station. These are the outlined hexagons. The shaded
+area is wider: `r pct(100 * sum(SC$hex_impact$residents[SC$hex_impact$share_new > .2], na.rm = TRUE) / sum(SC$hex_impact$residents), 0)` of residents live where more than a fifth of the market goes to new stations. The map also shows the
+limit of a boundary. Hexagons outside the outline, holding `r rnd(sum(SC$hex_impact$residents[SC$hex_impact$share_new > 1/3 & !SC$hex_impact$to_new], na.rm = TRUE), 1000)` residents, still send more than a third of their market to a new station, which a
+nearest-station map would call no change at all. The Huff model's probabilities are what register it.
+:::
+
+::: {.interp .zh}
+**约每十四位居民中就有一位的首选车站将变为新站，而有新选择的居民要多得多。** 主导车站发生变化的六边形共有 `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$switched]), 0)` 名居民，其中 `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$to_new]), 0)` 名（占全部居民的 `r pct(100 * sum(SC$hex_impact$residents[SC$hex_impact$to_new]) / sum(SC$hex_impact$residents))`）的主导车站变为新站，即图中带轮廓线的六边形。阴影范围更广：`r pct(100 * sum(SC$hex_impact$residents[SC$hex_impact$share_new > .2], na.rm = TRUE) / sum(SC$hex_impact$residents), 0)` 的居民所在之处，有超过五分之一的市场流向新站。
+这张图也显示了边界的局限。轮廓线之外的六边形中有 `r rnd(sum(SC$hex_impact$residents[SC$hex_impact$share_new > 1/3 & !SC$hex_impact$to_new], na.rm = TRUE), 1000)` 名居民，那里仍有超过三分之一的市场流向新站，而最近车站地图会说这里毫无变化。记录这种变化的正是 Huff 模型的概率。
+:::
+
+```{r}
+#| label: fig-boundary
+#| fig-cap: "<span class='en'>Dominant station areas in the west, before and after the Jurong Region Line. Each colour block is the set of hexagons most likely to use one station; colours repeat and carry no meaning of their own. Black points are stations open today, and orange points are new.</span><span class='zh'>裕廊区域线开通前后西部的主导车站区。每个色块是最可能使用同一车站的六边形集合；颜色重复使用，本身没有含义。黑点为现有车站，橙点为新站。</span>"
+#| fig-height: 4.3
+#| code-fold: true
+
+west <- c(xmin = 8500, xmax = 24000, ymin = 30500, ymax = 44000)
+dom_map <- function(col, title, show_new) {
+  d <- hi |> filter(!is.na(.data[[col]])) |> group_by(st = .data[[col]]) |> summarise(.groups = "drop")
+  d$k <- factor(((seq_len(nrow(d)) * 7) %% 11) + 1)
+  ggplot() +
+    geom_sf(data = land, fill = "#f5f5f4", colour = "#d6d3d1", linewidth = .25) +
+    geom_sf(data = d, aes(fill = k), colour = "white", linewidth = .4, alpha = .8, show.legend = FALSE) +
+    geom_point(data = dE, aes(x, y), size = .9, colour = PAL$ink) +
+    { if (show_new) geom_point(data = NT, aes(x, y), size = 1.4, colour = PAL$new) } +
+    scale_fill_brewer(palette = "Set3") +
+    coord_sf(datum = NA, expand = FALSE, xlim = west[c("xmin", "xmax")], ylim = west[c("ymin", "ymax")]) +
+    labs(title = title) + theme_map(10)
+}
+dom_map("dominant_old", "Today", FALSE) + dom_map("dominant_new", "With the Jurong Region Line", TRUE)
+```
+
+::: {.interp .en}
+**The western market areas contract.** Today Boon Lay, Lakeside and Pioneer dominate large areas of Jurong West that are
+well beyond walking distance. With the Jurong Region Line those areas divide among Gek Poh, Corporation, Jurong West and Bahar Junction, and Boon Lay's dominant area alone loses
+`r n_fmt(-stn("Boon Lay", "dom_change"), 0)` residents. Lakeside loses `r n_fmt(-stn("Lakeside", "dom_change"), 0)`, and Bukit Gombak `r n_fmt(-stn("Bukit Gombak", "dom_change"), 0)`. The
+probability-weighted average distance a station's riders travel to reach it falls by `r pct(100 * (1 - median(OT$km_new_net[OT$km_new <= 2] / OT$km_old[OT$km_new <= 2])), 0)` at the median
+station within 2 km of a new one: riders who remain live nearer. This is the behaviour hoped for in a transit-oriented
+plan, shorter access for the same trip. The price is lower ridership at what are today some of the
+west's busier stations.
+:::
+
+::: {.interp .zh}
+**西部市场区收缩。** 今天 Boon Lay、Lakeside 与 Pioneer 主导着裕廊西大片超出步行距离的区域。裕廊区域线开通后，这些区域被 Gek Poh、Corporation、Jurong West 与 Bahar Junction 瓜分：仅 Boon Lay 的主导区就减少 `r n_fmt(-stn("Boon Lay", "dom_change"), 0)` 名居民，Lakeside 减少 `r n_fmt(-stn("Lakeside", "dom_change"), 0)` 名，Bukit Gombak 减少 `r n_fmt(-stn("Bukit Gombak", "dom_change"), 0)` 名。
+在新站 2 公里内的车站，乘客到达车站的概率加权平均距离中位数下降 `r pct(100 * (1 - median(OT$km_new_net[OT$km_new <= 2] / OT$km_old[OT$km_new <= 2])), 0)`：留下来的乘客住得更近。这正是公共交通导向规划所期望的：同样的出行，更短的到达距离。代价则是今天西部一些较繁忙车站的客流下降。
+:::
+
+## <span class="en">How much the answer depends on the choices</span><span class="zh">答案在多大程度上取决于这些选择</span> {#sec-impact-sens}
+
+```{r}
+#| label: tbl-sens
+#| tbl-cap: "<span class='en'>Sensitivity of the headline results. Rank correlation is with the main case across new stations. Near and far are median changes at existing stations within 2 km and beyond 8 km of a new station; far should be zero.</span><span class='zh'>主要结果的敏感性。秩相关是与主情形在新站之间的相关。近与远分别是距新站 2 公里内与 8 公里外的既有车站的变化中位数；远应为零。</span>"
+#| echo: false
+
+SN |>
+  transmute(Case = case, `New stations` = new_total, JRL = jrl, CRL = crl, `Rank corr.` = rho_new, `Worst existing` = worst_existing,
+            Near = near_median, Far = far_median, `Stations losing >5%` = n_over_5) |>
+  gt() |>
+  fmt_number(c(`New stations`, JRL, CRL), decimals = 0) |>
+  fmt_number(`Rank corr.`, decimals = 2) |>
+  fmt_percent(c(`Worst existing`, Near, Far), decimals = 0) |>
+  tab_style(style = cell_text(weight = "bold"), locations = cells_body(rows = 1)) |>
+  tab_options(table.font.size = px(12))
+```
+
+::: {.interp .en}
+**The ranking of new stations is firm, and the far-field test separates the specifications.** In every case
+but one, the order of new stations correlates with the main case at about 0.88 or better. Totals move more,
+from about `r rnd(min(SN$new_total), 1000)` to `r rnd(max(SN$new_total), 1000)` a day. The largest single assumption is how the Jurong Region Line's medium capacity counts: at half the LRT effect
+the line drops from `r rnd(SN$jrl[1], 1000)` to `r rnd(SN$jrl[SN$case == "JRL at half the LRT effect"], 1000)`. The 250 m and 1,000 m grids barely change the result
+[@openshaw1984], and neither do a larger distance floor or the committed Bedok South, Sungei Bedok and Xilin stations.
+
+The last column but one is the most telling. Three cases give existing stations far from anything new a loss of over 10%:
+no maximum distance, a single model of all tap-ins, and exact calibration as in `huff.fit()`. All three have no distance limit, and that is the cause;
+exact calibration barely adds to it (`r chg(SN$far_median[grepl("Exact", SN$case)], 1)` against `r chg(SN$far_median[grepl("No maximum", SN$case)], 1)`). Its own fault is different. Reading unexplained
+ridership as attractiveness, it stretches Kranji's mean catchment from `r num(RP$cal_tbl$km_structural[RP$cal_tbl$station_name == "Kranji"], 1)` to `r num(RP$cal_tbl$km_calibrated[RP$cal_tbl$station_name == "Kranji"], 1)` km. Existing stations
+are therefore pivoted rather than calibrated.
+:::
+
+::: {.interp .zh}
+**新站排序很稳健，远场检验则能区分不同设定。** 除一种情形外，新站排序与主情形的相关都在 0.88 以上。总量变化更大，从每日约 `r rnd(min(SN$new_total), 1000)` 到 `r rnd(max(SN$new_total), 1000)` 次。最大的单一假设是如何看待裕廊区域线的中运量：按轻轨效应的一半计算，该线从 `r rnd(SN$jrl[1], 1000)` 降至 `r rnd(SN$jrl[SN$case == "JRL at half the LRT effect"], 1000)`。250 米与 1,000 米网格几乎不改变结果 [@openshaw1984]，较大的距离下限以及已确定的 Bedok South、Sungei Bedok 与 Xilin 车站也是如此。
+
+倒数第二列最能说明问题。有三种情形让远离新站的既有车站损失超过 10%：不设最大距离、单一全量进站模型，以及 `huff.fit()` 那样的精确校准。这三种都不限制距离，这才是原因；精确校准几乎没有加剧这一点（`r chg(SN$far_median[grepl("Exact", SN$case)], 1)` 对 `r chg(SN$far_median[grepl("No maximum", SN$case)], 1)`）。它自身的问题不同：把未解释的客流读作吸引力，使 Kranji 的平均集散范围从 `r num(RP$cal_tbl$km_structural[RP$cal_tbl$station_name == "Kranji"], 1)` 公里拉长到 `r num(RP$cal_tbl$km_calibrated[RP$cal_tbl$station_name == "Kranji"], 1)` 公里。因此既有车站采用转折基准，而不是精确校准。
+:::

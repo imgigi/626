@@ -1,0 +1,167 @@
+# <span class="en">Ridership at the proposed stations</span><span class="zh">拟建车站的客流</span> {#sec-new}
+
+## <span class="en">Central estimates and their spread</span><span class="zh">中心估计及其范围</span>
+
+::: {.en}
+A new station has no ridership to pivot on, so its estimate comes from the model directly: its markets, its
+attraction variables measured today, and its competition with every other station within 5 km. Around each
+central estimate, a 90% range comes from 300 draws. Each takes parameters from the bootstrap and gives the station an
+unexplained pull drawn from the hold-out errors on MRT stations, the model's own record on stations it had not seen.
+:::
+
+::: {.zh}
+新站没有客流可供作为转折基准，所以估计直接来自模型：它的市场、当前测得的吸引力变量，以及它与 5 公里内所有其他车站的竞争。每个中心估计周围的 90% 范围来自 300 次抽样：每次从自助法中取参数，
+并从地铁车站的留出误差中为车站抽取一个未解释的吸引力，也就是模型在未见车站上的实际记录。
+:::
+
+```{r}
+#| label: fig-newstations
+#| fig-cap: "<span class='en'>Predicted average daily tap-ins at the 29 new access points, by stage, with 90% ranges. Crosses are the open model of §10.1. The dotted line is Hume today and the dashed line the lowest fifth of MRT stations.</span><span class='zh'>29 个新进站点的预测平均每日进站量（按阶段）及 90% 范围。叉号为 §10.1 的开放模型。点线为 Hume 目前的客流，虚线为地铁车站最低五分之一的界线。</span>"
+#| fig-height: 7
+#| code-fold: true
+
+nt <- NT |>
+  mutate(station_name = fct_reorder(station_name, E_closed),
+         stage = factor(stage, c("JRL Stage 1 (2028)", "JRL Stage 2 (2028)", "JRL Stage 3 (2029)", "CRL Phase 1 (2030)")))
+ggplot(nt, aes(y = station_name)) +
+  geom_vline(xintercept = SC$HUME, linetype = 3, colour = PAL$grey) +
+  geom_vline(xintercept = SC$LOW20, linetype = 2, colour = PAL$grey_l) +
+  geom_segment(aes(x = lo_closed, xend = hi_closed, yend = station_name), colour = PAL$new_l, linewidth = 1.6) +
+  geom_point(aes(x = E_closed), colour = PAL$new, size = 2) +
+  geom_point(aes(x = E_open), shape = 4, size = 1.7, colour = PAL$ink) +
+  scale_x_log10(labels = comma, breaks = c(1000, 2000, 5000, 10000, 20000, 40000)) +
+  facet_grid(stage ~ ., scales = "free_y", space = "free_y") +
+  labs(x = "Daily tap-ins (log scale)", y = NULL) +
+  theme_th(10) +
+  theme(strip.text.y = element_text(angle = 0, hjust = 0), panel.grid.major.y = element_blank())
+```
+
+::: {.interp .en}
+**Heartland stations lead, and the western industrial and airport stations trail.** Serangoon North
+(`r rnd(NT$E_closed[NT$station_name == "Serangoon North"])` a day, range `r rnd(NT$lo_closed[NT$station_name == "Serangoon North"])` to `r rnd(NT$hi_closed[NT$station_name == "Serangoon North"])`) sits among dense estates and
+private housing with no station of its own. Choa Chu Kang West and Pasir Ris East are similar. The lowest are stations in
+places with few residents: Aviation Park, Jurong Pier, Tengah and Jurong Hill, around 3,000 a day. Ranges typically span a
+factor of about five, so any one station's number is a rough guide. Their order is firmer. The new stations'
+median, `r n_fmt(median(NT$E_closed), 0)`, is a little over half the MRT median today (`r n_fmt(median(dE$daily_in[dE$lrt == 0]), 0)`). That is expected: they are
+infill stations, tap-ins do not count the transfers these lines will carry, and today's land use is the
+evidence.
+:::
+
+::: {.interp .zh}
+**组屋区车站居前，西部工业区与机场附近的车站居后。** Serangoon North（每日 `r rnd(NT$E_closed[NT$station_name == "Serangoon North"])` 次，范围 `r rnd(NT$lo_closed[NT$station_name == "Serangoon North"])` 至 `r rnd(NT$hi_closed[NT$station_name == "Serangoon North"])`）位于密集的组屋与私人住宅区，却没有自己的车站。
+Choa Chu Kang West 与 Pasir Ris East 情况类似。最低的是居民稀少地点的车站：Aviation Park、Jurong Pier、Tengah 与 Jurong Hill，每日约 3,000 次。范围通常跨越约五倍，所以单站数字只是粗略参考，排序则更可靠。新站的中位数 `r n_fmt(median(NT$E_closed), 0)` 略高于当前地铁车站中位数（`r n_fmt(median(dE$daily_in[dE$lrt == 0]), 0)`）的一半。
+这在意料之中：它们是填补型车站，进站量不包括这些线路将承载的换乘客流，而证据也只是当前的土地利用。
+:::
+
+```{r}
+#| label: fig-newmap
+#| fig-cap: "<span class='en'>Predicted daily tap-ins at new access points, with their home-end share in colour, and the network they join.</span><span class='zh'>新进站点的预测每日进站量（颜色表示居住端比例）及其接入的铁路网。</span>"
+#| fig-height: 5.6
+#| code-fold: true
+
+nl <- NT |> mutate(home = E_H / E_closed)
+map_base(
+  net_layer(), new_layer(.8),
+  geom_point(data = dE, aes(x, y), size = .4, colour = "#a8a29e"),
+  geom_point(data = nl, aes(x, y, size = E_closed, fill = home), shape = 21, colour = "#44403c", stroke = .25),
+  geom_text_repel(data = slice_max(nl, E_closed, n = 8), aes(x, y, label = station_name), size = 2.6, min.segment.length = 0,
+                  segment.size = .2, seed = 6, box.padding = .4),
+  geom_text_repel(data = slice_min(nl, E_closed, n = 5), aes(x, y, label = station_name), size = 2.6, min.segment.length = 0,
+                  segment.size = .2, seed = 7, box.padding = .4, colour = PAL$grey)
+) +
+  scale_colour_manual(values = PAL_LINE, guide = "none") +
+  scale_size_area(max_size = 8, labels = comma, name = "Daily tap-ins", breaks = c(3000, 8000, 15000)) +
+  scale_fill_gradientn(colours = c("#b2182b", "#f7f7f7", "#2166ac"), limits = c(.1, .9), labels = percent, name = "Home share")
+```
+
+::: {.interp .en}
+**The two lines would do different jobs.** Jurong Region Line stations together carry about `r rnd(SC$by_project$closed[SC$by_project$project == "JRL"], 1000)` tap-ins
+a day, and those of Cross Island Line Phase 1 about `r rnd(SC$by_project$closed[SC$by_project$project != "JRL"], 1000)`, from `r JRL_NEW` and `r CRL_NEW` stations.
+The median station is about the same on both. Cross Island stations mostly serve homes (`r pct(100 * SC$by_project$home_share[SC$by_project$project != "JRL"], 0)` home share),
+while western stations such as Tukang, Jurong Pier and Jurong Hill are red: they would fill from workers leaving at the end of a shift, a demand whose reach this
+model pins down least well. Nanyang Crescent and Nanyang Gateway together carry about `r rnd(sum(NT$E_closed[grepl("Nanyang", NT$station_name)]), 1000)` a day in the closed model and
+`r rnd(sum(NT$E_open[grepl("Nanyang", NT$station_name)]), 1000)` in the open one, either side of Kent Ridge's `r rnd(stn("Kent Ridge", "daily_in"), 1000)`, which serves the other large university campus.
+:::
+
+::: {.interp .zh}
+**两条线路承担不同的任务。** 裕廊区域线各站合计每日约 `r rnd(SC$by_project$closed[SC$by_project$project == "JRL"], 1000)` 次进站，跨岛线第一期约 `r rnd(SC$by_project$closed[SC$by_project$project != "JRL"], 1000)` 次，分别来自 `r JRL_NEW` 个和 `r CRL_NEW` 个车站，中位车站大致相同。跨岛线车站主要服务住所（居住端比例 `r pct(100 * SC$by_project$home_share[SC$by_project$project != "JRL"], 0)`），
+而 Tukang、Jurong Pier、Jurong Hill 等西部车站呈红色：它们的客流来自下班离开的工人，这种需求的辐射范围是本模型最难确定的。Nanyang Crescent 与 Nanyang Gateway 合计每日在封闭模型中约 `r rnd(sum(NT$E_closed[grepl("Nanyang", NT$station_name)]), 1000)` 次，在开放模型中约 `r rnd(sum(NT$E_open[grepl("Nanyang", NT$station_name)]), 1000)` 次，分居服务另一所大型大学校园的 Kent Ridge（`r rnd(stn("Kent Ridge", "daily_in"), 1000)` 次）两侧。
+:::
+
+## <span class="en">Which stations risk being the next ghost station</span><span class="zh">哪些车站可能成为下一个幽灵站</span> {#sec-new-ghost}
+
+::: {.en}
+A central estimate says little about risk, so each station is scored by how often its simulated ridership falls below
+two thresholds: Hume today (`r n_fmt(SC$HUME, 0)` a day), and the boundary of the lowest fifth of MRT stations today
+(`r n_fmt(SC$LOW20, 0)`). Hume is a fair yardstick, because it is the most recent station whose opening was postponed for lack of
+demand and it is in the same data.
+:::
+
+::: {.zh}
+中心估计很难说明风险，所以按模拟客流低于两个阈值的频率为每个车站打分：Hume 目前的客流（每日 `r n_fmt(SC$HUME, 0)` 次），以及当前地铁车站最低五分之一的界线（`r n_fmt(SC$LOW20, 0)` 次）。Hume 是合适的标尺，因为它是最近一个因需求不足而推迟开放的车站，而且就在同一份数据中。
+:::
+
+```{r}
+#| label: tbl-ghost
+#| tbl-cap: "<span class='en'>The stations most at risk of low ridership, with land use as of 2026. Probabilities are shares of 300 simulated draws. The last column adds flats completed in 2026 and Tengah at its planned size.</span><span class='zh'>低客流风险最高的车站（基于 2026 年土地利用）。概率为 300 次模拟中所占的比例。最后一列加入了 2026 年竣工的单位以及规划规模下的登加。</span>"
+#| echo: false
+
+NT |>
+  arrange(desc(p_below_hume)) |>
+  head(10) |>
+  transmute(Station = station_name, Code = code, Stage = stage, `Daily tap-ins` = E_closed, `90% low` = lo_closed, `90% high` = hi_closed,
+            `P(below Hume)` = p_below_hume, `P(lowest fifth)` = p_below_low20, `With 2030 market` = E_2030) |>
+  gt() |>
+  fmt_number(c(`Daily tap-ins`, `90% low`, `90% high`, `With 2030 market`), decimals = 0) |>
+  fmt_percent(c(`P(below Hume)`, `P(lowest fifth)`), decimals = 0) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+No station is more likely than not to fall below Hume: the highest is Aviation Park at
+`r pct(100 * max(NT$p_below_hume), 0)`. But `r sum(NT$p_below_low20 > .5)` of `r nrow(NT)` have a better than even chance of being in the lowest fifth of MRT
+stations as they stand today. That is a warning about the opening year rather than about the decade. Stage 1 of
+the Jurong Region Line opens in 2028 and its Tengah stations are built ahead of the town, as Woodleigh was. Note also that the screen's
+AUC of `r num(RP$auc_low)` is good at ranking, but the model's tendency at the bottom is to overpredict: Hume itself is
+estimated at `r n_fmt(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Hume"], 0)` and Keppel at `r n_fmt(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Keppel"], 0)`, against `r n_fmt(stn("Hume", "daily_in"), 0)` and `r n_fmt(stn("Keppel", "daily_in"), 0)` observed. A quiet station's risk is likely to
+be understated, not overstated.
+:::
+
+::: {.zh}
+没有任何车站低于 Hume 的概率超过一半：最高的是 Aviation Park，为 `r pct(100 * max(NT$p_below_hume), 0)`。但 `r nrow(NT)` 个车站中有 `r sum(NT$p_below_low20 > .5)` 个落入当前地铁车站最低五分之一的概率超过一半。这是对开通初期的警示，而不是对未来十年的判断。
+裕廊区域线第一阶段 2028 年开通，登加的车站先于市镇建成，就像当年的 Woodleigh。还要注意，这一筛查的 AUC 为 `r num(RP$auc_low)`，排序能力较好，但模型在底部倾向于高估：Hume 本身被估计为 `r n_fmt(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Hume"], 0)` 次，Keppel 为 `r n_fmt(RP$residuals_tbl$E[RP$residuals_tbl$station_name == "Keppel"], 0)` 次，而观测值分别为 `r n_fmt(stn("Hume", "daily_in"), 0)` 次与 `r n_fmt(stn("Keppel", "daily_in"), 0)` 次。所以冷清车站的风险更可能被低估，而不是高估。
+:::
+
+## <span class="en">If the land use changes</span><span class="zh">如果土地利用发生变化</span> {#sec-new-2030}
+
+::: {.en}
+Buangkok shows what a model of today's land use cannot see. A forecast made when it was shut would have looked
+much like Tengah's does now. As a partial test, `r n_fmt(SC$add26_total, 0)` residents of flats completed in 2026 are added, along with Tengah at
+its planned size. The town is planned for about 42,000 homes, some 30,000 of them HDB flats [@wiki_tengah], against
+`r n_fmt(SC$tengah$du_now, 0)` HDB flats in the data now, so `r n_fmt(SC$tengah$residents_added, 0)` more residents are spread evenly over its
+`r SC$tengah$n_hex` hexagons at `r SC$tengah$ppf` persons a flat, and private housing is left out. Tengah's own stations rise (@tbl-tengah), Tengah Plantation by
+`r pct(100 * (NT$E_2030[NT$station_name == "Tengah Plantation"] / NT$E_closed[NT$station_name == "Tengah Plantation"] - 1), 0)` and Tengah by `r pct(100 * (NT$E_2030[NT$station_name == "Tengah"] / NT$E_closed[NT$station_name == "Tengah"] - 1), 0)`. The Tengah station's estimate remains
+low, partly because the town's other stations share the same market. Shops, jobs and bus services would arrive with those
+homes and raise attractiveness as well, which this test leaves unchanged, so it understates the eventual effect.
+:::
+
+::: {.zh}
+Buangkok 说明了基于当前土地利用的模型看不到什么：它关闭时所做的预测，大概和今天的 Tengah 差不多。作为部分检验，加入 2026 年竣工单位的 `r n_fmt(SC$add26_total, 0)` 名居民，以及规划规模下的登加。该市镇规划约 42,000 套住宅，其中约 30,000 套为 HDB 组屋 [@wiki_tengah]，而数据中目前有 `r n_fmt(SC$tengah$du_now, 0)` 套，
+所以按每套 `r SC$tengah$ppf` 人把另外 `r n_fmt(SC$tengah$residents_added, 0)` 名居民平均分配到其 `r SC$tengah$n_hex` 个六边形上，私人住宅未计入。登加本身的车站有所上升（@tbl-tengah）：Tengah Plantation 上升 `r pct(100 * (NT$E_2030[NT$station_name == "Tengah Plantation"] / NT$E_closed[NT$station_name == "Tengah Plantation"] - 1), 0)`，Tengah 上升 `r pct(100 * (NT$E_2030[NT$station_name == "Tengah"] / NT$E_closed[NT$station_name == "Tengah"] - 1), 0)`。
+Tengah 站的估计仍然偏低，部分原因是该市镇的其他车站共享同一市场。商店、就业与公交服务将随这些住宅一起到来，也会提高吸引力，而这一检验没有改变吸引力，所以低估了最终效果。
+:::
+
+```{r}
+#| label: tbl-tengah
+#| tbl-cap: "<span class='en'>Tengah's stations with land use today and with the town at planned size.</span><span class='zh'>当前土地利用与规划规模下的登加车站。</span>"
+#| echo: false
+
+NT |>
+  filter(station_name %in% c("Tengah", "Tengah Plantation", "Tengah Park", "Hong Kah", "Choa Chu Kang West")) |>
+  transmute(Station = station_name, Today = E_closed, `Planned Tengah` = E_2030, Change = E_2030 / E_closed - 1) |>
+  arrange(desc(Change)) |>
+  gt() |>
+  fmt_number(c(Today, `Planned Tengah`), decimals = 0) |>
+  fmt_percent(Change, decimals = 0) |>
+  tab_options(table.font.size = px(12.5))
+```

@@ -1,0 +1,244 @@
+---
+# The title block is the one part of the page Quarto composes itself, so the
+# .en / .zh spans have to be written into the metadata rather than into the body.
+title: '<span class="en">Take-home Exercise 3: Geospatial Analytics for Urban Sustainability</span><span class="zh">课后作业三：面向城市可持续发展的地理空间分析</span>'
+pagetitle: "Take-home Exercise 3: Geospatial Analytics for Urban Sustainability"
+subtitle: '<span class="en">A probabilistic spatial interaction model of MRT station ridership, and what the Jurong Region Line and Cross Island Line Phase 1 would do to it</span><span class="zh">地铁车站客流的概率空间交互模型，以及裕廊区域线与跨岛线第一期带来的影响</span>'
+author: "Ji Guofang"
+date: "2026-11-02"
+date-modified: "last-modified"
+toc-title: "Contents"
+
+format:
+  html:
+    theme: [cosmo, custom.scss]
+    page-layout: article
+    toc: true
+    toc-depth: 3
+    toc-expand: 2
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    fig-width: 9
+    fig-height: 6
+    fig-dpi: 150
+    fig-align: center
+    tbl-cap-location: bottom
+    link-external-newwindow: true
+    smooth-scroll: true
+    citations-hover: true
+    df-print: paged
+    lightbox: true
+    # The shared site-wide EN / 中文 switch. This document overrides the
+    # project format block, so the includes are repeated here.
+    include-in-header: ../../_include/lang-head.html
+    include-after-body: ../../_include/lang-toggle.html
+
+bibliography: references.bib
+csl: apa.csl
+
+# Language-neutral cross-reference prefixes: one render serves both languages.
+language:
+  crossref-sec-prefix: "§"
+  crossref-fig-prefix: "Fig."
+  crossref-tbl-prefix: "Tbl."
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  # freeze stays off: Quarto's freeze cache does not see edits inside files
+  # pulled in with {{< include >}}, so it would render stale sections.
+  freeze: false
+
+knitr:
+  opts_chunk:
+    collapse: false
+    comment: "#>"
+    dev: "png"
+    dpi: 150
+
+editor: source
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# ---- Packages ---------------------------------------------------------------
+# Loaded once here so that the analytical sections below contain only analytical
+# code. Versions are reported in the reproducibility appendix.
+suppressPackageStartupMessages({
+  library(sf)                 # vector geospatial data and CRS handling
+  library(dplyr); library(tidyr); library(purrr); library(stringr)
+  library(ggplot2); library(patchwork); library(scales); library(forcats)
+  library(ggrepel)
+  library(gt)                 # tables
+})
+
+source("R/utils.R")
+sf::sf_use_s2(FALSE)   # planar predicates: everything is in the projected CRS
+set.seed(1234)
+
+# ---- Load the prepared objects -----------------------------------------------
+# Built by scripts/01_markets.R .. scripts/08_report_data.R.
+DER <- "data/derived"
+RP  <- readRDS(file.path(DER, "report.rds"))
+SC  <- readRDS(file.path(DER, "scenario.rds"))
+MC  <- readRDS(file.path(DER, "mci.rds"))
+AM  <- readRDS(file.path(DER, "audit_markets.rds"))
+AS  <- readRDS(file.path(DER, "audit_stations.rds"))
+AR  <- readRDS(file.path(DER, "audit_ridership.rds"))
+AF  <- readRDS(file.path(DER, "audit_frames.rds"))
+dE  <- readRDS(file.path(DER, "dest_existing.rds"))
+dP  <- readRDS(file.path(DER, "dest_proposed.rds"))
+origins <- readRDS(file.path(DER, "origins.rds"))
+hex <- readRDS(file.path(DER, "hex_markets.rds"))
+sz  <- readRDS(file.path(DER, "subzone.rds"))
+land <- readRDS(file.path(DER, "land.rds"))
+cw  <- readRDS(file.path(DER, "street_crosswalk.rds"))
+si_e <- readRDS(file.path(DER, "si_existing.rds"))
+si_p <- readRDS(file.path(DER, "si_proposed.rds"))
+
+NT <- SC$new_tbl; OT <- SC$old_tbl; TT <- SC$totals; SN <- SC$sens_tbl
+LT <- RP$ladder_tbl
+lad <- function(key) LT[grepl(key, LT$model, fixed = TRUE), ]
+ch  <- function(par, term) par$estimate[par$term == term]
+stn <- function(name, col, t = OT) t[[col]][t$station_name == name]
+
+# Percentage changes keep their sign in the prose, with a true minus.
+chg <- function(x, d = 0) sprintf("%s%s%%", ifelse(x >= 0, "+", "−"), formatC(abs(100 * x), format = "f", digits = d))
+num <- function(x, d = 2) formatC(x, format = "f", digits = d) |> str_replace("^-", "−")
+rnd <- function(x, to = 100) n_fmt(round(x / to) * to)
+
+JRL_NEW <- sum(NT$project == "JRL"); CRL_NEW <- sum(NT$project != "JRL")
+
+# ---- One base for every map -----------------------------------------------------
+# The western islands and Jurong Island's far end carry no stations and shrink the
+# rest of the map, so the view stops at the main island's useful extent.
+XL <- c(2500, 47500); YL <- c(21500, 50500)
+map_base <- function(...) {
+  ggplot() +
+    geom_sf(data = land, fill = "#f5f5f4", colour = "#d6d3d1", linewidth = 0.25) +
+    list(...) +
+    coord_sf(datum = NA, expand = FALSE, xlim = XL, ylim = YL) +
+    theme_map(10)
+}
+
+# The rail network, drawn from the graph's own links.
+links_old <- MC$links |> filter(!line %in% c("JS", "JE", "JW", "CR"))
+links_new <- MC$links |> filter(line %in% c("JS", "JE", "JW", "CR"))
+is_lrt <- function(l) l %in% c("BP", "SE", "SW", "PE", "PW")
+net_layer <- function(col = "#a8a29e", lw = 0.35) {
+  geom_segment(data = links_old, aes(x = ax, y = ay, xend = bx, yend = by),
+               colour = col, linewidth = lw)
+}
+new_layer <- function(lw = 0.7) {
+  geom_segment(data = links_new, aes(x = ax, y = ay, xend = bx, yend = by, colour = line),
+               linewidth = lw, show.legend = FALSE)
+}
+```
+
+::: {.callout-tip appearance="simple"}
+::: {.en}
+**This report is bilingual.** Use the **EN / 中文** switch at the top right of the page
+(or press `Alt`+`L`) to change language; the choice is remembered and carries over to the
+executive summary. All hand-written prose, headings, and figure and table captions are
+translated. **Text drawn inside the figures and the cells of tables stays in English**,
+because it is rendered by R. Variable names, function names and station names are also
+left in English.
+:::
+
+::: {.zh}
+**本报告为中英双语。** 使用页面右上角的 **EN / 中文** 切换按钮（或按 `Alt`+`L`）切换语言；
+所选语言会被记住，并在执行摘要中保持一致。所有手写正文、标题以及图表题注都已翻译。
+**图形内部和表格单元格中的文字保持英文**，因为它们由 R 渲染生成。变量名、函数名与车站名
+同样保留英文。
+:::
+:::
+
+# <span class="en">Summary</span><span class="zh">摘要</span> {.unnumbered}
+
+::: {.en}
+Singapore has opened stations a decade late because too few people stood to use them,
+and is about to add `r JRL_NEW + CRL_NEW` new access points to its rail network. This
+report calibrates a probabilistic spatial interaction model of average daily tap-ins at
+the `r nrow(dE)` stations open in August and September 2026, then uses it to predict
+ridership at the Jurong Region Line and Cross Island Line Phase 1 stations and the effect
+on those already open.
+
+A plain Huff model fails on these data: with equal attractiveness and a distance exponent
+of −2, it explains less than a station's average would (R² = `r num(lad("M1")$insample)`). Three
+changes make it useful. Ridership is split by the morning balance of tap-ins and
+tap-outs into a home end and an activity end, each with its own market. Attractiveness
+depends on retail, interchange status, mode and rail time to the CBD, and not on bus stops.
+And the choice set stops at `r RP$DMAX` km, because otherwise a new station in Jurong
+takes riders from Marina Bay. On lines left out of the calibration, the model
+reaches an R² of `r num(lad("M8 ")$lolo_r2)` on the log scale, against `r num(lad("DRM")$lolo_r2)` for a direct
+regression on the same variables.
+
+The new stations are predicted to carry about `r rnd(TT$new_stations[1], 1000)` tap-ins a day, with a
+wide range around any single station. Serangoon North, Choa Chu Kang West and Pasir Ris
+East lead; Aviation Park, Jurong Pier and Tengah are the likeliest to fall below Hume, the
+last station held back for lack of demand. Losses at existing stations
+fade from `r chg(SC$by_distance$median_chg[1])` within a kilometre of a new station to nothing beyond 8 km.
+They reach `r chg(stn("Pioneer", "chg_closed"))` at Pioneer. As value-added analysis, an outside option shows the
+data cannot separate riders diverted from riders gained, and a multiplicative competitive
+interaction model of OD shares shows the cost the station totals hide: about
+`r rnd(MC$xfer$change[MC$xfer$station_name == "Boon Lay"], 1000)` transfers a day at Boon Lay, which has none today.
+:::
+
+::: {.zh}
+新加坡曾有车站因使用者太少而推迟十年才开放，而如今又将为铁路网增加 `r JRL_NEW + CRL_NEW` 个
+新进站点。本报告针对 2026 年 8、9 月开放的 `r nrow(dE)` 个车站的平均每日进站量，校准一个概率
+空间交互模型，再用它预测裕廊区域线与跨岛线第一期车站的客流，以及对既有车站的影响。
+
+朴素的 Huff 模型在这份数据上是失败的：吸引力相同、距离指数取 −2 时，它的解释力还不如直接
+取各站平均值（R² = `r num(lad("M1")$insample)`）。三处改动使它变得可用。第一，依早高峰进出站的
+平衡，把客流分为居住端与活动端，各有自己的市场。第二，吸引力取决于零售、换乘地位、制式与到 CBD 的
+轨道时间，而与公交站数量无关。第三，选择集止于 `r RP$DMAX` 公里，否则裕廊的新站会从滨海湾抢走乘客。
+在校准时被留出的线路上，模型在对数尺度上的 R² 达到 `r num(lad("M8 ")$lolo_r2)`，而基于相同变量的
+直接回归只有 `r num(lad("DRM")$lolo_r2)`。
+
+预计新站每日合计约有 `r rnd(TT$new_stations[1], 1000)` 次进站，单站的区间很宽。Serangoon North、
+Choa Chu Kang West 与 Pasir Ris East 居前；Aviation Park、Jurong Pier 与 Tengah 最有可能低于
+Hume（最近一个因需求不足而被推迟的车站）。既有车站的损失随距离衰减：距新站 1 公里内中位数为
+`r chg(SC$by_distance$median_chg[1])`，8 公里外接近于零；Pioneer 最高，达 `r chg(stn("Pioneer", "chg_closed"))`。
+作为附加价值分析，外部选项表明数据无法区分转移客流与新增客流；而基于 OD 份额的乘法竞争交互模型则显示了
+车站总量所掩盖的代价：Boon Lay 今天没有换乘客流，届时每日约有
+`r rnd(MC$xfer$change[MC$xfer$station_name == "Boon Lay"], 1000)` 次换乘。
+:::
+
+{{< include _sections/01-introduction.qmd >}}
+
+{{< include _sections/02-data-design.qmd >}}
+
+{{< include _sections/03-preparation.qmd >}}
+
+{{< include _sections/04-assumptions.qmd >}}
+
+{{< include _sections/05-ridership.qmd >}}
+
+{{< include _sections/06-calibration.qmd >}}
+
+{{< include _sections/07-estimates.qmd >}}
+
+{{< include _sections/08-proposed.qmd >}}
+
+{{< include _sections/09-impact.qmd >}}
+
+{{< include _sections/10-valueadded.qmd >}}
+
+{{< include _sections/11-integration.qmd >}}
+
+{{< include _sections/12-implications.qmd >}}
+
+{{< include _sections/13-limitations.qmd >}}
+
+{{< include _sections/14-reproducibility.qmd >}}
+
+# <span class="en">References</span><span class="zh">参考文献</span> {.unnumbered}
+
+::: {#refs}
+:::

@@ -1,0 +1,172 @@
+# <span class="en">Value-added analysis</span><span class="zh">附加价值分析</span> {#sec-va}
+
+::: {.en}
+The core model answers where a trip enters the network, on the assumption that the number of trips is fixed. Two extensions
+address what that leaves out. Neither adds new data; both change what the model can say.
+:::
+
+::: {.zh}
+核心模型回答的是出行从哪里进入网络，并假定出行总量固定。两项扩展针对其遗漏之处。它们都没有增加新数据，改变的是模型能够说明的内容。
+:::
+
+## <span class="en">How much ridership is new? An outside option</span><span class="zh">有多少客流是新增的？外部选项</span> {#sec-va-open}
+
+::: {.en}
+**The question.** In a closed Huff model all of a hexagon's market goes to some station, so a new station can only take riders from
+others. Yet a large part of the case for new lines is that some people who do not use rail today would. This is decisive for the
+question in RQ3: the more of the new stations' riders are new to rail, the less existing stations lose.
+
+**The method.** An outside option adds the choice of not using the rail network at the home end, with a constant
+attractiveness $A_0$ in the denominator of the Huff probability. A resident close to good stations mostly chooses rail. One far from any station
+often does not. With $A_0$ calibrated alongside the other parameters, the model's total ridership can rise when a new station arrives.
+The activity end is left closed, so a new home-end rider's return trip is not counted, which makes the induced share a modest
+understatement. **The assumption** is that the choice of rail, within a hexagon, depends on the same attractiveness and decay as the
+choice between stations, without separate mode costs.
+:::
+
+::: {.zh}
+**问题。** 在封闭的 Huff 模型中，一个六边形的全部市场都流向某个车站，所以新站只能从其他车站抢乘客。但新线的一大理由是今天不用轨道的人将来可能会用。这对研究问题三至关重要：新站乘客中轨道新用户越多，既有车站的损失就越小。
+
+**方法。** 外部选项在居住端加入不使用铁路网的选择，也就是在 Huff 概率的分母中加入一个常数吸引力 $A_0$。靠近优质车站的居民大多选择轨道，远离任何车站的居民则常常不选。$A_0$ 与其他参数一起校准后，新站到来时模型的总客流可以上升。活动端保持封闭，所以新增居住端乘客的返程没有计入，这使新增比例略被低估。**假设**是：在一个六边形内，是否选择轨道取决于与车站之间选择相同的吸引力和衰减，没有单独的方式成本。
+:::
+
+```{r}
+#| label: fig-open
+#| fig-cap: "<span class='en'>The outside option cannot be pinned down by station totals. As its attractiveness rises, the share of the market staying off rail and the share of the new stations' home-end riders who are new both change greatly (left), while the in-sample fit hardly moves and hold-out fit declines slowly (right).</span><span class='zh'>车站总量无法确定外部选项。随着其吸引力上升，不用轨道的市场份额以及新站居住端乘客中新增者的比例都大幅变化（左），而样本内拟合几乎不变，留出拟合缓慢下降（右）。</span>"
+#| fig-height: 3.2
+#| code-fold: true
+
+pa <- RP$prof_a0 |> filter(lA0 <= 2) |> mutate(induced = share_induced)
+p1 <- pa |>
+  pivot_longer(c(share_outside, induced)) |>
+  mutate(name = recode(name, share_outside = "Market that stays off rail", induced = "New stations' home riders who are new")) |>
+  ggplot(aes(A0, value, colour = name)) + geom_line() + geom_point(size = 1.6) +
+  scale_x_log10() + scale_y_continuous(labels = percent, limits = c(0, 1)) +
+  scale_colour_manual(values = c("#57534e", PAL$new), name = NULL) +
+  labs(x = expression(A[0] ~ "(log scale)"), y = NULL) + theme_th(9.5) + guides(colour = guide_legend(nrow = 2))
+p2 <- pa |>
+  pivot_longer(c(insample, lolo)) |>
+  mutate(name = recode(name, insample = "In sample", lolo = "Line held out")) |>
+  ggplot(aes(A0, value, colour = name)) + geom_line() + geom_point(size = 1.6) +
+  scale_x_log10() + scale_y_continuous(limits = c(.45, .75)) +
+  scale_colour_manual(values = c("#a8a29e", PAL$new), name = NULL) +
+  labs(x = expression(A[0] ~ "(log scale)"), y = "Home-end R²") + theme_th(9.5) + guides(colour = guide_legend(nrow = 2))
+p1 + p2
+```
+
+::: {.interp .en}
+**The insight: these data cannot say how much new ridership the lines would create.** The fitted $A_0$ is
+`r num(exp(ch(RP$coef_O, "log_A0")))`, which says about `r pct(100 * TT$share_new_model[2], 0)` of the new stations' riders are new to rail, and its 95% interval runs
+from effectively zero to `r num(exp(RP$coef_O$hi[RP$coef_O$term == "log_A0"]), 0)`. Across that range in-sample fit stays at `r num(max(RP$prof_a0$insample))`, while the
+implied share of new riders at the home end goes from about `r pct(100 * RP$prof_a0$share_induced[1], 0)` to about `r pct(100 * RP$prof_a0$share_induced[RP$prof_a0$lA0 == 2], 0)`. Hold-out fit does fall (`r num(RP$prof_a0$lolo[1])` to `r num(RP$prof_a0$lolo[RP$prof_a0$lA0 == 2])`), which leans toward fewer new riders without settling it. The reason is geographic:
+`r pct(100 * sum(AF$res_by_nearest[1:4]), 0)` of residents already live within 2 km of a station, so almost no one in the data
+is far enough away to reveal what distance does to the choice to use rail at all. Before-and-after ridership around a line opening could.
+
+So the two models are best read as bounds: existing stations lose `r n_fmt(TT$existing_loss[1], 0)` a day in the closed model and
+`r n_fmt(TT$existing_loss[2], 0)` in the open one. New-station totals are `r n_fmt(TT$new_stations[1], 0)` and `r n_fmt(TT$new_stations[2], 0)`. About two-thirds of that difference
+comes from Nanyang Crescent and Nanyang Gateway, where the open model gives the dormitory market more weight, a sign of how weakly that weight is determined.
+:::
+
+::: {.interp .zh}
+**洞见：这些数据无法说明新线将创造多少新增客流。** 拟合的 $A_0$ 为 `r num(exp(ch(RP$coef_O, "log_A0")))`，表示新站乘客中约 `r pct(100 * TT$share_new_model[2], 0)` 是轨道新用户，其 95% 区间从几乎为零到 `r num(exp(RP$coef_O$hi[RP$coef_O$term == "log_A0"]), 0)`。在这个范围内，样本内拟合始终约为 `r num(max(RP$prof_a0$insample))`，而居住端隐含的新增乘客比例却从约 `r pct(100 * RP$prof_a0$share_induced[1], 0)` 变到约 `r pct(100 * RP$prof_a0$share_induced[RP$prof_a0$lA0 == 2], 0)`。留出拟合确实下降（`r num(RP$prof_a0$lolo[1])` 至 `r num(RP$prof_a0$lolo[RP$prof_a0$lA0 == 2])`），这偏向新增乘客较少的情形，但不足以定论。原因在于地理：
+`r pct(100 * sum(AF$res_by_nearest[1:4]), 0)` 的居民已住在车站 2 公里以内，数据中几乎没有住得足够远的人，能够揭示距离如何影响是否使用轨道。线路开通前后的客流才能做到。
+
+因此两个模型最好看作上下界：既有车站每日损失在封闭模型中为 `r n_fmt(TT$existing_loss[1], 0)` 次，在开放模型中为 `r n_fmt(TT$existing_loss[2], 0)` 次。新站总量分别为 `r n_fmt(TT$new_stations[1], 0)` 次与 `r n_fmt(TT$new_stations[2], 0)` 次。其中约三分之二的差异来自 Nanyang Crescent 与 Nanyang Gateway，开放模型给宿舍市场更大的权重，这本身也说明该权重的确定有多么薄弱。
+:::
+
+## <span class="en">Where do the riders go? MCI on origin-destination shares</span><span class="zh">乘客去向何处？基于起讫份额的 MCI</span> {#sec-va-mci}
+
+::: {.en}
+**The question.** Huff's model ends at the gate. A new station's rider is still going somewhere, and that changes which lines fill and where people
+change. A station-level result can even mislead here: tap-ins at Boon Lay would fall, but what is happening on its platforms?
+
+**The method.** A multiplicative competitive interaction model [@nakanishi1974] is fitted to the observed shares: given a trip starts at station $i$,
+the share going to station $j$ depends on rail time and on the destination's attributes. Log-centring within each origin turns it into linear regression.
+`mci.fit()` in **MCI** [@wieland2017] needs a complete table and stops on this one, because `r n_fmt(MC$n_possible - MC$n_pairs)` of the `r n_fmt(MC$n_possible)` station pairs recorded no
+trips, so the transformation is done directly, and it reproduces `mci.fit()` to within `r formatC(MC$mci_check, format = "e", digits = 0)` on a complete 25 by 25 block of the table.
+
+Three adjustments follow, each found by testing the model against what is known. Ordinary least squares gives a pair with 0.02 trips a day the same
+weight as one with 5,000, and the many rarely used pairs pull trips too short: `r num(MC$trip$ols, 1)` minutes on average against `r num(MC$trip$observed, 1)` observed, and
+weighting by trips helps little (`r num(MC$trip$wls, 1)`). So the distance exponent alone is recalibrated to the observed mean trip length [@hyman1969], and
+separately for three rings around the CBD, because one exponent overstates trips from the periphery, exactly where the new stations are (@tbl-rings). Then a new
+destination should not attract trips from everywhere, because someone now living near Gek Poh simply stops arriving at Boon Lay. Stations balance over a day
+(tap-ins and tap-outs correlate at `r num(MC$in_out_cor, 3)`), so arrivals are made to move with boardings, and the flow matrix is balanced to both [@furness1965].
+Existing pairs pivot from observed flows; only pairs involving a new station come from the model alone. Every flow then takes the fastest path through a rail graph.
+:::
+
+::: {.zh}
+**问题。** Huff 模型止于闸机。新站的乘客总要去某个地方，这决定了哪些线路变满、人们在哪里换乘。车站层面的结果在这里甚至可能误导：Boon Lay 的进站量会下降，但它的站台上发生了什么？
+
+**方法。** 对观测份额拟合乘法竞争交互模型 [@nakanishi1974]：给定一次出行从车站 $i$ 出发，前往车站 $j$ 的份额取决于轨道时间与目的地属性。在每个起点内做对数中心化后，它就变成线性回归。**MCI** [@wieland2017] 的 `mci.fit()` 需要完整的表，而这里有 `r n_fmt(MC$n_possible)` 个站对中的 `r n_fmt(MC$n_possible - MC$n_pairs)` 个没有出行记录，所以直接进行变换；在表中一个完整的 25×25 区块上，它与 `mci.fit()` 的差距在 `r formatC(MC$mci_check, format = "e", digits = 0)` 以内。
+
+随后进行三项调整，每一项都来自对已知事实的检验。普通最小二乘给每日 0.02 次的站对与每日 5,000 次的站对相同权重，大量极少使用的站对把出行拉得太短：平均 `r num(MC$trip$ols, 1)` 分钟，而观测为 `r num(MC$trip$observed, 1)` 分钟，按出行量加权也帮助不大（`r num(MC$trip$wls, 1)`）。所以只把距离指数重新校准到观测的平均出行时长 [@hyman1969]，并对 CBD 周围三个环分别校准，因为单一指数高估了外围的出行时长，而新站恰恰都在外围（@tbl-rings）。此外，新目的地不应从各处吸引出行：现在住在 Gek Poh 附近的人只是不再到达 Boon Lay。车站一天内是平衡的（进站与出站的相关系数为 `r num(MC$in_out_cor, 3)`），所以让到达量随上车量变动，并使流量矩阵同时满足两者 [@furness1965]。既有站对以观测流量为基准，只有涉及新站的站对完全来自模型。然后每个流量都走铁路网图上最快的路径。
+:::
+
+```{r}
+#| label: tbl-rings
+#| tbl-cap: "<span class='en'>Mean trip length in minutes of rail time, by ring around the CBD. A single exponent overstates trips from the periphery, where every new station is; one exponent per ring matches each by construction.</span><span class='zh'>按 CBD 周围各环统计的平均出行时长（轨道时间，分钟）。单一指数高估了外围的出行时长，而所有新站都在外围；每环一个指数则按构造与各环一致。</span>"
+#| echo: false
+
+MC$trip_rings |>
+  transmute(`Rail time to CBD` = ring, Stations = n, Exponent = exponent, Observed = observed, `One exponent` = one_exponent, `One per ring` = rings) |>
+  gt() |>
+  fmt_number(Exponent, decimals = 2) |>
+  fmt_number(c(Observed, `One exponent`, `One per ring`), decimals = 1) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+**Fit.** Rail time and attraction together give a log-centred R² of `r num(MC$mci_null$r2[4])`, against `r num(MC$mci_null$r2[3])` with straight-line distance, so the rail graph earns
+its place. At the level that matters, the model reproduces station arrivals with an R² of `r num(MC$fit_arrivals$r2_log)`, and `r num(MC$fit_lolo$r2_log)` for arrivals at stations held out with their
+line. It is much weaker on individual pairs (R² of `r num(MC$fit_pairs$r2_log)` on pairs with at least 10 trips a day), which is why existing pairs pivot from what was observed.
+:::
+
+::: {.zh}
+**拟合。** 轨道时间与吸引力一起给出的对数中心化 R² 为 `r num(MC$mci_null$r2[4])`，而用直线距离只有 `r num(MC$mci_null$r2[3])`，所以铁路网图确有价值。在重要的层面上，模型对车站到达量的 R² 为 `r num(MC$fit_arrivals$r2_log)`，对随线路留出的车站到达量为 `r num(MC$fit_lolo$r2_log)`。它在单个站对上要弱得多（每日至少 10 次的站对 R² 为 `r num(MC$fit_pairs$r2_log)`），这就是既有站对以观测值为基准的原因。
+:::
+
+```{r}
+#| label: fig-transfers
+#| fig-cap: "<span class='en'>What happens after the gate. Left: change in daily transfers at interchanges, today and with the proposed lines. Right: change in the load on each link of the existing network, with fastest-path assignment; the new lines are in grey.</span><span class='zh'>闸机之后发生了什么。左：换乘站今天与新线开通后的每日换乘量变化。右：最快路径分配下既有网络各区段负荷的变化；新线为灰色。</span>"
+#| fig-height: 5
+#| fig-width: 10
+#| code-fold: true
+
+xf <- MC$xfer |> slice_max(change, n = 8) |>
+  mutate(station_name = fct_reorder(station_name, change))
+p1 <- ggplot(xf, aes(y = station_name)) +
+  geom_segment(aes(x = base, xend = after, yend = station_name), colour = PAL$new_l, linewidth = 2) +
+  geom_point(aes(x = base), colour = "#a8a29e", size = 2.2) +
+  geom_point(aes(x = after), colour = PAL$new, size = 2.2) +
+  scale_x_continuous(labels = comma) +
+  labs(x = "Daily transfers: today (grey), proposed (orange)", y = NULL) + theme_th(9.5)
+lk <- MC$links |> filter(base > 0) |> mutate(pc = pmax(pmin(pct, .3), -.3))
+p2 <- ggplot() +
+  geom_sf(data = land, fill = "#f5f5f4", colour = "#d6d3d1", linewidth = .25) +
+  geom_segment(data = filter(MC$links, base == 0), aes(x = ax, y = ay, xend = bx, yend = by), colour = "#a8a29e", linewidth = .6) +
+  geom_segment(data = lk, aes(x = ax, y = ay, xend = bx, yend = by, colour = pc, linewidth = base)) +
+  scale_colour_gradientn(colours = RAMP_DIV, limits = c(-.3, .3), labels = percent, name = "Load change") +
+  scale_linewidth_continuous(range = c(.3, 2.2), labels = comma, name = "Load today") +
+  coord_sf(datum = NA, expand = FALSE, xlim = XL, ylim = YL) +
+  theme_map(9.5)
+p1 + p2 + plot_layout(widths = c(1, 2))
+```
+
+::: {.interp .en}
+**The insight: stations that lose tap-ins gain something else.** `r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project == "JRL"], 0)` of Jurong Region Line boardings and
+`r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project != "JRL"], 0)` of Cross Island Line boardings leave the new line for somewhere beyond it, so these are
+largely feeder lines. Boon Lay would see `r rnd(MC$xfer$after[MC$xfer$station_name == "Boon Lay"], 1000)` transfers a day where it has none now, while its tap-ins change by `r chg(stn("Boon Lay", "chg_closed"))`. Hougang,
+Ang Mo Kio and Choa Chu Kang each add about `r rnd(mean(MC$xfer$change[MC$xfer$station_name %in% c("Hougang", "Ang Mo Kio", "Choa Chu Kang")]), 1000)`. Doubling the transfer penalty leaves Boon Lay's gain at `r rnd(MC$xfer$change10[MC$xfer$station_name == "Boon Lay"], 1000)`.
+
+On the links, the Jurong Region Line relieves the western ends of the two oldest lines (Jurong East to
+Chinese Garden `r chg(MC$links$pct[MC$links$a_name == "Jurong East" & MC$links$b_name == "Chinese Garden"])`, Jurong East to Bukit Batok
+`r chg(MC$links$pct[MC$links$a_name == "Jurong East" & MC$links$b_name == "Bukit Batok"])`), but the relief stops at Jurong East: Clementi to Jurong East changes by only `r chg(MC$links$pct[MC$links$a_name == "Clementi" & MC$links$b_name == "Jurong East"])`. The Cross Island Line eases the Circle Line
+(Serangoon to Lorong Chuan `r chg(MC$links$pct[MC$links$a_name == "Serangoon" & MC$links$b_name == "Lorong Chuan"])`) and adds load below Pasir Ris (`r chg(MC$links$pct[MC$links$a_name == "Pasir Ris" & MC$links$b_name == "Tampines"])`). Passenger-kilometres stay level, at `r num(MC$pkm$after / 1e6, 2)` million a day against `r num(MC$pkm$base / 1e6, 2)` million. The loads compare two networks under simple assignment, with no crowding or route choice, and do not forecast any
+link's crowding.
+:::
+
+::: {.interp .zh}
+**洞见：损失进站量的车站会得到别的东西。** 裕廊区域线上车乘客的 `r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project == "JRL"], 0)`、跨岛线上车乘客的 `r pct(100 * MC$line_summary$beyond_line[MC$line_summary$project != "JRL"], 0)` 会离开新线前往更远的地方，所以它们在很大程度上是接驳线路。Boon Lay 今天没有换乘，届时每日将有 `r rnd(MC$xfer$after[MC$xfer$station_name == "Boon Lay"], 1000)` 次，而其进站量变化 `r chg(stn("Boon Lay", "chg_closed"))`。Hougang、Ang Mo Kio 与 Choa Chu Kang 各增加约 `r rnd(mean(MC$xfer$change[MC$xfer$station_name %in% c("Hougang", "Ang Mo Kio", "Choa Chu Kang")]), 1000)` 次。换乘惩罚加倍后，Boon Lay 的增量仍有 `r rnd(MC$xfer$change10[MC$xfer$station_name == "Boon Lay"], 1000)` 次。
+
+在区段上，裕廊区域线缓解了两条最老线路的西端（Jurong East 至 Chinese Garden `r chg(MC$links$pct[MC$links$a_name == "Jurong East" & MC$links$b_name == "Chinese Garden"])`，Jurong East 至 Bukit Batok `r chg(MC$links$pct[MC$links$a_name == "Jurong East" & MC$links$b_name == "Bukit Batok"])`），但缓解止于 Jurong East：Clementi 至 Jurong East 只变化 `r chg(MC$links$pct[MC$links$a_name == "Clementi" & MC$links$b_name == "Jurong East"])`。跨岛线减轻了环线的负荷（Serangoon 至 Lorong Chuan `r chg(MC$links$pct[MC$links$a_name == "Serangoon" & MC$links$b_name == "Lorong Chuan"])`），并增加 Pasir Ris 以南的负荷（`r chg(MC$links$pct[MC$links$a_name == "Pasir Ris" & MC$links$b_name == "Tampines"])`）。乘客公里基本持平，每日 `r num(MC$pkm$after / 1e6, 2)` 百万对 `r num(MC$pkm$base / 1e6, 2)` 百万。这些负荷比较的是简单分配下的两个网络，不含拥挤与路径选择，并不预测任何区段的拥挤程度。
+:::

@@ -1,0 +1,38 @@
+# <span class="en">Limitations</span><span class="zh">局限</span> {#sec-limits}
+
+::: {.en}
+**A cross-section, not a change.** Everything rests on two months of one network. The model says that a station with more retail has more riders, not that adding retail adds riders, and
+a new line's effect on existing stations is inferred from how stations compete today. It has not been observed. DataMall keeps only the three latest months, so no earlier opening could be used to test the prediction.
+
+**Land use is today's.** Attraction variables at proposed stations describe what stands there now. Tengah and the Jurong Innovation District will change, and the shops and bus services that follow new
+homes are not modelled. As Buangkok shows, ridership can eventually bear little relation to what surrounded a station on opening day.
+
+**Demand is measured indirectly.** Residents date from June 2024, with later HDB blocks estimated. The counts cover citizens and permanent residents,
+so other non-residents are left out, and the dormitory column reaches only those who live in buildings OSM tags as dormitories. Workplace footprint has no heights, so the CBD is understated, and OSM's mapping varies from place to place. The morning split
+of ridership is a proxy, and the activity end's weak decay estimate reflects it.
+
+**Distance is a straight line.** Rivers, expressways and the sprawling Tuas and Jurong estates make walking routes longer than the crow flies. Feeder buses are the real access mode for many residents, and
+their routes are not modelled, only the bus stop count, and that count turned out to carry no signal. A station's attractiveness does not include frequency, crowding or fares. Rail times in the
+graph assume uniform speeds.
+
+**Scope of the prediction.** Tap-ins exclude transfers, so these are not line ridership figures. They cannot be compared with LTA's estimate of more than 600,000 daily riders on the whole Cross Island Line
+[@lta_crl], which covers more phases and counts differently. Stations outside the brief's scope, such as Cross Island Line Phase 2, change the picture later, particularly around Jurong East and Clementi.
+
+**Inference.** Bootstrap intervals treat stations as independent, and residuals are weakly clustered (§7), so intervals are somewhat too narrow.
+The hold-out exercise tests lines in a network that already exists, and a new line's competitive position may differ. The maximum access distance was chosen partly on plausibility
+rather than on a score, which is a judgement and is shown as one. At the low end, the model overpredicts stations with very few riders, so a station's risk of low ridership is more likely understated.
+:::
+
+::: {.zh}
+**是截面，不是变化。** 一切都基于同一网络的两个月数据。模型说的是零售更多的车站乘客更多，而不是增加零售就会增加乘客；新线对既有车站的影响是由今天车站之间的竞争推断的，并未被观测到。DataMall 只保留最近三个月的数据，所以无法用此前的任何一次开通来检验这一预测。
+
+**土地利用是当前的。** 拟建车站的吸引力变量描述的是那里现在的情况。登加与裕廊创新区将会改变，随新住宅而来的商店与公交服务并未被建模。正如 Buangkok 所示，客流最终可能与车站开放时的周边情况几乎无关。
+
+**需求是间接测量的。** 居民数据截至 2024 年 6 月，此后的 HDB 组屋为估计值。统计只涵盖公民与永久居民，其他非居民未计入；宿舍字段只覆盖住在 OSM 标记为宿舍的建筑中的人。工作场所占地没有高度，所以 CBD 被低估，OSM 的测绘也因地而异。客流的早高峰拆分是一种代理指标，活动端衰减估计较弱正反映了这一点。
+
+**距离是直线。** 河流、高速公路以及大片的大士与裕廊工业区使步行路线比直线更长。接驳公交是许多居民真正的到达方式，其线路未被建模，只有公交站数量，而这一数量并没有带来信号。车站吸引力不包括班次、拥挤或票价。网络图中的轨道时间假定速度一致。
+
+**预测的范围。** 进站量不包括换乘，所以这些不是线路客流数字，不能与 LTA 对整条跨岛线每日超过 600,000 人次的估计比较 [@lta_crl]，后者涵盖更多阶段，统计口径也不同。题目范围之外的车站，如跨岛线第二期，之后会改变这一图景，尤其是 Jurong East 与 Clementi 一带。
+
+**推断。** 自助法区间假定车站相互独立，而残差存在微弱聚集（§7），所以区间略显偏窄。留出检验测试的是已存在网络中的线路，新线的竞争地位可能不同。最大到达距离的选择部分基于合理性而非分数，这是一种判断，也如实呈现为判断。在低端，模型高估了乘客极少的车站，所以车站的低客流风险更可能被低估。
+:::

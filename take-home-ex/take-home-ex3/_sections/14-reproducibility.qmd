@@ -1,0 +1,169 @@
+# <span class="en">Reproducibility appendix</span><span class="zh">可复现性附录</span> {#sec-repro}
+
+## <span class="en">How to reproduce this report</span><span class="zh">如何复现本报告</span>
+
+::: {.en}
+The exercise is a self-contained folder inside the course's Quarto website. Every path in the scripts and the report is relative to
+`take-home-ex/take-home-ex3/`, and the scripts are run from there. The report renders from `data/derived/` alone, so the steps below are only needed to rebuild the analysis.
+:::
+
+::: {.zh}
+本作业是课程 Quarto 网站中一个自包含的文件夹。脚本与报告中的每个路径都相对于 `take-home-ex/take-home-ex3/`，脚本也从这里运行。报告只依赖 `data/derived/` 即可渲染，所以下面的步骤只在需要重建分析时才用。
+:::
+
+```bash
+# 0. Data DataMall will not serve to a script. From a browser, into data/raw/lta/:
+#      TrainStation_Sep2026.zip, and BusStopLocation_Mar2026.zip
+#    Passenger volumes need your own DataMall AccountKey, asked for at a hidden prompt
+#    (the months available move forward: DataMall keeps only the latest three):
+powershell -ExecutionPolicy Bypass -File scripts/00_fetch_lta.ps1   # Windows
+LTA_KEY=your-key bash scripts/00_fetch_lta.sh 202607 202608 202609   # elsewhere
+
+#    Into data/raw/hdb/ and data/raw/osm/: HDB Existing Building, HDB Property Information,
+#    and the Geofabrik extract for Malaysia, Singapore and Brunei.
+
+# 1. Preparation
+Rscript scripts/01_markets.R      # HDB crosswalk, residents, hexagon grid
+Rscript scripts/02_stations.R     # physical stations, attraction variables, activity markets
+Rscript scripts/03_ridership.R    # calendar, reference period, OD against station volumes
+Rscript scripts/04_frames.R       # the spatial interaction data frames
+
+# 2. Analysis
+Rscript scripts/05_calibrate.R    # model ladder, hold-out, profiles, null, bootstrap, MCI check
+Rscript scripts/06_scenario.R     # proposed network, impact, market areas, sensitivity
+Rscript scripts/07_mci.R          # value-added: MCI on OD shares, transfers, link loads
+Rscript scripts/08_report_data.R  # compact file the report reads
+
+# 3. From the site root
+quarto render take-home-ex/take-home-ex3/take-home-ex3.qmd
+quarto render take-home-ex/take-home-ex3/take-home-ex3-slides.qmd
+```
+
+::: {.en}
+From an empty cache, `05_calibrate.R` is the slowest, at more than ten minutes on a 16-core desktop with 8 worker processes. The scripts with random draws set `set.seed(1234)`, and the parallel draws set their own
+fixed seeds, so results are identical on rerun. `data/cache/` holds the slow results and can be deleted to force recomputation.
+
+Of the data, the raw volumes, the HDB footprints and the OSM extract are not committed, because of size; the aggregated results the report reads are.
+:::
+
+::: {.zh}
+缓存为空时，`05_calibrate.R` 最慢，在 16 核台式机上用 8 个工作进程需要十分钟以上。含随机抽样的脚本设置了 `set.seed(1234)`，并行抽样也使用各自固定的种子，所以重新运行结果相同。`data/cache/` 保存耗时的结果，可以删除以强制重新计算。
+
+原始客流数据、HDB 建筑轮廓与 OSM 提取文件因体积原因未提交；报告读取的聚合结果已提交。
+:::
+
+## <span class="en">Workflow</span><span class="zh">工作流</span>
+
+```{mermaid}
+%%| fig-width: 8
+flowchart LR
+  A([HDB, population, OSM]) --> S1["01_markets.R<br/><i>crosswalk, residents, grid</i>"]
+  B([Station layer, coordinates,<br/>bus stops, OSM]) --> S2["02_stations.R<br/><i>stations, attraction</i>"]
+  C([DataMall volumes]) --> S3["03_ridership.R<br/><i>calendar, reference period</i>"]
+  S1 --> S2
+  S1 --> S4["04_frames.R<br/><i>interaction frames, rail time</i>"]
+  S2 --> S4
+  S3 --> S4
+  S4 --> S5["05_calibrate.R<br/><i>ladder, hold-out, bootstrap</i>"]
+  S5 --> S6["06_scenario.R<br/><i>prediction, impact</i>"]
+  S6 --> S7["07_mci.R<br/><i>destinations, transfers</i>"]
+  S5 --> S8["08_report_data.R"]
+  S6 --> R([Report and slides])
+  S7 --> R
+  S8 --> R
+```
+
+## <span class="en">Software</span><span class="zh">软件</span>
+
+```{r}
+#| label: session
+#| code-fold: true
+
+pk <- c("sf", "dplyr", "tidyr", "purrr", "stringr", "readr", "ggplot2", "patchwork", "ggrepel", "gt", "igraph", "spdep", "MCI")
+tibble(package = pk, version = vapply(pk, \(p) as.character(packageVersion(p)), "")) |>
+  mutate(role = c("Vector data and CRS", "Wrangling", "Reshaping", "Iteration", "Strings", "Import", "Charts and maps", "Composition",
+                  "Labels", "Tables", "Rail graph, assignment", "Moran's I on residuals", "Huff and MCI, cross-check")) |>
+  gt() |>
+  tab_options(table.font.size = px(12.5))
+R.version.string
+```
+
+## <span class="en">The code</span><span class="zh">代码</span>
+
+::: {.en}
+Scripts are reproduced in full so that the report documents itself.
+:::
+
+::: {.zh}
+脚本全文收录，使报告能够自我说明。
+:::
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "R/huff.R"
+#| file: R/huff.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "R/rail.R"
+#| file: R/rail.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/01_markets.R"
+#| file: scripts/01_markets.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/02_stations.R"
+#| file: scripts/02_stations.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/03_ridership.R"
+#| file: scripts/03_ridership.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/04_frames.R"
+#| file: scripts/04_frames.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/05_calibrate.R"
+#| file: scripts/05_calibrate.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/06_scenario.R"
+#| file: scripts/06_scenario.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/07_mci.R"
+#| file: scripts/07_mci.R
+```
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "scripts/08_report_data.R"
+#| file: scripts/08_report_data.R
+```

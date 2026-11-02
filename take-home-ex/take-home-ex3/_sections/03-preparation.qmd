@@ -1,0 +1,313 @@
+# <span class="en">Data preparation and quality assessment</span><span class="zh">数据准备与质量评估</span> {#sec-prep}
+
+::: {.en}
+Preparation is carried out by `scripts/01_markets.R`, `02_stations.R`, `03_ridership.R` and
+`04_frames.R`, reproduced in full in @sec-repro. All of it is in SVY21 (EPSG 3414), the
+national projected system, in which distances are in metres. This section explains the
+decisions that would have changed the results, each found by checking the data rather
+than by reading its documentation. @tbl-mines lists them.
+:::
+
+::: {.zh}
+数据准备由 `scripts/01_markets.R`、`02_stations.R`、`03_ridership.R` 与 `04_frames.R` 完成，全文收录于
+@sec-repro。所有处理都在新加坡的投影坐标系 SVY21（EPSG 3414）下进行，距离单位为米。本节说明那些会改变结果的决策，
+它们都是通过检查数据、而不是阅读说明文档发现的。@tbl-mines 列出了这些问题。
+:::
+
+```{r}
+#| label: tbl-mines
+#| tbl-cap: "<span class='en'>Problems found in the data, what each would have done if left alone, and how it was handled.</span><span class='zh'>数据中发现的问题、不处理会造成的后果，以及处理方式。</span>"
+#| echo: false
+
+tribble(
+  ~Source, ~Problem, ~`If left alone`, ~Handling,
+  "HDB", "Footprints carry a street code (YIR00Z), dwellings a street name (YISHUN RING RD); no key links them", "No dwelling counts on the map", "Crosswalk recovered from shared block numbers (below)",
+  "HDB", paste(AM$res_no_footprint, "blocks completed in 2026 have no footprint yet"), paste(n_fmt(AM$res_no_footprint_du), "flats missing"), "Placed at the centre of their street; 2026 blocks kept out of the base market",
+  "Population", "June 2024 count predates blocks completed since", "New estates empty, old ones overfull", "Later blocks given the island-wide persons per flat of their type",
+  "Population", paste0(pct(100 * AM$share_private), " of residents live outside HDB, and no official layer locates them"), "Bukit Timah and the east coast look empty", "Placed on OSM private housing of the right type",
+  "Stations", "Layer holds 15 depots and ancillary buildings among its polygons", "Stations with no passengers", "Kept only codes that are station codes",
+  "Stations", "Layer includes four built but closed stations", "Zero-ridership stations in calibration", "Excluded, and kept out of both networks",
+  "Stations", "Coordinate list from March 2026 still calls Circle Line Stage 6 future", "Three open stations missing", "Reclassified from the September layer and LTA's page",
+  "OD and volumes", "Stage 6 renumbered Marina Bay and Bayfront, so both spellings appear; Stevens is reported as two nodes", "Three stations each split in two", "Merged to physical stations: 187 node codes become 184",
+  "OD and volumes", "Monthly totals: August has 20 weekdays, July 23", "August looks 12% lower on weekdays", "Converted to daily averages by a calendar with National Day's holiday",
+  "OD and volumes", "Stage 6 opened on 12 July", "Partial month, and a network adjusting", "Reference period is August and September",
+  "OD and volumes", paste0("OD totals are ", pct(100 * AR$od_to_node), " of tap-ins, as low as ", pct(100 * AR$od_ratio_range[1]), " at one station"), "Understated ridership", "Observed ridership taken from the station file",
+  "Bus stops", paste(AS$bus_dup, "codes entered twice;", nrow(AS$bus_outside), "stops are in Johor Bahru"), "Inflated counts", paste(n_fmt(AS$bus_clean), "stops kept"),
+  "Proposed lines", "Seven of the 36 proposed codes are at existing stations", "Same gates counted as new stations", "Treated as existing stations gaining a line",
+  "All layers", "Invalid polygons (6 subzones, 4 buildings); station and bus layers have SVY21 with no EPSG code", "Spatial joins fail or drop features", "Repaired; CRS set explicitly"
+) |>
+  gt() |>
+  cols_width(Source ~ px(90), Problem ~ px(270), `If left alone` ~ px(160), Handling ~ px(240)) |>
+  tab_options(table.font.size = px(12))
+```
+
+## <span class="en">Local market potential</span><span class="zh">本地市场潜力</span> {#sec-prep-market}
+
+### <span class="en">Linking dwellings to buildings</span><span class="zh">把住宅单位连接到建筑</span>
+
+::: {.en}
+The brief recommends HDB Existing Building, but the layer has footprints and no dwellings.
+Dwellings are in a separate property table, whose street names do not match the layer's
+street codes, and no published table links the two. The block numbers do, because a code
+and a name that list the same set of blocks are the same street. Block numbers repeat
+across the island, so overlap alone can tie (KG KAYU RD has one block, and many streets have
+a block of that number); the code's letters, which abbreviate the street, break the ties.
+:::
+
+::: {.zh}
+题目推荐使用 HDB Existing Building，但该图层只有建筑轮廓，没有住宅单位数。住宅单位数在另一张房产表中，而表中的街道
+名称与图层的街道代码并不对应，也没有公开的对照表。门牌号却能把二者连接起来：列出相同门牌号集合的代码与名称，就是
+同一条街。门牌号在全岛会重复，所以只看重合可能出现并列（KG KAYU RD 只有一栋楼，而许多街道都有同号的楼）；代码的
+字母是街名的缩写，可以用来打破并列。
+:::
+
+```{r}
+#| label: crosswalk-code
+#| eval: false
+#| code-summary: "The street crosswalk (from scripts/01_markets.R)"
+
+pairs <- st_drop_geometry(bld) |>
+  select(blk, ST_COD) |>
+  inner_join(select(prop, blk, street), by = "blk", relationship = "many-to-many") |>
+  count(ST_COD, street, name = "n_common") |>
+  left_join(n_cod, by = "ST_COD") |>
+  left_join(n_str, by = "street") |>
+  mutate(jaccard = n_common / (n_cod + n_str - n_common),   # overlap of the two block sets
+         letters = mapply(prefix_score, ST_COD, street),    # do the code's letters fit the name?
+         score   = jaccard + 0.5 * letters) |>
+  arrange(desc(score), desc(n_common))
+# ...then a one-to-one assignment, best pair first.
+```
+
+```{r}
+#| label: crosswalk-result
+#| echo: false
+
+cw |>
+  arrange(desc(n_common)) |>
+  select(ST_COD, street, n_common, n_cod, n_str, jaccard) |>
+  head(4) |>
+  bind_rows(cw |> arrange(jaccard) |> select(ST_COD, street, n_common, n_cod, n_str, jaccard) |> head(2)) |>
+  gt() |>
+  fmt_number(jaccard, decimals = 2) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+The crosswalk assigns `r AM$cw_assigned` of `r AM$cw_codes` street codes, `r AM$cw_perfect` of them with identical
+block sets (Jaccard 1), which leaves little room for coincidence; the table shows the largest
+matches and the two weakest. The weak ones are streets that gained blocks after the
+footprint layer was revised, such as Tengah Garden Avenue. The four unassigned codes hold
+`r AM$bld_n - AM$bld_matched` footprints with no property record, and none is a block with
+dwellings. Every residential block without a footprint was completed in 2026.
+:::
+
+::: {.zh}
+对照表为 `r AM$cw_codes` 个街道代码中的 `r AM$cw_assigned` 个找到了匹配，其中 `r AM$cw_perfect` 个的门牌号集合完全相同
+（Jaccard 为 1），偶然巧合的余地很小；表中列出了最大的匹配和最弱的两个。较弱的是建筑图层更新后又增加了楼栋的街道，例如
+Tengah Garden Avenue。4 个未匹配代码共有 `r AM$bld_n - AM$bld_matched` 个没有房产记录的建筑，其中没有含住宅单位的楼。
+所有没有建筑轮廓的住宅楼都是 2026 年竣工的。
+:::
+
+```{r}
+#| label: pa-check
+#| include: false
+
+# Allocated residents by planning area, against the June 2024 table.
+pa_off <- readr::read_csv("data/raw/popn/respopagesextod2024.csv", show_col_types = FALSE) |>
+  group_by(PA = toupper(PA)) |>
+  summarise(official = sum(Pop), .groups = "drop")
+pa_alloc <- readRDS(file.path(DER, "people_points.rds")) |>
+  st_as_sf(coords = c("x", "y"), crs = 3414) |>
+  st_join(select(st_make_valid(sz), PA), join = st_within) |>
+  st_drop_geometry() |>
+  group_by(PA = toupper(PA)) |>
+  summarise(alloc = sum(res), .groups = "drop")
+pa_chk <- inner_join(pa_off, pa_alloc, by = "PA") |> filter(official > 0)
+```
+
+### <span class="en">Placing residents</span><span class="zh">定位居民</span>
+
+::: {.en}
+Dwellings are not people, and HDB is not everyone. The June 2024 population table gives
+residents by subzone and dwelling type, `r n_fmt(AM$pop_total)` in all. HDB residents are spread over
+blocks within each subzone and flat type, so a subzone's four-room residents go to its
+four-room flats. Blocks completed after the reference date receive the island-wide figure
+for their type (from `r num(AM$ppf_city$ppf_city[1])` persons a flat for one- and two-room flats to `r num(AM$ppf_city$ppf_city[4])`
+for five-room and executive flats), because the ridership being modelled dates from 2026.
+
+Residents of condominiums and landed houses, `r pct(100 * AM$share_private)` of the total, are placed on
+OpenStreetMap buildings: apartments by footprint and houses by count, within each subzone,
+after removing `r n_fmt(AM$osm_b_on_hdb)` OSM buildings that are HDB blocks. `r pct(100 * AM$priv_by_tier$res[AM$priv_by_tier$tier == "same type"] / AM$priv_total)`
+of them land on buildings of the right type. Allocated residents total `r n_fmt(AM$res_in_hex)`, the
+official count plus the estimate for new blocks, by construction. Planning-area totals correlate with the
+official ones at `r num(cor(pa_chk$official, pa_chk$alloc), 4)`. Because residents are allocated within subzones, that shows nothing was lost,
+not that everyone was placed on the right building. The largest gap is the intended one: Tengah has
+`r n_fmt(pa_chk$alloc[pa_chk$PA == "TENGAH"])` residents against `r n_fmt(pa_chk$official[pa_chk$PA == "TENGAH"])` in June 2024, because most of its flats are newer than the count. @fig-market maps the result.
+:::
+
+::: {.zh}
+住宅单位不等于人，HDB 也不等于所有人。2024 年 6 月的人口表按分区与住宅类型给出居民数，合计 `r n_fmt(AM$pop_total)` 人。
+HDB 居民在每个分区内按房型分配到各楼栋，也就是一个分区的四房式居民被分到该分区的四房式单位。人口基准日之后竣工的
+楼栋则采用全岛同类房型的平均数（从一、二房式每户 `r num(AM$ppf_city$ppf_city[1])` 人到五房式与公寓式每户
+`r num(AM$ppf_city$ppf_city[4])` 人），因为所建模的客流来自 2026 年。
+
+居住在共管公寓与有地住宅的居民占 `r pct(100 * AM$share_private)`，他们被分配到 OpenStreetMap 建筑上：在每个分区内，公寓按
+占地面积、独立住宅按栋数，并先剔除 `r n_fmt(AM$osm_b_on_hdb)` 栋实为 HDB 组屋的 OSM 建筑。其中
+`r pct(100 * AM$priv_by_tier$res[AM$priv_by_tier$tier == "same type"] / AM$priv_total)` 落在类型正确的建筑上。分配后的居民合计
+`r n_fmt(AM$res_in_hex)` 人，这一总数按构造就等于官方人口加上新楼栋的估计数。规划区总量与官方数字的相关系数为 `r num(cor(pa_chk$official, pa_chk$alloc), 4)`。
+由于居民是在小区内部分配的，这只说明没有遗漏，并不说明每个人都被安置到了正确的建筑上。最大的差距正是有意为之：登加有 `r n_fmt(pa_chk$alloc[pa_chk$PA == "TENGAH"])` 名居民，而 2024 年 6 月的数字为 `r n_fmt(pa_chk$official[pa_chk$PA == "TENGAH"])`，因为那里的大多数组屋都比这次统计更新。@fig-market 显示了结果。
+:::
+
+### <span class="en">Markets that are not homes</span><span class="zh">不是住所的市场</span>
+
+::: {.en}
+A station also fills from places where people are not at home. Two activity columns come
+from OpenStreetMap: footprint area of `r n_fmt(AS$work_n)` workplace buildings (offices, shops, factories,
+schools, hospitals) and a count of `r n_fmt(AS$poi_n)` points of interest, with street furniture such as
+benches and vending machines left out. Dormitories get a column of their own (`r AS$dorm_n` buildings):
+their occupants are mostly foreign workers and students, who are outside the resident count
+but very much on the trains. OSM has no building heights, so footprint understates the
+tall offices of the CBD, a bias discussed in @sec-calib.
+:::
+
+::: {.zh}
+车站的客流也来自人们不在家的地方。OpenStreetMap 提供了两个活动字段：`r n_fmt(AS$work_n)` 栋工作场所建筑（办公楼、商店、工厂、
+学校、医院）的占地面积，以及 `r n_fmt(AS$poi_n)` 个兴趣点的数量，其中剔除了长椅、自动售货机之类的街道设施。宿舍单独设一个
+字段（`r AS$dorm_n` 栋）：其住户多为外籍劳工与学生，不在居民统计之内，却是地铁的常客。OSM 没有建筑高度，所以占地面积低估了
+CBD 高层办公楼，@sec-calib 将讨论这一偏差。
+:::
+
+```{r}
+#| label: fig-market
+#| fig-cap: "<span class='en'>Local market potential by 500 m hexagon: residents at home (left) and workplace footprint (right).</span><span class='zh'>500 米六边形的本地市场潜力：居民（左）与工作场所占地面积（右）。</span>"
+#| fig-height: 3.9
+#| code-fold: true
+
+hm <- function(col, title, trans = "sqrt", lab = waiver(), br = waiver()) {
+  map_base(
+    geom_sf(data = filter(hex, .data[[col]] > 0), aes(fill = .data[[col]]), colour = NA),
+    net_layer("#44403c", .18)
+  ) +
+    scale_fill_gradientn(colours = RAMP_SEQ, trans = trans, labels = lab, breaks = br, name = NULL) +
+    labs(title = title) +
+    theme(legend.position = "bottom", legend.key.width = unit(1, "cm"), legend.key.height = unit(.25, "cm"))
+}
+hm("residents", "Residents", lab = comma) + hm("work_m2", "Workplace footprint (m²)", lab = comma, br = c(20000, 75000, 150000))
+```
+
+::: {.interp .en}
+**Homes and activity sit in different places, which a single market cannot represent.**
+Residents fill a ring of new towns, from Woodlands round through Punggol to Tampines and across
+to Jurong West. Workplace footprint concentrates in Jurong, Tuas and the northern industrial
+estates, far from those towns. The CBD barely registers on the right-hand map, despite being
+the country's largest employment centre, which is the height bias at work. Both facts shape the
+model. A station's ridership cannot be explained by one market, and this measure of activity
+is better at saying where activity is than how much of it there is.
+:::
+
+::: {.interp .zh}
+**住所与活动分布在不同地方，单一市场无法表示。** 居民集中在一圈新市镇：从兀兰经榜鹅到淡滨尼，再到裕廊西。工作场所占地
+则集中在裕廊、大士与北部工业区，远离这些市镇。CBD 虽是全国最大的就业中心，在右图中却几乎看不出来，这正是高度偏差的
+表现。这两点都影响建模：车站的客流无法用单一市场解释，而这个活动指标更善于说明活动在哪里，而不是有多少。
+:::
+
+## <span class="en">Observed ridership</span><span class="zh">观测客流</span> {#sec-prep-rid}
+
+::: {.en}
+A node code can name an interchange ("NS24/NE6/CC1"), and three stations appear under two.
+Circle Line Stage 6 opened on 12 July 2026 [@lta_ccl6] and renumbered Marina Bay and Bayfront
+(CE2 to CC33, CE1 to CC34), so both spellings are in the July file; Stevens is reported as
+separate nodes for its two lines. After merging, `r AR$raw_codes` node codes give `r AR$stations` stations,
+each of which appears in the data. Thomson-East Coast Line Stage 5 and Downtown Line Stage 3e
+do not appear, so they had not opened by September, and they are left out of both networks
+[@lta_tel].
+
+Monthly totals mislead because the calendar differs: on the face of it August's weekdays carry
+12% fewer tap-ins than July's, but August has 20 weekdays and July 23. Per day, the two months
+are within 1.4% of each other (@tbl-calendar). The months also agree closely station by
+station: August and September weekday ridership correlate at `r num(AR$stab_aug_sep_cor, 3)` on the log
+scale, and the median station moves by `r pct(100 * AR$stab_aug_sep_mape)`.
+:::
+
+::: {.zh}
+节点代码可以表示一个换乘站（"NS24/NE6/CC1"），而有三个车站以两个节点出现。环线第六期于 2026 年 7 月 12 日开通
+[@lta_ccl6]，并为滨海湾与海湾舫重新编号（CE2 改为 CC33，CE1 改为 CC34），所以 7 月的文件中两种写法都有；Stevens 则按
+两条线路分别报告为两个节点。合并之后，`r AR$raw_codes` 个节点代码对应 `r AR$stations` 个车站，每个车站都出现在数据中。
+汤东线第五期与滨海市区线 3e 期没有出现，说明到 9 月尚未开通，因此两个网络都不包含它们 [@lta_tel]。
+
+月度总量具有误导性，因为日历不同：表面上 8 月工作日的进站量比 7 月少 12%，但 8 月只有 20 个工作日，7 月有 23 个。
+按日计算，两个月相差不超过 1.4%（@tbl-calendar）。各月在单站层面也高度一致：8、9 月工作日客流在对数尺度上的相关系数为
+`r num(AR$stab_aug_sep_cor, 3)`，单站变动的中位数为 `r pct(100 * AR$stab_aug_sep_mape)`。
+:::
+
+```{r}
+#| label: tbl-calendar
+#| tbl-cap: "<span class='en'>Tap-ins by month and day type. The per-day column removes the calendar. Monday 10 August 2026 is a public holiday, because National Day falls on a Sunday.</span><span class='zh'>按月份与日类型统计的进站量。每日列消除了日历的影响。2026 年 8 月 10 日（周一）为公共假日，因为国庆日适逢周日。</span>"
+#| echo: false
+
+AR$month_check |>
+  transmute(Month = YEAR_MONTH, `Day type` = DAY_TYPE, `Tap-ins` = tap_in, Days = days, `Per day` = per_day) |>
+  gt() |>
+  fmt_number(c(`Tap-ins`, `Per day`), decimals = 0) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+**The reference period** is August and September. July is left out, because Stage 6 has a
+partial month in it and the rest of the network was still adjusting to a closed circle. The
+OD file falls short of the station file because it records only completed journeys, and a
+tap-in with no matching tap-out cannot be in it, so the station file is the source of
+observed ridership and the OD file is used only for destination shares.
+:::
+
+::: {.zh}
+**基准期**取 8、9 月。7 月被排除，因为其中第六期只有部分月份，而全网也还在适应环线闭合。OD 文件的总量低于车站文件，因为它只
+记录完整的行程，没有对应出站的进站不会出现在其中，所以观测客流取自车站文件，OD 文件只用于目的地份额。
+:::
+
+## <span class="en">Attraction variables</span><span class="zh">吸引力变量</span> {#sec-prep-attr}
+
+::: {.en}
+Attraction variables are measured the same way for existing and proposed stations, because a
+proposed station has nothing else to be predicted from. They are the number of bus stops, retail
+and service points of interest, and food points of interest within 400 m; whether a station has
+only LRT; how many lines beyond the first it has; and rail time to Raffles Place. The last comes from a
+graph of the network, with distance over an assumed running speed (35 km/h for MRT, 30 for the
+Jurong Region Line, 20 for LRT, including stops) and a 5-minute penalty for each change. It
+has to be recalculated for the proposed network, because the new lines shorten it for some
+existing stations.
+:::
+
+::: {.zh}
+吸引力变量在既有车站与拟建车站上按同样方式测量，因为拟建车站没有其他依据可供预测。它们包括 400 米内的公交站数量、零售与
+服务类兴趣点数量、餐饮类兴趣点数量；车站是否只有轻轨；除第一条线路外还有几条线路；以及到 Raffles Place 的轨道时间。最后一项来自
+铁路网图：距离除以假定的运行速度（地铁 35 公里/小时、裕廊区域线 30、轻轨 20，均已包含停站），每次换乘加 5 分钟。拟建网络下需要
+重新计算，因为新线缩短了部分既有车站的这一时间。
+:::
+
+## <span class="en">The data frames the brief asks for</span><span class="zh">题目要求的数据框</span> {#sec-prep-frames}
+
+::: {.en}
+Four tables come out of preparation. The two interaction frames share their column names, as
+MCI's functions require: `si_existing` has `r n_fmt(AF$n_pairs_existing)` origin-destination pairs and
+`si_proposed` has `r n_fmt(AF$n_pairs_proposed)`. `origins` holds the local market potential and
+`dest_existing` the observed ridership and attraction variables. The attractiveness columns
+are filled in after calibration.
+:::
+
+::: {.zh}
+数据准备产生四张表。两个交互数据框的列名相同，这是 MCI 函数的要求：`si_existing` 有 `r n_fmt(AF$n_pairs_existing)` 对起讫点，
+`si_proposed` 有 `r n_fmt(AF$n_pairs_proposed)` 对。`origins` 保存本地市场潜力，`dest_existing` 保存观测客流与吸引力变量。
+吸引力列在校准后填入。
+:::
+
+```{r}
+#| label: frames-preview
+
+si_e |> filter(in_range) |> slice_sample(n = 3)
+si_p |> filter(destination %in% NT$destination, in_range) |> slice_sample(n = 3)
+origins |> select(origin, residents, res_private, hdb_du, dorm_m2, work_m2, poi) |> slice_max(residents, n = 3)
+dE |> select(destination, station_name, daily_in, phi, T_H, T_W, bus_400, retail_400, food_400, lrt, ic, min_cbd) |>
+  slice_max(daily_in, n = 3)
+```

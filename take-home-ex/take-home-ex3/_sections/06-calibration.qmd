@@ -1,0 +1,288 @@
+# <span class="en">Calibrating the model</span><span class="zh">校准模型</span> {#sec-calib}
+
+## <span class="en">From a reference model upwards</span><span class="zh">从参照模型逐步建立</span> {#sec-calib-ladder}
+
+::: {.en}
+Models are built up from simple reference points, and each is scored twice. The in-sample R² on
+the log scale says how well it describes the stations it was calibrated on. The hold-out score
+says more: each line in turn has its stations removed from the network, the model is calibrated
+without them, they are then added back as if newly built, and their ridership is
+predicted. A station stays out only if it serves no other line, which gives nine folds and
+`r sum(!is.na(RP$residuals_tbl$fold))` held-out stations. This is the closest available imitation of the real task.
+:::
+
+::: {.zh}
+模型从简单的参照点逐步建立，每个模型都打两个分数。对数尺度上的样本内 R² 说明它对参与校准的车站描述得如何。留出分数更能说明问题：
+依次把每条线路的车站从网络中移除，在没有它们的情况下校准模型，再把它们当作新建车站加回去并预测其客流。只有不服务其他线路的车站才会被留出，
+这样共有九折、`r sum(!is.na(RP$residuals_tbl$fold))` 个留出车站。这是对真实任务最接近的模拟。
+:::
+
+```{r}
+#| label: fig-ladder
+#| fig-cap: "<span class='en'>R² on the log scale for each model, in sample and on lines held out. Models scoring below zero do worse than giving every station the same ridership; the axis is cut at -0.5 and M0's -6.3 and -5.1 are off the scale.</span><span class='zh'>各模型对数尺度上的 R²，包括样本内与留出线路。低于零的模型还不如给所有车站相同的客流；坐标轴截于 -0.5，M0 的 -6.3 与 -5.1 超出范围。</span>"
+#| fig-height: 4.3
+#| code-fold: true
+
+lt <- LT |>
+  mutate(model = fct_rev(fct_inorder(model)),
+         selected = grepl("selected", model))
+ggplot(lt, aes(y = model)) +
+  geom_vline(xintercept = 0, colour = PAL$grey_l) +
+  geom_segment(aes(x = pmax(lolo_r2, -.5), xend = pmax(insample, -.5), yend = model), colour = PAL$grey_l) +
+  geom_point(aes(x = pmax(insample, -.5), colour = "In sample"), size = 2.4) +
+  geom_point(aes(x = pmax(lolo_r2, -.5), colour = "Line held out"), size = 2.4) +
+  geom_text(aes(x = pmax(lolo_r2, -.5), label = sprintf("%.2f", lolo_r2)), hjust = 1.4, size = 2.7, colour = PAL$new) +
+  scale_colour_manual(values = c("In sample" = "#a8a29e", "Line held out" = PAL$new), name = NULL) +
+  scale_x_continuous(limits = c(-.62, .85)) +
+  labs(x = "R² on the log scale", y = NULL) +
+  theme_th(10) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+::: {.interp .en}
+**Distance alone explains nothing here, and the climb comes from three separate ideas.** Assigning
+everyone to their nearest station (M0) is far worse than guessing the mean. A Huff model with equal
+attractiveness and the conventional exponent of −2 (M1) still falls below zero, and if its exponent is
+left free it drifts to `r num(lad("M2")$lambda)`, a positive value that makes no behavioural sense. The reason
+is that attractiveness differs enormously: the median LRT station carries about a fifth of the median
+MRT station's tap-ins, often in the same dense towns. Adding mode and interchange (M3) reaches `r num(lad("M3")$lolo_r2)` on held-out lines, the
+surrounding retail and food `r num(lad("M4")$lolo_r2)`, and non-residential markets `r num(lad("M5")$lolo_r2)`. Treating the two ends
+of a trip separately and adding rail time (M6, M7) brings the score to `r num(lad("M7")$lolo_r2)`.
+
+The selected model (M8) then gives some of that back, to `r num(lad("M8 ")$lolo_r2)`, for the reason §6.2 sets out.
+Even so, it clearly beats a direct regression on the same variables, at `r num(lad("DRM")$lolo_r2)`, although the
+regression holds its own in sample (`r num(lad("DRM")$insample)`). Competition between stations matters most
+when predicting stations that did not exist during calibration.
+:::
+
+::: {.interp .zh}
+**单靠距离在这里什么也解释不了，提升来自三个不同的思路。** 把每个人分配给最近车站（M0）比直接猜平均值差得多。吸引力相同、取常规指数 −2 的
+Huff 模型（M1）仍低于零；若放开指数，它会漂移到 `r num(lad("M2")$lambda)`，这个正值在行为上毫无意义。原因是吸引力差异极大：轻轨车站进站量的中位数只有地铁车站的约五分之一，而它们常常位于同样密集的市镇。
+加入制式与换乘（M3）后，留出线路上的分数达到 `r num(lad("M3")$lolo_r2)`，加入周边零售与餐饮后为 `r num(lad("M4")$lolo_r2)`，加入非居住市场后为 `r num(lad("M5")$lolo_r2)`。
+把出行两端分开处理并加入轨道时间（M6、M7），分数升到 `r num(lad("M7")$lolo_r2)`。
+
+入选模型（M8）则退回到 `r num(lad("M8 ")$lolo_r2)`，原因见 §6.2。即便如此，它仍明显优于基于相同变量的直接回归（`r num(lad("DRM")$lolo_r2)`），尽管回归在样本内表现尚可（`r num(lad("DRM")$insample)`）。
+在预测校准时不存在的车站时，车站之间的竞争最为重要。
+:::
+
+```{r}
+#| label: tbl-ladder
+#| tbl-cap: "<span class='en'>The model ladder. Lambda is one exponent for single-purpose models and home / activity for two-purpose ones. MAPE is the median absolute percentage error on held-out stations; rho is the rank correlation there.</span><span class='zh'>模型阶梯。单目的模型只有一个指数，双目的模型为居住端 / 活动端。MAPE 是留出车站的绝对百分比误差中位数；rho 是其秩相关。</span>"
+#| echo: false
+
+LT |>
+  transmute(Model = model, Group = group,
+            Lambda = ifelse(is.na(lambda_H), ifelse(is.na(lambda), "-", num(lambda)), paste0(num(lambda_H), " / ", num(lambda_W))),
+            Parameters = n_par, `In sample R2` = insample, `Held-out R2` = lolo_r2,
+            MAPE = lolo_mape, rho = lolo_rho) |>
+  gt() |>
+  fmt_number(c(`In sample R2`, `Held-out R2`, rho), decimals = 3) |>
+  fmt_percent(MAPE, decimals = 0) |>
+  tab_style(style = cell_text(weight = "bold"), locations = cells_body(rows = grepl("selected", Model))) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+::: {.en}
+Power decay beats exponential decay on held-out lines (`r num(lad("M8 ")$lolo_r2)` against `r num(lad("M8e")$lolo_r2)`). Fixing the exponent at
+−2, as Zhu et al. do [@zhu2021], costs little (`r num(lad("M8f")$lolo_r2)`), and −2 sits inside the home-end confidence
+interval, so that convention is supported for access from home. It is not supported for the
+activity end, where the data favour something flatter. The activity market is the weak part of
+the model, as @sec-calib-coef shows.
+:::
+
+::: {.zh}
+在留出线路上，幂函数衰减优于指数衰减（`r num(lad("M8 ")$lolo_r2)` 对 `r num(lad("M8e")$lolo_r2)`）。像 Zhu 等人那样把指数固定为 −2 [@zhu2021] 的代价很小（`r num(lad("M8f")$lolo_r2)`），而且 −2 落在居住端的置信区间内，所以这个惯例
+对从家出发的到达过程是成立的。但它对活动端不成立，那里的数据支持更平缓的衰减。活动市场是模型的薄弱环节，@sec-calib-coef 会说明这一点。
+:::
+
+## <span class="en">The best score is not the best model</span><span class="zh">分数最高的并非最好的模型</span> {#sec-calib-dmax}
+
+::: {.en}
+A model with no limit on access distance scores best on held-out lines, and that score is partly
+false comfort. With a power decay, a hexagon in Jurong keeps a small probability of using Raffles
+Place, 20 km away. Multiplied across the whole island, those small probabilities are how the model
+finds Raffles Place's ridership, and they mean a new station in Jurong takes riders from the CBD. A
+plausibility test that the hold-out score cannot supply is what happens at stations more than 8 km
+from any new station. They should not change. @fig-dmax shows both quantities as the maximum access
+distance varies.
+:::
+
+::: {.zh}
+不限制到达距离的模型在留出线路上得分最高，但这个分数部分是虚假的安慰。在幂函数衰减下，裕廊的一个六边形仍保留一个小概率去使用 20 公里外的
+Raffles Place。这些小概率累积到全岛，正是模型找到 Raffles Place 客流的方式，也意味着裕廊的新站会从 CBD 抢走乘客。留出分数无法提供的一个合理性检验，是看距任何新站 8 公里以上
+的车站会发生什么：它们本不应变化。@fig-dmax 显示了这两个量随最大到达距离变化的情况。
+:::
+
+```{r}
+#| label: fig-dmax
+#| fig-cap: "<span class='en'>The trade-off in the maximum access distance. Left: held-out R² on the log scale. Right: median change at existing stations more than 8 km from any new station, which should be zero.</span><span class='zh'>最大到达距离的权衡。左：留出线路的对数尺度 R²。右：距任何新站 8 公里以上的既有车站的变化中位数，这个值本应为零。</span>"
+#| fig-height: 3.2
+#| code-fold: true
+
+pd <- RP$prof_dmax |> mutate(lab = ifelse(is.finite(dmax), paste0(dmax, " km"), "None"), lab = fct_inorder(lab),
+                             sel = dmax == RP$DMAX)
+p1 <- ggplot(pd, aes(lab, lolo, group = 1)) + geom_line(colour = PAL$grey_l) +
+  geom_point(aes(colour = sel), size = 2.6, show.legend = FALSE) +
+  geom_text(aes(label = sprintf("%.3f", lolo)), vjust = -1, size = 2.7) +
+  scale_colour_manual(values = c(`TRUE` = PAL$new, `FALSE` = PAL$grey)) +
+  scale_y_continuous(limits = c(.58, .74)) +
+  labs(x = "Maximum access distance", y = "Held-out R²") + theme_th(10)
+p2 <- ggplot(pd, aes(lab, far_median, group = 1)) + geom_hline(yintercept = 0, colour = PAL$grey_l) + geom_line(colour = PAL$grey_l) +
+  geom_point(aes(colour = sel), size = 2.6, show.legend = FALSE) +
+  geom_text(aes(label = ifelse(abs(far_median) < .0005, "0%", chg(far_median, 1))), vjust = 1.9, size = 2.7) +
+  scale_colour_manual(values = c(`TRUE` = PAL$new, `FALSE` = PAL$grey)) +
+  scale_y_continuous(labels = percent, limits = c(-.13, .01)) +
+  labs(x = "Maximum access distance", y = "Median change beyond 8 km") + theme_th(10)
+p1 + p2
+```
+
+::: {.interp .en}
+**The limit trades a little fit for a result that can be believed.** With no limit, stations more than 8
+km from anything new change by a median of `r chg(RP$prof_dmax$far_median[!is.finite(RP$prof_dmax$dmax)])`. That effect has no plausible mechanism. It comes from the
+tail of the decay. A 5 km limit removes it, at a cost of `r num(RP$prof_dmax$lolo[!is.finite(RP$prof_dmax$dmax)] - RP$prof_dmax$lolo[RP$prof_dmax$dmax == 5])` in held-out R², and
+beyond that the score is nearly flat until 12 km. Five kilometres is also generous on its own
+terms: `r pct(100 * sum(AF$res_by_nearest[1:5]), 2)` of residents live within 3 km of a station, and a feeder bus covers the rest. Limits
+of 3 km and no limit are carried through §9.4, so the choice can be judged by its consequences.
+:::
+
+::: {.interp .zh}
+**这个限制用一点拟合度换来了可信的结果。** 不设限制时，距任何新站 8 公里以上的车站变化中位数为 `r chg(RP$prof_dmax$far_median[!is.finite(RP$prof_dmax$dmax)])`。这种效应没有合理的机制，只来自衰减函数的尾部。
+5 公里的限制消除了它，代价是留出 R² 下降 `r num(RP$prof_dmax$lolo[!is.finite(RP$prof_dmax$dmax)] - RP$prof_dmax$lolo[RP$prof_dmax$dmax == 5])`，再往上直到 12 公里，分数几乎持平。五公里本身也已足够宽松：`r pct(100 * sum(AF$res_by_nearest[1:5]), 2)` 的居民住在车站 3 公里以内，
+其余可由接驳公交覆盖。3 公里与不设限制这两种情形都保留到 §9.4，可以从后果来判断这一选择。
+:::
+
+## <span class="en">What makes a station attractive</span><span class="zh">是什么让车站具有吸引力</span> {#sec-calib-coef}
+
+```{r}
+#| label: fig-coef
+#| fig-cap: "<span class='en'>Calibrated parameters of the selected model, with 95% intervals from 300 Bayesian bootstrap draws. An interval crossing zero means the data do not establish the effect.</span><span class='zh'>入选模型的校准参数及基于 300 次贝叶斯自助抽样的 95% 区间。区间跨过零表示数据未能确证该效应。</span>"
+#| fig-height: 3.9
+#| code-fold: true
+
+term_lab <- c(lambda = "Distance exponent", l_bus = "Bus stops (log)", l_ret = "Retail and services (log)", l_food = "Food (log)",
+              lrt = "LRT only", ic = "Each extra line", l_cbd = "Rail time to CBD (log)")
+cf <- bind_rows(mutate(RP$coef_H, part = "Home end"), mutate(RP$coef_W, part = "Activity end")) |>
+  filter(term %in% names(term_lab)) |>
+  mutate(term = factor(term_lab[term], levels = rev(term_lab)), part = factor(part, c("Home end", "Activity end")))
+ggplot(cf, aes(estimate, term, colour = part)) +
+  geom_vline(xintercept = 0, colour = PAL$grey_l) +
+  geom_pointrange(aes(xmin = lo, xmax = hi), position = position_dodge(width = .55), size = .35, linewidth = .6) +
+  scale_colour_manual(values = c("Home end" = "#2166ac", "Activity end" = "#b2182b"), name = NULL) +
+  labs(x = "Estimate", y = NULL) +
+  theme_th(10)
+```
+
+::: {.interp .en}
+**Interchange status, mode, retail and connection to the city matter; bus stops do not.** Mode has the largest
+effect: an LRT-only station has `r pct(100 * exp(ch(RP$coef_H, "lrt")), 0)` of the home-end pull of an MRT station with the
+same surroundings. Each extra line multiplies the pull by about `r num(exp(ch(RP$coef_H, "ic")), 1)`. Doubling the retail nearby
+raises it by about `r pct(100 * (2^ch(RP$coef_H, "l_ret") - 1), 0)`. Doubling rail time to the CBD cuts it by about
+`r pct(100 * (1 - 2^ch(RP$coef_H, "l_cbd")), 0)`, which is the data-driven counterpart of Zhu et al.'s in-vehicle time. The number of bus stops,
+recommended in the brief, has an interval spanning zero at both ends once retail is in the model; bus stops
+are almost everywhere and vary little (the middle half of stations have between 6 and 12). The food count is likewise
+unsupported.
+
+Home-end access decays steeply at `r num(ch(RP$coef_H, "lambda"))`. The activity-end exponent, `r num(ch(RP$coef_W, "lambda"))`, is
+much flatter and its interval reaches zero, so distance from a workplace to a station is poorly determined. This
+is a limit of OSM footprints: they cannot say how much activity a tall office holds.
+:::
+
+::: {.interp .zh}
+**换乘地位、制式、零售与通往市区的连接重要，公交站数量则不然。** 制式的影响最大：纯轻轨车站在居住端的吸引力只有周边条件相同的地铁车站的 `r pct(100 * exp(ch(RP$coef_H, "lrt")), 0)`。每多一条线路，吸引力约变为
+`r num(exp(ch(RP$coef_H, "ic")), 1)` 倍。周边零售加倍，吸引力约上升 `r pct(100 * (2^ch(RP$coef_H, "l_ret") - 1), 0)`。到 CBD 的轨道时间加倍，吸引力约下降 `r pct(100 * (1 - 2^ch(RP$coef_H, "l_cbd")), 0)`，这是 Zhu 等人车内时间的数据驱动对应物。
+题目推荐的公交站数量，在模型纳入零售后，两端的区间都跨过了零；公交站几乎无处不在，变化很小（中间一半车站有 6 到 12 个）。餐饮数量同样得不到支持。
+
+居住端的到达过程衰减很陡，指数为 `r num(ch(RP$coef_H, "lambda"))`。活动端的指数为 `r num(ch(RP$coef_W, "lambda"))`，平缓得多，且区间触及零，所以工作地点到车站的距离作用难以确定。这是 OSM 占地面积的局限：它无法说明一栋高层办公楼里容纳了多少活动。
+:::
+
+::: {.en}
+**Against a null.** A flexible model can find apparent patterns in noise, so the bus, retail and food
+counts were shuffled among stations of the same mode 99 times, breaking only their link to ridership. The observed
+in-sample R² of `r num(RP$obs_r2, 3)` exceeds all 99 shuffled fits, whose maximum is `r num(max(RP$perm_null), 3)` (p = `r num(RP$perm_p)`). The null's average,
+`r num(mean(RP$perm_null), 3)`, is itself high, because the markets, mode, interchange status and rail time remain in place and
+do most of the work.
+:::
+
+::: {.zh}
+**与零模型比较。** 灵活的模型可能从噪声中找到表面的规律，所以把公交、零售与餐饮的数量在同一制式的车站之间打乱 99 次，只切断它们与客流的联系。样本内 R² 的观测值 `r num(RP$obs_r2, 3)` 超过了
+全部 99 次打乱的结果，其最大值为 `r num(max(RP$perm_null), 3)`（p = `r num(RP$perm_p)`）。零模型的均值 `r num(mean(RP$perm_null), 3)` 本身也很高，因为市场、制式、换乘地位与轨道时间都还保留，它们完成了大部分工作。
+:::
+
+## <span class="en">How well it predicts unseen lines</span><span class="zh">对未见线路的预测效果</span> {#sec-calib-lolo}
+
+```{r}
+#| label: fig-lolo
+#| fig-cap: "<span class='en'>Predicted against actual daily tap-ins for stations held out with their line. The dashed line is a perfect prediction; the dotted lines are a factor of two either way.</span><span class='zh'>随所属线路被留出的车站的预测与实际每日进站量。虚线为完美预测，点线为上下两倍范围。</span>"
+#| fig-height: 5
+#| code-fold: true
+
+rt <- RP$residuals_tbl |> filter(!is.na(fold)) |>
+  mutate(group = ifelse(grepl("LRT", fold), "LRT lines", paste(fold, "line")), err = lolo / daily_in)
+lab <- rt |> filter(abs(log(err)) > log(2.6) | station_name %in% c("Hume"))
+ggplot(rt, aes(lolo, daily_in)) +
+  geom_abline(slope = 1, linetype = 2, colour = PAL$grey) +
+  geom_abline(slope = 1, intercept = c(log10(2), -log10(2)), linetype = 3, colour = PAL$grey_l) +
+  geom_point(aes(colour = group), size = 1.8, alpha = .85) +
+  geom_text_repel(data = lab, aes(label = station_name), size = 2.6, min.segment.length = 0, segment.size = .2, seed = 4) +
+  scale_x_log10(labels = comma) + scale_y_log10(labels = comma) +
+  scale_colour_manual(values = c("NS line" = "#d42e12", "EW line" = "#009645", "NE line" = "#9900aa", "CC line" = "#fa9e0d",
+                                 "DT line" = "#005ec4", "TE line" = "#9d5b25", "LRT lines" = "#a8a29e"), name = NULL) +
+  labs(x = "Predicted with the line held out", y = "Actual") +
+  coord_equal() +
+  theme_th(10)
+```
+
+::: {.interp .en}
+**Roughly right on a log scale, with most stations within a factor of two.** Rank correlation on held-out
+stations is `r num(lad("M8 ")$lolo_rho)` and the median absolute error is `r pct(100 * lad("M8 ")$lolo_mape, 0)`. Line totals are usually within about a third of the actual
+(@tbl-folds): the Thomson-East Coast Line, the newest line and the best analogue for a new line in a built-up
+city, comes out at `r num(RP$fold_tbl$total_ratio[RP$fold_tbl$fold == "TE"])` times its actual total.
+The misses are informative. Stations far above the line, such as Kranji and Downtown, seem to draw on something other than what
+surrounds them, perhaps the Causeway in Kranji's case. The model is too generous at the very bottom: Keppel
+and Teck Lee are overpredicted several times over, because nothing it can see distinguishes a station beside an
+empty site from one beside a modest neighbourhood.
+
+As a screen for low ridership it is still useful. On held-out MRT stations, the chance that a station in the lowest
+fifth is ranked below one that is not is `r num(RP$auc_low)` (AUC).
+:::
+
+::: {.interp .zh}
+**在对数尺度上大体正确，多数车站在两倍范围内。** 留出车站的秩相关为 `r num(lad("M8 ")$lolo_rho)`，绝对误差中位数为 `r pct(100 * lad("M8 ")$lolo_mape, 0)`。线路总量与实际的差距通常不超过约三分之一（@tbl-folds）：汤东线是最新的线路，也是建成区新线的最佳参照，预测总量是实际的
+`r num(RP$fold_tbl$total_ratio[RP$fold_tbl$fold == "TE"])` 倍。偏差也很有信息量。远高于对角线的车站，如 Kranji 与 Downtown，似乎依赖周边环境之外的因素，Kranji 可能是因为长堤。而在最底部，模型又过于乐观：
+Keppel 与 Teck Lee 被高估了数倍，因为模型所能看到的信息无法区分位于空地旁的车站和位于普通社区旁的车站。
+
+作为低客流的筛查工具，它仍然有用。在留出的地铁车站中，最低五分之一车站排在其他车站之下的概率为 `r num(RP$auc_low)`（AUC）。
+:::
+
+```{r}
+#| label: tbl-folds
+#| tbl-cap: "<span class='en'>Hold-out performance by line. Median error is the log of predicted over actual, so a negative value is underprediction. Line totals are summed over held-out stations only.</span><span class='zh'>各线路的留出表现。误差中位数为预测与实际之比的对数，负值表示低估。线路总量只计留出车站。</span>"
+#| echo: false
+
+RP$fold_tbl |>
+  transmute(Line = fold, Stations = n, `Median log error` = median_error, RMSLE = rmsle, Actual = actual, Predicted = predicted,
+            `Predicted / actual` = total_ratio, rho) |>
+  gt() |>
+  fmt_number(c(`Median log error`, RMSLE, `Predicted / actual`, rho), decimals = 2) |>
+  fmt_number(c(Actual, Predicted), decimals = 0) |>
+  tab_options(table.font.size = px(12.5))
+```
+
+## <span class="en">Against MCI</span><span class="zh">与 MCI 对照</span> {#sec-calib-mci}
+
+::: {.en}
+The calibration runs on matrices, so it needs checking against the package the course uses. `huff.shares()` and
+`shares.total()` in **MCI** [@wieland2017] were run on the interaction frame with the selected home-end
+attractiveness and exponent. Both need a complete rectangular table, so a station out of range is set
+to an extremely large distance rather than removed, which sends its share to zero. On
+`r n_fmt(RP$mci_check$rows)` rows the largest difference from the matrix form is `r formatC(RP$mci_check$max_abs_gap, format = "e", digits = 1)` tap-ins,
+which is rounding. One evaluation took `r round(RP$mci_check$seconds / 60, 0)` minutes against a small fraction of a second, and calibrating needs
+thousands of them, which is why the matrix form is used. `huff.fit()` is not used for the final
+model, for a different reason, given in §9.4.
+:::
+
+::: {.zh}
+校准是在矩阵上运行的，所以需要与课程所用的程序包对照。把入选的居住端吸引力与指数代入交互数据框，运行 **MCI** [@wieland2017] 中的 `huff.shares()` 与 `shares.total()`。两者都需要完整的矩形表，所以超出范围的车站不是被移除，
+而是被设为极大的距离，使其份额趋于零。在 `r n_fmt(RP$mci_check$rows)` 行上，与矩阵形式的最大差距为 `r formatC(RP$mci_check$max_abs_gap, format = "e", digits = 1)` 次进站，这只是舍入误差。一次计算需要 `r round(RP$mci_check$seconds / 60, 0)` 分钟，而矩阵形式只需不到一秒，校准却需要数千次计算，
+这就是使用矩阵形式的原因。最终模型没有采用 `huff.fit()`，理由不同，见 §9.4。
+:::

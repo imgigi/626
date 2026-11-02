@@ -47,3 +47,12 @@ take-home-ex/take-home-ex2/data/derived/conflict_sf.rds
 take-home-ex/take-home-ex2/data/raw/mimu_adm3/
 # Permutation results: seeded, so a recomputation reproduces them exactly.
 take-home-ex/take-home-ex2/data/cache/
+
+# Take-home Exercise 3. Raw downloads are large or need an account key; the aggregated
+# results the report reads are committed. model.rds holds every fitted matrix (tens of
+# MB) and report.rds is its compact form.
+take-home-ex/take-home-ex3/data/raw/lta/
+take-home-ex/take-home-ex3/data/raw/osm/
+take-home-ex/take-home-ex3/data/raw/hdb/HDBExistingBuilding.geojson
+take-home-ex/take-home-ex3/data/cache/
+take-home-ex/take-home-ex3/data/derived/model.rds

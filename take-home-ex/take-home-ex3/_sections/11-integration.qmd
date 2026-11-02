@@ -1,0 +1,77 @@
+# <span class="en">Integrated findings and discussion</span><span class="zh">综合结论与讨论</span> {#sec-integration}
+
+## <span class="en">Answers to the research questions</span><span class="zh">对研究问题的回答</span>
+
+::: {.en}
+**RQ1: calibration.** A Huff model built on distance alone explains nothing about Singapore's stations. Mode, interchange
+status, retail and connection to the city do the explaining, and a model with these reaches a held-out R² of `r num(lad("M8 ")$lolo_r2)` and a
+rank correlation of `r num(lad("M8 ")$lolo_rho)` on lines it never saw. It beats a direct regression on the same variables because stations
+compete. Home-end access decays at about `r num(ch(RP$coef_H, "lambda"), 1)`, which supports the
+convention; the activity-end exponent is much less certain. Bus stop counts, recommended in the brief, add nothing once retail is in the model.
+
+**RQ2: prediction.** The `r nrow(NT)` new access points would carry about `r rnd(TT$new_stations[1], 1000)` tap-ins a day on today's land use. This
+central estimate rests on typical stations; simulated totals run from `r rnd(SC$totals_ci$closed$new[1], 1000)` to `r rnd(SC$totals_ci$closed$new[2], 1000)`, higher because
+errors with a long upper tail add up that way. Stations range from about 2,600 to 20,000 a day. Heartland infill does best. The risk of low ridership concentrates
+in Aviation Park, Jurong Pier, Tengah, Jurong Hill and Peng Kang Hill, and for most of these, what is built around them by opening day will matter more
+than anything in this model.
+
+**RQ3: impact.** Existing stations lose `r n_fmt(TT$existing_loss[2], 0)` to `r n_fmt(TT$existing_loss[1], 0)` tap-ins a day, depending on how much ridership is new. The loss is local: a median
+of about a fifth within 2 km of a new station, and nothing beyond 8 km. The western stations along the East-West Line are hit hardest. Dominant
+market areas change for `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$switched]), 0)` residents, and existing stations keep riders who live closer to them.
+
+**Beyond the gate.** These are largely feeder lines. A majority of Cross Island Line boardings and a large minority of Jurong Region Line boardings
+leave for elsewhere, so the stations that lose tap-ins become the interchanges that carry them onward.
+:::
+
+::: {.zh}
+**研究问题一：校准。** 只依靠距离的 Huff 模型对新加坡的车站毫无解释力。真正起解释作用的是制式、换乘地位、零售以及与市区的连接；包含这些变量的模型，在从未见过的线路上达到 `r num(lad("M8 ")$lolo_r2)` 的留出 R² 和 `r num(lad("M8 ")$lolo_rho)` 的秩相关。它优于基于相同变量的直接回归，因为车站之间存在竞争。居住端的到达过程以约 `r num(ch(RP$coef_H, "lambda"), 1)` 的指数衰减，支持了这一惯例；活动端的指数则不确定得多。题目推荐的公交站数量，在纳入零售后不再增加任何解释力。
+
+**研究问题二：预测。** 按当前土地利用，`r nrow(NT)` 个新进站点每日约有 `r rnd(TT$new_stations[1], 1000)` 次进站。这个中心估计基于典型车站；模拟总量从 `r rnd(SC$totals_ci$closed$new[1], 1000)` 到 `r rnd(SC$totals_ci$closed$new[2], 1000)` 次，更高是因为长上尾的误差相加就是如此。单站每日约 2,600 至 20,000 次。组屋区填补型车站表现最好。低客流风险集中在 Aviation Park、Jurong Pier、Tengah、Jurong Hill 与 Peng Kang Hill，对其中多数车站而言，开通时周边建成了什么，比模型中的任何因素都重要。
+
+**研究问题三：影响。** 既有车站每日损失 `r n_fmt(TT$existing_loss[2], 0)` 至 `r n_fmt(TT$existing_loss[1], 0)` 次进站，取决于有多少客流是新增的。损失是局部的：新站 2 公里内中位数约五分之一，8 公里外为零。东西线西段的车站受影响最大。主导市场区变化涉及 `r n_fmt(sum(SC$hex_impact$residents[SC$hex_impact$switched]), 0)` 名居民，既有车站留住的是住得更近的乘客。
+
+**闸机之外。** 这些线路在很大程度上是接驳线。跨岛线的多数上车乘客和裕廊区域线相当一部分上车乘客都会前往别处，所以损失进站量的车站会成为把他们送往下一程的换乘站。
+:::
+
+## <span class="en">What the methods learned from each other</span><span class="zh">不同方法之间的相互启发</span>
+
+::: {.en}
+Three of this report's decisions came from results that looked fine on the usual measures and failed on a plausibility check. Exact calibration fits every station by
+construction, and it tripled Kranji's mean catchment. A model with no maximum distance had the best hold-out score, and it took 10% of ridership from
+stations 10 km from anything new. A single exponent matched the network's mean trip length, and it overstated the very trips that matter here by almost a fifth.
+In each case the fit statistic alone would have recommended the wrong model. A forecast needs checking against what the
+forecast is for, which here means asking how far a station's effect should reach and how long a peripheral trip really is.
+:::
+
+::: {.zh}
+本报告有三项决策来自这样的结果：它们在常规指标上看起来很好，却没有通过合理性检验。精确校准按构造能拟合每个车站，却让 Kranji 的平均集散范围扩大到三倍。不设最大距离的模型留出分数最高，却让距任何新站 10 公里的车站损失 10% 的客流。单一指数符合全网的平均出行时长，却把这里最关键的那些出行高估了近五分之一。
+在每种情况下，只看拟合统计量都会选错模型。预测必须针对其目的加以检验，这里就是要问：一个车站的影响应当延伸多远，外围的一次出行实际上有多长。
+:::
+
+## <span class="en">Geovisualisation and geocommunication choices</span><span class="zh">地理可视化与地理传播的选择</span> {#sec-geocomm}
+
+::: {.en}
+The figures follow a few rules, chosen so that a reader who skips the text can still read the maps correctly.
+
+- **One colour, one meaning.** On maps of existing stations, orange marks a new one. On every diverging scale, red is loss or below expectation and blue is gain or above it,
+  and on the home share map red marks a station people arrive at. Existing lines are grey so that the new lines stand out in their official colours.
+- **Size for volume, colour for rate.** Losing half of 3,000 tap-ins and losing half of 35,000 are very different, so the impact map shows both. Ridership spans
+  a factor of 400, so tap-in charts use a log scale and say so.
+- **Show the range.** Each new station's estimate appears with its 90% range, since a single number would claim far more than the model can support.
+- **Probabilities as well as boundaries.** A dominant station map hides most of what the Huff model says. @fig-share shows the share itself, with
+  the boundary as an outline on top.
+- **Reference points a reader knows.** Hume and the lowest fifth of MRT stations stand on the prediction chart, because "3,000 a day" means little
+  without something to compare it with.
+- **Captions and commentary state the reading.** Each commentary block leads with its conclusion in bold, then gives the evidence, in under 200 words.
+:::
+
+::: {.zh}
+这些图遵循几条规则，目的是让跳过文字的读者也能正确读图。
+
+- **一种颜色，一种含义。** 在既有车站的地图上，橙色表示新站。在所有发散色标上，红色表示损失或低于预期，蓝色表示增加或高于预期；在居住端比例图上，红色表示人们前往的车站。既有线路为灰色，使新线以官方颜色突出显示。
+- **大小表示数量，颜色表示比率。** 损失 3,000 次进站量的一半与损失 35,000 次的一半大不相同，所以影响图同时显示两者。客流跨越 400 倍，所以进站量图使用对数尺度并加以说明。
+- **显示范围。** 每个新站的估计都附有 90% 范围，因为单一数字声称的确定性远超模型所能支持。
+- **既有概率也有边界。** 主导车站图隐藏了 Huff 模型的大部分内容。@fig-share 显示份额本身，并以轮廓线叠加边界。
+- **读者熟悉的参照点。** 预测图上标出 Hume 和地铁车站最低五分之一的界线，因为“每日 3,000 次”若没有比较对象，意义不大。
+- **题注与评论说明读法。** 每段评论都以粗体结论开头，再给出证据，篇幅不超过 200 词。
+:::
