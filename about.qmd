@@ -211,7 +211,7 @@ toc: false
       </div>
     </div>
 
-    <div class="about-tl-item current">
+    <div class="about-tl-item done">
       <div class="about-tl-dot tile-amber"></div>
       <div class="about-tl-body">
         <div class="about-tl-head">
@@ -224,8 +224,8 @@ toc: false
       </div>
     </div>
 
-    <div class="about-tl-item todo">
-      <div class="about-tl-dot tile-grey"></div>
+    <div class="about-tl-item done">
+      <div class="about-tl-dot tile-green"></div>
       <div class="about-tl-body">
         <div class="about-tl-head">
           <h3><span class="en">Lessons 4 – 5 · Spatial weights and autocorrelation</span><span class="zh">第 4 – 5 讲 · 空间权重与自相关</span></h3>

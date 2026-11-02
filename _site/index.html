@@ -503,7 +503,7 @@ ul.task-list li input[type="checkbox"] {
       <p><span class="en">Local Moran's I and Getis-Ord Gi* with <b>sfdep</b>: the Moran
       scatterplot, a LISA cluster map of Hunan's north-eastern growth pole, and
       hot and cold spots on a fixed distance band</span><span class="zh">用 <b>sfdep</b> 计算局部 Moran's I 与 Getis-Ord Gi*：Moran 散点图、湖南东北增长极的 LISA 聚类图，以及固定距离带下的热点与冷点</span></p>
-      <div class="dash-xmeta"><span><b>37</b> chunks</span><span><b>13</b> figures</span></div>
+      <div class="dash-xmeta"><span><b>36</b> chunks</span><span><b>13</b> figures</span></div>
     </a>
 
     <a class="dash-xcard" href="hand-on-ex/hand-on-ex6/hand-on-ex6.html">
@@ -709,13 +709,16 @@ ul.task-list li input[type="checkbox"] {
   const canvas = document.getElementById("dash-globe");
   if (!canvas || typeof d3 === "undefined") return;
 
-  // 分析过的地点：新加坡（Hands-on 1-2）、邦加勿里洞（Hands-on 3）、
-  // 普朗皮绍（Take-home 1）、缅甸（Take-home 2）
+  // 分析过的地点：新加坡（Hands-on 1-2、7、9，Take-home 3）、邦加勿里洞（Hands-on 3）、
+  // 湖南（Hands-on 4-5，课堂 4、6）、台中（Hands-on 8，课堂 8）、
+  // 普朗皮绍（Take-home 1）、缅甸（Hands-on 6，Take-home 2）
   const SITES = [
     { name: "Singapore",       lon: 103.82, lat:  1.35, colour: "#6c5ce7", icon: "◉", dx: -74, dy: -60 },
     { name: "Bangka Belitung", lon: 106.44, lat: -2.74, colour: "#ff6b6b", icon: "▲", dx:  78, dy:  54 },
     { name: "Pulang Pisau",    lon: 114.01, lat: -2.50, colour: "#ff9f43", icon: "■", dx:  84, dy: -34 },
-    { name: "Myanmar",         lon:  96.00, lat: 21.00, colour: "#e11d48", icon: "◆", dx: -70, dy: -40 }
+    { name: "Myanmar",         lon:  96.00, lat: 21.00, colour: "#e11d48", icon: "◆", dx: -70, dy: -40 },
+    { name: "Hunan",           lon: 111.70, lat: 27.60, colour: "#26c281", icon: "●", dx:  40, dy: -64 },
+    { name: "Taichung",        lon: 120.68, lat: 24.15, colour: "#17b0c4", icon: "▼", dx:  84, dy:  20 }
   ];
 
   let land = null, borders = null;
@@ -738,6 +741,7 @@ ul.task-list li input[type="checkbox"] {
   }
 
   function draw() {
+    if (projection.scale() <= 0) return;          // 窄屏时画布被隐藏，尺寸为 0，跳过
     const css = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, css.width, css.height);
     projection.rotate(rotation);
